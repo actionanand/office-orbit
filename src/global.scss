@@ -1,37 +1,622 @@
-/*
- * App Global CSS
- * ----------------------------------------------------------------------------
- * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
- */
+@import '@ionic/angular/css/core.css';
+@import '@ionic/angular/css/normalize.css';
+@import '@ionic/angular/css/structure.css';
+@import '@ionic/angular/css/typography.css';
+@import '@ionic/angular/css/display.css';
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  line-height: 1.55;
+}
+a {
+  color: var(--accent);
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button,
+a,
+input,
+select {
+  touch-action: manipulation;
+}
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+h1 {
+  font-size: clamp(1.9rem, 4vw, 2.75rem);
+  letter-spacing: -0.045em;
+  font-weight: 650;
+  line-height: 1.15;
+  margin-bottom: 14px;
+}
+h2 {
+  font-size: 1.12rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+p {
+  color: var(--muted);
+}
+ion-button {
+  --border-radius: 10px;
+  min-height: 44px;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+ion-input {
+  margin: 18px 0;
+  --border-color: var(--line);
+  --highlight-color-focused: var(--accent);
+}
+ion-toolbar {
+  --min-height: 64px;
+  padding-inline: 16px;
+  border-bottom: 1px solid var(--line);
+}
+ion-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+ion-segment {
+  margin: 24px 0;
+  max-width: 100%;
+  background: var(--surface);
+  border-radius: 12px;
+}
+ion-segment-button {
+  font-size: 0.83rem;
+  min-height: 48px;
+  text-transform: none;
+  letter-spacing: 0;
+  --color: var(--muted);
+  --color-checked: var(--accent);
+}
+ion-content {
+  --background: var(--ion-background-color);
+}
+app-shell {
+  height: 100%;
+  display: block;
+}
+ion-app > router-outlet + * {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.workspace-shell {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  height: 100%;
+}
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 32px 20px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--ion-text-color);
+  font-size: 1.13rem;
+  font-weight: 700;
+}
+.brand-row img {
+  object-fit: contain;
+}
+.brand-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 400;
+  margin-top: 2px;
+}
+.nav-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin: 42px 16px 12px;
+}
+.sidebar nav {
+  display: grid;
+  gap: 5px;
+}
+.sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 16px;
+  border-radius: 9px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.sidebar nav a.active {
+  background: var(--surface-soft);
+  color: var(--accent);
+  font-weight: 650;
+}
+.sidebar ion-icon {
+  font-size: 21px;
+}
+.sidebar-note {
+  margin-top: auto;
+  padding: 40px 6px 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.workspace-content {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+.workspace-content > router-outlet + * {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.bottom-nav {
+  display: none;
+}
+.page-wrap {
+  max-width: 1250px;
+  margin: auto;
+  padding: 38px 42px 64px;
+}
+.page-heading > p:last-child {
+  max-width: 660px;
+}
+.eyebrow {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface-soft);
+  margin-bottom: 30px;
+}
+.hero p:last-child {
+  margin-bottom: 0;
+  max-width: 550px;
+}
+.hero > ion-icon {
+  font-size: 64px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+  gap: 18px;
+}
+.data-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px;
+  min-width: 0;
+  height: 100%;
+  overflow-wrap: anywhere;
+}
+.data-card h2 {
+  margin-bottom: 18px;
+}
+.data-card dl {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.data-card dl > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(0, 1.5fr);
+  gap: 12px;
+  font-size: 0.82rem;
+}
+.data-card dt {
+  color: var(--muted);
+}
+.data-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.result-count {
+  font-size: 0.76rem;
+  margin: 26px 0 18px;
+}
+.state-panel {
+  text-align: center;
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  padding: 64px 24px;
+  margin-top: 24px;
+}
+.state-panel ion-icon {
+  font-size: 38px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.state-panel ion-spinner {
+  margin-bottom: 20px;
+}
+.auth-page {
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 8vw;
+  max-width: 1160px;
+  margin: auto;
+  padding: 64px 36px;
+}
+.auth-brand > img {
+  margin-bottom: 30px;
+  object-fit: contain;
+}
+.auth-brand h1 {
+  font-size: clamp(2.7rem, 5vw, 4.2rem);
+  max-width: 480px;
+}
+.auth-brand > p:last-child {
+  max-width: 360px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 38px;
+}
+.auth-card > ion-icon {
+  font-size: 26px;
+  color: var(--accent);
+  margin-bottom: 24px;
+}
+.auth-card > h2 {
+  font-size: 1.75rem;
+  margin-bottom: 10px;
+}
+.auth-card p {
+  font-size: 0.88rem;
+}
+.auth-card form > ion-button {
+  margin-top: 22px;
+}
+.auth-page.compact {
+  display: flex;
+  justify-content: center;
+}
+.auth-page.compact h1 {
+  font-size: 1.8rem;
+}
+.message {
+  padding: 12px 14px;
+  background: var(--surface-soft);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  margin: 16px 0;
+  color: var(--ion-text-color);
+}
+.message.error {
+  color: var(--danger);
+}
+.muted {
+  font-size: 0.82rem;
+}
+.settings {
+  max-width: 900px;
+}
+.settings > .data-card {
+  margin-bottom: 22px;
+  height: auto;
+}
+.theme-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.theme-options button {
+  min-height: 48px;
+  flex: 1;
+  padding: 12px 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ion-text-color);
+  cursor: pointer;
+}
+.theme-options button.selected {
+  background: var(--surface-soft);
+  border: 2px solid var(--accent);
+  color: var(--accent);
+}
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.more-grid {
+  display: grid;
+  gap: 14px;
+}
+.more-grid > a {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.more-grid ion-icon {
+  font-size: 28px;
+}
+.more-grid > a > span:last-child {
+  margin-left: auto;
+}
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 260px;
+  z-index: 9999;
+  padding: 12px;
+  background: var(--surface);
+}
+.skip-link:focus {
+  top: 8px;
+}
+.session-shield {
+  display: grid;
+  place-content: center;
+  gap: 20px;
+  position: absolute;
+  inset: 0;
+  background: var(--ion-background-color);
+  z-index: 100;
+  text-align: center;
+}
+.filters {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 24px 0;
+}
+.filters label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+}
+.filters input,
+.filters select {
+  background: var(--surface);
+  color: var(--ion-text-color);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  max-width: 100%;
+}
+.card-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 18px;
+}
+.card-actions a {
+  font-size: 0.85rem;
+  padding: 10px 0;
+}
+.detail-fields {
+  display: grid;
+  gap: 12px;
+}
+.detail-fields dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.detail-fields dd {
+  margin: 2px 0 12px;
+  overflow-wrap: anywhere;
+}
+.nested-value {
+  padding-left: 14px;
+  border-left: 2px solid var(--line);
+}
+.metric {
+  font-size: 2.5rem;
+  color: var(--accent);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+.dashboard-section {
+  margin-top: 28px;
+}
+.section-heading {
+  font-size: 1.25rem;
+}
+details > summary {
+  cursor: pointer;
+  color: var(--accent);
+  padding: 12px 0;
+  min-height: 44px;
+}
+.search-input {
+  width: 100%;
+}
+@media (max-width: 900px) {
+  .workspace-shell {
+    grid-template-columns: 205px minmax(0, 1fr);
+  }
+  .sidebar {
+    padding: 24px 12px;
+  }
+  .page-wrap {
+    padding: 28px 24px 48px;
+  }
+  .brand-row {
+    font-size: 1rem;
+  }
+  .brand-row small {
+    display: none;
+  }
+  .hero {
+    padding: 24px;
+  }
+  .hero > ion-icon {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .workspace-shell {
+    display: block;
+  }
+  .sidebar {
+    display: none;
+  }
+  .workspace-content {
+    height: calc(100% - 68px - env(safe-area-inset-bottom, 0px));
+  }
+  .bottom-nav {
+    display: flex;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+    height: calc(68px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+  }
+  .bottom-nav a {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 3px;
+    min-width: 52px;
+    font-size: 0.62rem;
+    text-decoration: none;
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 4px 7px;
+  }
+  .bottom-nav a.active {
+    background: var(--surface-soft);
+    color: var(--accent);
+  }
+  .bottom-nav ion-icon {
+    font-size: 22px;
+  }
+  .page-wrap {
+    padding: 24px 18px 36px;
+  }
+  .hero {
+    padding: 24px 20px;
+    margin-bottom: 20px;
+  }
+  .data-card {
+    padding: 20px;
+  }
+  .auth-page {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 30px 22px;
+  }
+  .auth-brand {
+    max-width: 440px;
+    margin: auto;
+  }
+  .auth-brand > img {
+    width: 76px;
+    height: 76px;
+    margin-bottom: 14px;
+  }
+  .auth-brand h1 {
+    font-size: 2.55rem;
+  }
+  .auth-brand > p:last-child {
+    display: none;
+  }
+  .auth-card {
+    max-width: 440px;
+    margin: auto;
+    padding: 26px;
+  }
+  .auth-card > ion-icon {
+    margin-bottom: 16px;
+  }
+  .skip-link {
+    left: 12px;
+  }
+  .theme-options {
+    gap: 8px;
+  }
+  .theme-options button {
+    padding: 10px;
+  }
+  .settings .brand-row small {
+    display: block;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
 
-/* Core CSS required for Ionic components to work properly */
-@import "@ionic/angular/css/core.css";
-
-/* Basic CSS for apps built with Ionic */
-@import "@ionic/angular/css/normalize.css";
-@import "@ionic/angular/css/structure.css";
-@import "@ionic/angular/css/typography.css";
-@import "@ionic/angular/css/display.css";
-
-/* Optional CSS utils that can be commented out */
-@import "@ionic/angular/css/padding.css";
-@import "@ionic/angular/css/float-elements.css";
-@import "@ionic/angular/css/text-alignment.css";
-@import "@ionic/angular/css/text-transformation.css";
-@import "@ionic/angular/css/flex-utils.css";
-
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
-
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+.skeleton-card {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.skeleton-card span {
+  display: block;
+  height: 12px;
+  margin: 12px 0;
+  border-radius: 6px;
+  background: var(--surface-soft);
+}
+.skeleton-card span:first-child {
+  width: 60%;
+}

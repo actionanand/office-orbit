@@ -68,3 +68,13 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Generated native project and signing material
+/android/
+*.jks
+*.keystore
+*-key.pem
+*-cert.pem
+keystore.b64.txt
+.env
+.env.*

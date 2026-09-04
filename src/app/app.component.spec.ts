@@ -1,16 +1,19 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { signal } from '@angular/core';
 import { AppComponent } from './app.component';
-
+import { StartupService } from './core/startup.service';
 describe('AppComponent', () => {
-  it('should create the app', async () => {
+  it('shows a startup shield before a session is ready', async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideRouter([])]
+      providers: [
+        provideRouter([]),
+        { provide: StartupService, useValue: { phase: signal('loading'), start: () => Promise.resolve() } },
+      ],
     }).compileComponents();
-    
     const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Opening your workspace');
   });
 });
