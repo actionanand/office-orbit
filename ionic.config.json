@@ -1,0 +1,7 @@
+{
+  "name": "office-orbit",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
