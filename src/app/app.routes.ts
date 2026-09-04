@@ -31,6 +31,10 @@ export const routes: Routes = [
         loadChildren: () => import('./features/sprints/sprints.routes').then(m => m.routes),
       },
       {
+        path: 'analytics',
+        loadComponent: () => import('./features/analytics/analytics.page').then(m => m.AnalyticsPage),
+      },
+      {
         path: 'releases',
         loadChildren: () => import('./features/releases/releases.routes').then(m => m.routes),
       },

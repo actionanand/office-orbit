@@ -5,11 +5,15 @@ import { catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthState } from '../auth/auth-state';
 import { TokenStorageService } from '../storage/token-storage.service';
+import { DataCacheService } from '../cache/data-cache.service';
+import { NavigationStateService } from '../cache/navigation-state.service';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const state = inject(AuthState);
   const storage = inject(TokenStorageService);
   const router = inject(Router);
+  const dataCache = inject(DataCacheService);
+  const navigationState = inject(NavigationStateService);
   const url = new URL(request.url, document.baseURI);
   const worker = new URL(environment.apiBaseUrl);
   const protectedRequest =
@@ -29,6 +33,8 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
         state.session() === session
       ) {
         state.clear();
+        dataCache.clear();
+        navigationState.clear();
         state.notice.set('Your session has expired. Please sign in again.');
         void storage
           .clear()

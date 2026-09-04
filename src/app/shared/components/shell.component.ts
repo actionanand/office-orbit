@@ -13,6 +13,7 @@ import {
   linkOutline,
   settingsOutline,
   ellipsisHorizontalOutline,
+  analyticsOutline,
 } from 'ionicons/icons';
 import { navigation } from '../navigation';
 import { AppLockService } from '../../core/app-lock/app-lock.service';
@@ -71,6 +72,7 @@ export class ShellComponent {
       linkOutline,
       settingsOutline,
       ellipsisHorizontalOutline,
+      analyticsOutline,
     });
   }
 }

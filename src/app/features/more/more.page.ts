@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonIcon } from '@ionic/angular';
 import { navigation } from '../../shared/navigation';
+import { addIcons } from 'ionicons';
+import { chevronForwardOutline } from 'ionicons/icons';
 @Component({
   selector: 'app-more',
   imports: [RouterLink, IonContent, IonHeader, IonTitle, IonToolbar, IonIcon],
@@ -17,13 +19,15 @@ import { navigation } from '../../shared/navigation';
           @for (item of items; track item.path) {
             <a class="data-card" [routerLink]="'/app/' + item.path"
               ><ion-icon [name]="item.icon" aria-hidden="true" /><span>{{ item.label }}</span
-              ><span aria-hidden="true">→</span></a
-            >
+              ><ion-icon name="chevron-forward-outline" aria-hidden="true"
+            /></a>
           }
-        </nav>
-      </main></ion-content
-    >`,
+        </nav></main
+    ></ion-content>`,
 })
 export class MorePage {
   readonly items = navigation.slice(4);
+  constructor() {
+    addIcons({ chevronForwardOutline });
+  }
 }

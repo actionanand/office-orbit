@@ -41,11 +41,13 @@ interface ListResponse<T> {
 }
 ```
 
-ResourceService checks the envelope, tolerates bare arrays and single record responses, and retains object fields as unknown until their type is checked for display. Authentication has separate typed models. Dashboard displays each returned section and numeric top-level summaries; absent values remain absent.
+ResourceService checks the envelope and tolerates bare arrays and single record responses. Authentication has separate typed models. Dashboard consumes only `/api/dashboard`, renders four summary metrics, deduplicates its attention preview, and limits recent Work Logs to five visible items. It does not fetch full feature collections.
 
-Full authenticated sample payloads were not supplied, so nested field ordering and entity-specific relation presentation still need confirmation against real responses. No authenticated requests were made during implementation.
+The Worker's local source and knowledge-base contracts confirm `include=relations` support for JIRAs, Work Logs, Sprints, Releases, Feedback, and Work Links. Office Orbit sends that option for supported collection and JIRA detail requests, then renders only human-readable relation names and keys.
 
-The brief does not specify the incoming cursor parameter or which endpoints accept include=relations. The app deliberately sends neither. It reports when the server indicates additional records. Confirm that contract before adding load-more or relation-expansion requests.
+The Worker returns `hasMore` and `nextCursor`, but its collection routes do not accept `cursor` or `pageSize`. Office Orbit therefore does not fake pagination or download all history. The client retains the returned cursor for future forward pagination and caches the first response by endpoint and filters. The exact recommended backend enhancement is `GET /api/<resource>?pageSize=25&cursor=<opaqueNotionCursor>`, with the cursor passed to Notion as `start_cursor`, while preserving filters, sort order, response envelope, and opaque cursor semantics.
+
+There is no aggregate Analytics endpoint. Trend charts for Sprint spillovers, blockers, delivery, demos, Work Logs, appraisal items, and releases require server-side grouping and bounded time-series responses before production charts can be added efficiently.
 
 ## Error behavior and security
 

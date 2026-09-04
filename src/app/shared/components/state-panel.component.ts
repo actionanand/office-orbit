@@ -18,8 +18,8 @@ import { alertCircleOutline, fileTrayOutline } from 'ionicons/icons';
       </div>
     } @else {
       <ion-icon [name]="error() ? 'alert-circle-outline' : 'file-tray-outline'" aria-hidden="true"></ion-icon>
-      <h2>{{ error() ? 'We couldn’t load this view' : 'Nothing here yet' }}</h2>
-      <p>{{ error() || 'No matching items were returned by Office Orbit.' }}</p>
+      <h2>{{ error() ? 'We couldn’t load this view' : title() }}</h2>
+      <p>{{ error() || message() }}</p>
       @if (error()) {
         <ion-button fill="outline" (click)="retry.emit()">Try again</ion-button>
       }
@@ -29,6 +29,8 @@ import { alertCircleOutline, fileTrayOutline } from 'ionicons/icons';
 export class StatePanelComponent {
   readonly loading = input(false);
   readonly error = input('');
+  readonly title = input('Nothing here yet');
+  readonly message = input('No matching items were returned by Office Orbit.');
   readonly retry = output();
   constructor() {
     addIcons({ alertCircleOutline, fileTrayOutline });

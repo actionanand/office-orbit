@@ -3,6 +3,7 @@ export const navigation = [
   { path: 'work-logs', label: 'Work Log', icon: 'journal-outline' },
   { path: 'jiras', label: 'JIRAs', icon: 'checkbox-outline' },
   { path: 'sprints', label: 'Sprints', icon: 'repeat-outline' },
+  { path: 'analytics', label: 'Analytics', icon: 'analytics-outline' },
   { path: 'releases', label: 'Releases', icon: 'rocket-outline' },
   { path: 'feedback', label: 'Feedback', icon: 'chatbubbles-outline' },
   { path: 'work-links', label: 'Work Links', icon: 'link-outline' },

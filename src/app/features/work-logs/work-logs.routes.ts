@@ -5,6 +5,6 @@ export const routes: Routes = [
   {
     path: '',
     providers: [{ provide: ReadFeatureService, useClass: WorkLogService }],
-    loadComponent: () => import('../resource/resource.page').then(m => m.ResourcePage),
+    loadComponent: () => import('./work-log.page').then(m => m.WorkLogPage),
   },
 ];
