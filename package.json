@@ -14,10 +14,26 @@
     "precommit:dummy": "echo 'This is a dummy print message!'",
     "precommit": "run-s format:fix lint",
     "format:fix": "pretty-quick --staged",
-    "format:check": "prettier --config ./.prettierrc --list-different \"src/{app,environments,assets}/**/*{.ts,.js,.json,.css,.scss}\"",
-    "format:all": "prettier --config ./.prettierrc --write \"src/{app,environments,assets}/**/*{.ts,.js,.json,.css,.scss}\"",
+    "format:check": "prettier --config ./.prettierrc.yml --list-different \"src/{app,environments,assets}/**/*{.ts,.js,.json,.css,.scss}\"",
+    "format:all": "prettier --config ./.prettierrc.yml --write \"src/{app,environments,assets}/**/*{.ts,.js,.json,.css,.scss}\"",
     "lint": "ng lint",
-    "prepare": "husky"
+    "prepare": "husky",
+    "android:version:minor": "node scripts/bump-android-version.js --minor",
+    "android:patch": "node scripts/patch-android.mjs",
+    "android:open": "cap open android",
+    "generate-keystore": "node scripts/generate-keystore.mjs",
+    "android:version:major": "node scripts/bump-android-version.js --major",
+    "android:release": "npm run android:sync && node scripts/build-android.mjs",
+    "test:ci": "ng test --watch=false",
+    "android:assets": "node scripts/generate-android-assets.mjs",
+    "keystore:type": "node scripts/detect-keystore-format.mjs release-keystore.jks",
+    "android:sync:only": "cap sync android && npm run android:patch && npm run android:assets",
+    "android:sync": "npm run build && cap sync android && npm run android:patch && npm run android:assets",
+    "android:version": "node scripts/bump-android-version.js",
+    "android:add": "cap add android",
+    "android:version:patch": "node scripts/bump-android-version.js --patch",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "test:android-scripts": "node --test scripts/android-scripts.test.mjs"
   },
   "private": true,
   "dependencies": {
@@ -35,7 +51,12 @@
     "@ionic/angular": "^9.0.0",
     "ionicons": "^8.1.0",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/browser": "^8.0.0",
+    "@aparajita/capacitor-biometric-auth": "10.0.0",
+    "@aparajita/capacitor-secure-storage": "8.0.0",
+    "@capacitor/android": "8.5.0"
   },
   "devDependencies": {
     "@angular/build": "22.0.1",
