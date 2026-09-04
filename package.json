@@ -1,8 +1,7 @@
 {
   "name": "office-orbit",
   "version": "0.0.1",
-  "author": "Ionic Framework",
-  "homepage": "https://ionicframework.com/",
+  "author": "Anand Raja",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -57,7 +56,7 @@
     "typescript-eslint": "8.60.1",
     "vitest": "^4.0.8"
   },
-  "description": "An Ionic project",
+  "description": "Office Orbit — a personal workspace for tracking JIRAs, sprints, daily work, releases, feedback, and career highlights.",
   "engines": {
     "node": ">=22.22.3 || >=24.15.0 || >=26.0.0"
   }
