@@ -45,9 +45,9 @@ ResourceService checks the envelope and tolerates bare arrays and single record 
 
 The Worker's local source and knowledge-base contracts confirm `include=relations` support for JIRAs, Work Logs, Sprints, Releases, Feedback, and Work Links. Office Orbit sends that option for supported collection and JIRA detail requests, then renders only human-readable relation names and keys.
 
-The Worker returns `hasMore` and `nextCursor`, but its collection routes do not accept `cursor` or `pageSize`. Office Orbit therefore does not fake pagination or download all history. The client retains the returned cursor for future forward pagination and caches the first response by endpoint and filters. The exact recommended backend enhancement is `GET /api/<resource>?pageSize=25&cursor=<opaqueNotionCursor>`, with the cursor passed to Notion as `start_cursor`, while preserving filters, sort order, response envelope, and opaque cursor semantics.
+The Worker accepts `pageSize` (default 25, maximum 100) and opaque `cursor`. CursorService retains appended pages by filter context; Refresh resets only the active chain. Calendar and exports follow all cursors within explicitly bounded date ranges.
 
-There is no aggregate Analytics endpoint. Trend charts for Sprint spillovers, blockers, delivery, demos, Work Logs, appraisal items, and releases require server-side grouping and bounded time-series responses before production charts can be added efficiently.
+Work Activity analytics use bounded Work Logs and local aggregation. Historical Sprint health still requires a Worker aggregate endpoint. See [pagination, reports and analytics](PAGINATION-EXPORT-ANALYTICS.md).
 
 ## Error behavior and security
 

@@ -54,7 +54,7 @@ describe('ResourceService caching', () => {
     const result = firstValueFrom(service.list<Jira>('/api/jiras', { include: 'relations' }));
     const request = http.expectOne(value => value.url === `${environment.apiBaseUrl}/api/jiras`);
     expect(request.request.params.has('cursor')).toBe(false);
-    expect(request.request.params.has('pageSize')).toBe(false);
+    expect(request.request.params.get('pageSize')).toBe('25');
     request.flush({ data: [jira], count: 1, hasMore: true, nextCursor: 'opaque' });
     expect((await result).nextCursor).toBe('opaque');
     http.expectNone(value => value.params.has('cursor'));

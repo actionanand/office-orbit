@@ -120,4 +120,5 @@ if (!rules.includes('OFFICE_ORBIT_PLUGINS'))
     rules +
       '\n# OFFICE_ORBIT_PLUGINS\n-keep class com.getcapacitor.** { *; }\n-keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }\n-keepclassmembers class * { @com.getcapacitor.PluginMethod <methods>; }\n',
   );
+await import('./patch-android-export.mjs');
 console.log('Applied Office Orbit Android identity, secure backup policy, splash sizing and R8 configuration.');

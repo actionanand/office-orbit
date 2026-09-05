@@ -31,7 +31,9 @@ export class DataCacheService {
       tap(value => {
         if (version === (this.versions.get(key) ?? 0) && clearGeneration === this.clearGeneration) this.set(key, value);
       }),
-      finalize(() => this.requests.delete(key)),
+      finalize(() => {
+        if (this.requests.get(key) === request) this.requests.delete(key);
+      }),
       shareReplay({ bufferSize: 1, refCount: false }),
     );
     this.requests.set(key, request);

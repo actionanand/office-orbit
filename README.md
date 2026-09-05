@@ -79,3 +79,7 @@ Run the WSL checks above, then use [device acceptance checks](documentation/andr
 See [architecture](documentation/architecture.md), [authentication](documentation/authentication.md), [Android security](documentation/android-security.md), and [backend API](documentation/backend-api.md).
 
 The original generated-project setup and tooling notes are preserved in [project setup reference](documentation/project-setup-reference.md).
+
+# Pagination, Work Log reports and Analytics
+
+See [cursor pagination, Print / Export, Android PDF sharing and real Analytics](documentation/PAGINATION-EXPORT-ANALYTICS.md) for usage, Office Pulse reuse, native setup and verification limitations.

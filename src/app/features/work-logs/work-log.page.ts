@@ -5,6 +5,7 @@ import {
   IonButton,
   IonContent,
   IonHeader,
+  IonModal,
   IonIcon,
   IonSegment,
   IonSegmentButton,
@@ -23,20 +24,22 @@ import {
   printOutline,
   refreshOutline,
 } from 'ionicons/icons';
-import { PrintService } from '../../core/platform/print.service';
+import { WorkLogExportComponent } from './work-log-export.component';
 import { JiraLinkComponent } from '../jiras/jira-link.component';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
 import { StatePanelComponent } from '../../shared/components/state-panel.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { WorkLog } from '../../shared/models/api.models';
-import { formatDate, formatDateTime, formatRelativeTime, names, truncate } from '../../shared/utils/format';
+import { formatDate, formatRelativeTime, names } from '../../shared/utils/format';
 import { calendarDays, currentMonth } from './calendar';
 import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store';
 
 @Component({
   selector: 'app-work-log',
   imports: [
+    WorkLogExportComponent,
+    IonModal,
     ReactiveFormsModule,
     RouterLink,
     IonButton,
@@ -71,18 +74,20 @@ import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store'
             <ion-button fill="clear" routerLink="/app/analytics" [queryParams]="{ section: 'work-activity' }">
               <ion-icon name="analytics-outline" slot="start" />View work trends
             </ion-button>
-            @if (printer.supported) {
-              <ion-button fill="outline" (click)="print()"
-                ><ion-icon name="print-outline" slot="start" />Print</ion-button
-              >
-            }
+            <ion-button fill="outline" (click)="print()"
+              ><ion-icon name="print-outline" slot="start" />Print / Export</ion-button
+            >
           </div>
         </div>
 
         <div class="work-log-controls no-print">
           <ion-segment class="view-switcher" [value]="store.mode()" (ionChange)="setMode($event.detail.value)">
-            <ion-segment-button value="list"><ion-icon name="list-outline" />List</ion-segment-button>
-            <ion-segment-button value="calendar"><ion-icon name="calendar-outline" />Calendar</ion-segment-button>
+            <ion-segment-button value="list" aria-label="List view" title="List view"
+              ><ion-icon name="list-outline" aria-hidden="true"
+            /></ion-segment-button>
+            <ion-segment-button value="calendar" aria-label="Calendar view" title="Calendar view"
+              ><ion-icon name="calendar-outline" aria-hidden="true"
+            /></ion-segment-button>
           </ion-segment>
           <ion-segment class="data-switcher" [value]="store.selectedPath()" (ionChange)="setPath($event.detail.value)">
             <ion-segment-button value="/api/work-logs">All</ion-segment-button>
@@ -91,20 +96,31 @@ import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store'
         </div>
 
         @if (store.selectedPath() === '/api/work-logs') {
-          <details class="filter-panel no-print">
-            <summary><ion-icon name="filter-outline" aria-hidden="true" />Filters</summary>
-            <form class="filters compact-filters" [formGroup]="form" (ngSubmit)="applyFilters()">
-              @if (store.mode() === 'list') {
-                <label>From<input type="date" formControlName="from" /></label>
-                <label>To<input type="date" formControlName="to" /></label>
-              }
-              <label>Category<input type="text" formControlName="category" /></label>
-              <label>Type<input type="text" formControlName="type" /></label>
-              <label>Work mode<input type="text" formControlName="workMode" /></label>
-              <ion-button type="submit" fill="outline">Apply filters</ion-button>
-              <ion-button type="button" fill="clear" (click)="clearFilters()">Clear</ion-button>
-            </form>
-          </details>
+          <ion-button class="filter-open" fill="outline" (click)="filtersOpen.set(true)"
+            ><ion-icon name="filter-outline" slot="start" />Filters</ion-button
+          >
+          <ion-modal class="filter-modal" [isOpen]="filtersOpen()" (didDismiss)="filtersOpen.set(false)"
+            ><ng-template
+              ><ion-header
+                ><ion-toolbar
+                  ><ion-title>Filters</ion-title
+                  ><ion-button slot="end" fill="clear" aria-label="Close filters" (click)="filtersOpen.set(false)"
+                    ><ion-icon name="close-outline" slot="icon-only" /></ion-button></ion-toolbar></ion-header
+              ><ion-content>
+                <form class="filters compact-filters" [formGroup]="form" (ngSubmit)="applyFilters()">
+                  @if (store.mode() === 'list') {
+                    <label>From<input type="date" formControlName="from" /></label>
+                    <label>To<input type="date" formControlName="to" /></label>
+                  }
+                  <label>Category<input type="text" formControlName="category" /></label>
+                  <label>Type<input type="text" formControlName="type" /></label>
+                  <label>Work mode<input type="text" formControlName="workMode" /></label>
+                  <ion-button type="submit" fill="outline">Apply filters</ion-button>
+                  <ion-button type="button" fill="clear" (click)="clearFilters()">Clear</ion-button>
+                </form>
+              </ion-content></ng-template
+            ></ion-modal
+          >
         }
 
         <label class="loaded-search no-print"
@@ -158,19 +174,14 @@ import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store'
           </section>
         }
 
-        <section class="print-heading">
-          <p>Office Orbit</p>
-          <h1>Work Log</h1>
-          <p>{{ printContext() }}</p>
-          <p>Printed {{ printedAt() }}</p>
-        </section>
-
         @if (store.loading()) {
           <app-loading-skeleton [rows]="5" />
         } @else if (store.error() || !displayedLogs().length) {
           <app-state-panel [error]="store.error()" [message]="emptyMessage()" (retry)="refresh()" />
         } @else {
-          <p class="result-count no-print">{{ displayedLogs().length }} of {{ store.count() }} items on this page</p>
+          <p class="result-count no-print">
+            {{ displayedLogs().length }} work logs{{ store.hasMore() ? ' loaded' : '' }}
+          </p>
           <section class="activity-list printable-list" aria-label="Work log history">
             @for (item of displayedLogs(); track item.id; let index = $index) {
               @if (showDateHeader(index)) {
@@ -214,9 +225,9 @@ import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store'
         }
 
         @if (store.hasMore()) {
-          <p class="message pagination-notice no-print" role="status">
-            More records are available. The service does not yet accept its continuation cursor.
-          </p>
+          <ion-button fill="outline" [disabled]="store.loadingMore()" (click)="store.load(false, true)">{{
+            store.loadingMore() ? 'Loading...' : 'Load more'
+          }}</ion-button>
         }
       </main>
 
@@ -305,11 +316,13 @@ import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store'
           }
         </aside>
       }
-    </ion-content>`,
+      <app-work-log-export [open]="exportOpen()" (closed)="exportOpen.set(false)"
+    /></ion-content>`,
 })
 export class WorkLogPage {
   readonly store = inject(WorkLogStore);
-  readonly printer = inject(PrintService);
+  readonly exportOpen = signal(false);
+  readonly filtersOpen = signal(false);
   readonly selectedLog = signal<WorkLog | null>(null);
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   readonly today = this.isoDate(new Date());
@@ -373,6 +386,7 @@ export class WorkLogPage {
       return;
     }
     this.store.filters.set(filters);
+    this.filtersOpen.set(false);
     void this.store.load(false);
   }
   clearFilters(): void {
@@ -415,23 +429,7 @@ export class WorkLogPage {
     return this.store.search() ? 'No loaded Work Logs match your search.' : 'No work logged for this period.';
   }
   print(): void {
-    this.printer.print();
-  }
-  printedAt(): string {
-    return formatDateTime(new Date().toISOString());
-  }
-  printContext(): string {
-    if (this.store.mode() === 'calendar')
-      return this.store.selectedDate() ? formatDate(this.store.selectedDate()) : this.monthHeading();
-    const { from, to, category, type, workMode } = this.store.filters();
-    return [
-      from || to ? `${formatDate(from) || 'Beginning'} to ${formatDate(to) || 'Today'}` : 'Current loaded page',
-      category,
-      type,
-      workMode,
-    ]
-      .filter(Boolean)
-      .join(' · ');
+    this.exportOpen.set(true);
   }
   private isoDate(date: Date): string {
     const year = date.getFullYear();

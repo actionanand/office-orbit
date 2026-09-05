@@ -2,6 +2,7 @@ import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { PrintService } from '../../core/platform/print.service';
+import { provideHttpClient } from '@angular/common/http';
 import { WorkLog } from '../../shared/models/api.models';
 import { WorkLogPage } from './work-log.page';
 import { WorkLogStore } from './work-log.store';
@@ -57,6 +58,7 @@ describe('WorkLogPage calendar', () => {
       imports: [WorkLogPage],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
         { provide: WorkLogStore, useValue: store },
         { provide: PrintService, useValue: { supported: true, print: vi.fn() } },
       ],
@@ -67,9 +69,12 @@ describe('WorkLogPage calendar', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.displayedLogs().map(item => item.id)).toEqual(['one']);
     expect(store.load).toHaveBeenCalledTimes(1);
+    const element: HTMLElement = fixture.nativeElement;
+    expect(element.querySelector('[aria-label="List view"]')?.textContent?.trim()).toBe('');
+    expect(element.querySelector('[aria-label="Calendar view"] ion-icon')).not.toBeNull();
   });
 
-  it('delegates Web printing to the browser print dialog', async () => {
+  it('opens export options before printing', async () => {
     const print = vi.fn();
     const items = signal<WorkLog[]>([]);
     const store = {
@@ -94,12 +99,14 @@ describe('WorkLogPage calendar', () => {
       imports: [WorkLogPage],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
         { provide: WorkLogStore, useValue: store },
         { provide: PrintService, useValue: { supported: true, print } },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(WorkLogPage);
     fixture.componentInstance.print();
-    expect(print).toHaveBeenCalledOnce();
+    expect(fixture.componentInstance.exportOpen()).toBe(true);
+    expect(print).not.toHaveBeenCalled();
   });
 });

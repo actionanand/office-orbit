@@ -43,3 +43,7 @@ Analytics is a top-level desktop feature and appears under More on Android. It d
 ## Responsive shell
 
 Desktop keeps the compact left navigation. Screens at 700 px and below replace it with the five-item bottom navigation: Dashboard, Work Log, JIRAs, Sprints, and More. More contains Releases, Feedback, Work Links, and Settings.
+
+## Current enhancement pass
+
+Cursor pagination, complete month loading, Print / Export, Android PDF sharing and real bounded Analytics are now implemented. See [current behavior and limitations](PAGINATION-EXPORT-ANALYTICS.md); it supersedes earlier first-page/placeholder/Android-print notes above.

@@ -1,5 +1,7 @@
 import { computed, effect, inject, Service, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { defer, firstValueFrom } from 'rxjs';
+import { CursorService } from '../../core/api/cursor.service';
+import { cacheKey } from '../../core/cache/data-cache.service';
 import { apiError } from '../../core/api/api-error';
 import { WorkLog } from '../../shared/models/api.models';
 import { currentMonth, monthRange, shiftMonth } from './calendar';
@@ -20,6 +22,9 @@ const emptyFilters: WorkLogFilters = { from: '', to: '', category: '', type: '',
 @Service()
 export class WorkLogStore {
   private readonly service = inject(WorkLogService);
+  private readonly cursors = inject(CursorService);
+  private requestVersion = 0;
+  readonly loadingMore = signal(false);
   private readonly cache = inject(DataCacheService);
   readonly mode = signal<WorkLogViewMode>(
     localStorage.getItem('office-orbit.work-log-view') === 'calendar' ? 'calendar' : 'list',
@@ -44,6 +49,9 @@ export class WorkLogStore {
   constructor() {
     effect(() => {
       if (this.cache.cleared() === 0) return;
+      this.requestVersion += 1;
+      this.loading.set(false);
+      this.loadingMore.set(false);
       this.items.set([]);
       this.count.set(0);
       this.hasMore.set(false);
@@ -71,8 +79,11 @@ export class WorkLogStore {
     this.setMonth(shiftMonth(this.month(), offset));
   }
 
-  async load(refresh: boolean): Promise<void> {
-    this.loading.set(true);
+  async load(refresh: boolean, more = false): Promise<void> {
+    if (more && (this.loadingMore() || this.loading())) return;
+    const version = ++this.requestVersion;
+    this.loading.set(!more);
+    this.loadingMore.set(more);
     this.error.set('');
     const calendarMode = this.mode() === 'calendar';
     const requestPath = calendarMode ? '/api/work-logs' : this.selectedPath();
@@ -82,17 +93,33 @@ export class WorkLogStore {
         ? { ...this.filters() }
         : { ...emptyFilters };
     try {
-      const response = await firstValueFrom(this.service.list(requestPath, filters, refresh));
+      const response = calendarMode
+        ? await firstValueFrom(
+            this.cache.load(
+              'calendar:' + cacheKey(requestPath, { ...filters, include: 'relations' }) + '#',
+              () =>
+                defer(async () => {
+                  const data = await this.cursors.range<WorkLog>(requestPath, { ...filters, include: 'relations' });
+                  return { data, count: data.length, hasMore: false, nextCursor: null, lastUpdated: Date.now() };
+                }),
+              refresh,
+            ),
+          )
+        : await firstValueFrom(this.service.list(requestPath, filters, refresh, more));
+      if (version !== this.requestVersion) return;
       const items = response.data as WorkLog[];
       this.items.set(this.selectedPath().endsWith('/appraisal') ? items.filter(item => item.appraisal) : items);
       this.count.set(this.items().length);
       this.hasMore.set(response.hasMore);
       this.nextCursor.set(response.nextCursor);
-      this.lastUpdated.set(this.service.updatedAt(requestPath, filters));
+      this.lastUpdated.set(response.lastUpdated);
     } catch (error) {
-      this.error.set(apiError(error));
+      if (version === this.requestVersion) this.error.set(apiError(error));
     } finally {
-      this.loading.set(false);
+      if (version === this.requestVersion) {
+        this.loading.set(false);
+        this.loadingMore.set(false);
+      }
     }
   }
 

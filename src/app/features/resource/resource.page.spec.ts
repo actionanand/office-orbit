@@ -3,13 +3,61 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of } from 'rxjs';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
 import { LinksService } from '../../core/platform/links.service';
-import { Jira, WorkLog } from '../../shared/models/api.models';
+import { Jira, WorkLog, ReleaseItem } from '../../shared/models/api.models';
 import { ResourcePage } from './resource.page';
 
 const route = { snapshot: { queryParamMap: convertToParamMap({}) } };
 
 describe('ResourcePage presentation', () => {
   afterEach(() => TestBed.resetTestingModule());
+  it('uses independent sparse release cards and product result counts without an empty expander', async () => {
+    const release: ReleaseItem = {
+      id: 'private-release-id',
+      createdTime: '',
+      lastEditedTime: '',
+      releaseItem: 'Delivery',
+      componentName: '',
+      deploymentType: null,
+      versionNumber: '',
+      branch: '',
+      formalAnnouncedDate: null,
+      confirmedReleaseDate: null,
+      notes: '',
+      jiraIds: [],
+      jiraStatuses: [],
+      sprintIds: [],
+      spilloverCount: 0,
+      jiras: [],
+    };
+    await TestBed.configureTestingModule({
+      imports: [ResourcePage],
+      providers: [
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: route },
+        { provide: LinksService, useValue: {} },
+        {
+          provide: ReadFeatureService,
+          useValue: {
+            heading: 'Releases',
+            description: '',
+            kind: 'releases',
+            views: [{ label: 'All', path: '/api/releases' }],
+            list: () => of({ data: [release], count: 1, hasMore: false, nextCursor: null, lastUpdated: Date.now() }),
+            updatedAt: () => Date.now(),
+          },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ResourcePage);
+    fixture.detectChanges();
+    const element: HTMLElement = fixture.nativeElement;
+    expect(element.querySelectorAll('.release-card')).toHaveLength(1);
+    expect(element.querySelector('.release-card details')).toBeNull();
+    expect(element.textContent).toContain('1 releases');
+    expect(element.textContent).not.toContain('private-release-id');
+    expect(element.textContent).not.toContain('Load more');
+    expect(element.textContent).not.toContain('items on this page');
+  });
 
   it('renders a compact Work Log and hides empty fields and internal IDs', async () => {
     const workLog: WorkLog = {

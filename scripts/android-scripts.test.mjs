@@ -78,4 +78,14 @@ test('Android patch is idempotent and restricts permissions and backup', () =>
     );
     assert.match(activity, /Math.round\(168/);
     assert.match(activity, /package com.example.officeorbit;/);
+    assert.match(activity, /registerPlugin\(OfficeOrbitExportPlugin.class\)/);
+    assert.equal(manifest.match(/\.exportprovider/g)?.length, 1);
+    const exporter = readFileSync(
+      path.join(root, 'android/app/src/main/java/com/example/officeorbit/OfficeOrbitExportPlugin.java'),
+      'utf8',
+    );
+    assert.match(exporter, /getCacheDir\(\)/);
+    assert.match(exporter, /FLAG_GRANT_READ_URI_PERMISSION/);
+    assert.match(exporter, /application\/pdf/);
+    assert.doesNotMatch(manifest, /WRITE_EXTERNAL_STORAGE|MANAGE_EXTERNAL_STORAGE/);
   }));

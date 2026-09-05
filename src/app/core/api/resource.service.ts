@@ -14,6 +14,7 @@ export class ResourceService {
     filters: Record<string, string> = {},
     refresh = false,
   ): Observable<ListResponse<T>> {
+    filters = { pageSize: '25', ...filters };
     const params = Object.entries(filters).reduce(
       (value, [key, entry]) => (entry ? value.set(key, entry) : value),
       new HttpParams(),
@@ -41,7 +42,17 @@ export class ResourceService {
     );
   }
   updatedAt(path: string, filters: Record<string, string> = {}): number | null {
-    return this.cache.updatedAt(cacheKey(path, filters));
+    return this.cache.updatedAt(cacheKey(path, { pageSize: '25', ...filters }));
+  }
+  uncachedList<T extends DomainItem>(path: string, filters: Record<string, string>): Observable<ListResponse<T>> {
+    const params = new HttpParams({
+      fromObject: Object.fromEntries(Object.entries(filters).filter(([, value]) => value)),
+    });
+    return this.http.get<unknown>(environment.apiBaseUrl + path, { params }).pipe(
+      timeout(15000),
+      map(response => this.normalize<T>(response)),
+      tap(response => this.seedJiraDetails(path, response.data)),
+    );
   }
   private normalize<T extends DomainItem>(response: unknown): ListResponse<T> {
     if (Array.isArray(response)) {

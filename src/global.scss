@@ -1721,3 +1721,174 @@ details > summary {
     text-decoration: none;
   }
 }
+
+.work-log-controls .view-switcher {
+  flex: 0 0 112px;
+  width: 112px;
+}
+.view-switcher ion-segment-button {
+  min-width: 48px;
+  min-height: 44px;
+}
+.release-cards {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+.release-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  align-self: start;
+}
+.release-card-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.release-card h2 {
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+  margin: 12px 0 6px;
+}
+.release-card p {
+  color: var(--muted);
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.release-card summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.release-card summary::-webkit-details-marker {
+  display: none;
+}
+.release-card details[open] summary ion-icon {
+  transform: rotate(180deg);
+}
+.export-modal,
+.filter-modal {
+  --width: 620px;
+  --height: min(86vh, 800px);
+  --border-radius: 20px;
+}
+.export-options {
+  padding: 22px;
+}
+.export-options fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 18px;
+  min-width: 0;
+}
+.export-options legend {
+  font-weight: 650;
+  margin: 14px 0 10px;
+}
+.export-options label,
+.analytics-range label {
+  display: grid;
+  gap: 6px;
+}
+.export-options .check-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.check-label input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+.export-options select,
+.export-options input[type='date'],
+.analytics-range select,
+.analytics-range input {
+  color: var(--ion-text-color);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 10px;
+  border-radius: 10px;
+  min-height: 44px;
+  width: 100%;
+}
+.report-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0;
+}
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.filter-modal .compact-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 20px;
+}
+.analytics-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.native-chart {
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  height: 100%;
+}
+.native-chart .native-chart {
+  border: 0;
+  padding: 0;
+}
+.native-chart figcaption {
+  font-weight: 650;
+  margin-bottom: 20px;
+}
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  margin: 14px 0;
+}
+.chart-row svg {
+  grid-column: 1 / -1;
+  height: 8px;
+  width: 100%;
+}
+.chart-track {
+  fill: var(--surface-soft);
+}
+.chart-fill {
+  fill: var(--accent);
+}
+@media (max-width: 640px) {
+  .export-modal,
+  .filter-modal {
+    --width: 100%;
+    --height: 90%;
+    align-items: flex-end;
+    --border-radius: 22px 22px 0 0;
+  }
+  .analytics-range label {
+    flex: 1 1 130px;
+  }
+  .release-card {
+    padding: 15px;
+  }
+}

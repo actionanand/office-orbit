@@ -70,13 +70,17 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
 
         <ion-segment [value]="selected()" [scrollable]="true" (ionChange)="select($event.detail.value)">
           @for (view of feature.views; track view.path) {
-            <ion-segment-button [value]="view.path">{{ view.label }}</ion-segment-button>
+            <ion-segment-button
+              [value]="view.path"
+              [attr.aria-label]="view.path === '/api/releases/pending' ? 'Pending confirmation' : view.label"
+              >{{ view.label }}</ion-segment-button
+            >
           }
         </ion-segment>
 
         <form class="filters compact-filters" [formGroup]="filters" (ngSubmit)="load()">
           <label>
-            Search this loaded page
+            Search loaded items
             <input
               type="search"
               [value]="search()"
@@ -98,7 +102,10 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
         } @else if (error() || !visible().length) {
           <app-state-panel [error]="error()" [message]="emptyMessage()" (retry)="load()" />
         } @else {
-          <p class="result-count">{{ visible().length }} of {{ count() }} items on this page</p>
+          <p class="result-count">
+            {{ visible().length }} {{ feature.kind === 'releases' ? 'releases' : 'items'
+            }}{{ hasMore() ? ' loaded' : '' }}
+          </p>
 
           @if (feature.kind === 'work-logs') {
             <section class="activity-list" aria-label="Work log history">
@@ -233,36 +240,34 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
               }
             </section>
           } @else if (feature.kind === 'releases') {
-            <section class="table-list" aria-label="Releases">
-              <div class="table-heading" aria-hidden="true">
-                <span>JIRA / component</span><span>Type</span><span>Version</span><span>State / date</span>
-              </div>
+            <section class="release-cards" aria-label="Releases">
               @for (item of releases(); track item.id) {
-                <details class="release-row">
-                  <summary class="table-row">
-                    <span>
-                      @if (item.jiras?.length) {
-                        <span class="jira-reference-list">
-                          @for (jira of item.jiras; track jira.id) {
-                            <app-jira-link [jiraKey]="jira.key" [showExternal]="true" />
-                          }
-                        </span>
-                      } @else {
-                        <strong>{{ item.releaseItem || 'Release item' }}</strong>
+                <article class="release-card">
+                  <div class="release-card-heading">
+                    <span class="jira-reference-list">
+                      @for (jira of item.jiras; track jira.id) {
+                        <app-jira-link [jiraKey]="jira.key" [showExternal]="true" />
                       }
-                      <small>{{ item.componentName }}</small>
                     </span>
-                    <span>{{ item.deploymentType || '' }}</span>
-                    <span>{{ item.versionNumber || '' }}</span>
-                    <span
-                      ><app-status-badge [label]="releaseState(item)" /><small>{{
-                        date(item.confirmedReleaseDate || item.formalAnnouncedDate)
-                      }}</small></span
-                    >
-                    <ion-icon class="disclosure-icon" name="chevron-down-outline" aria-hidden="true" />
-                  </summary>
-                  @if (item.branch || item.notes || (item.sprints?.length ?? 0) > 0) {
-                    <div class="release-more">
+                    <app-status-badge [label]="releaseState(item)" />
+                  </div>
+                  @if (item.componentName) {
+                    <h2>{{ item.componentName }}</h2>
+                  } @else if (item.releaseItem) {
+                    <h2>{{ item.releaseItem }}</h2>
+                  }
+                  @if (item.deploymentType || item.versionNumber) {
+                    <p class="meta-line">
+                      <span>{{ item.deploymentType }}</span
+                      ><span>{{ item.versionNumber }}</span>
+                    </p>
+                  }
+                  @if (item.confirmedReleaseDate || item.formalAnnouncedDate) {
+                    <p>{{ date(item.confirmedReleaseDate || item.formalAnnouncedDate) }}</p>
+                  }
+                  @if (item.branch || item.notes || item.sprints?.length) {
+                    <details>
+                      <summary>Release details <ion-icon name="chevron-down-outline" aria-hidden="true" /></summary>
                       @if (item.branch) {
                         <p><strong>Branch</strong><br />{{ item.branch }}</p>
                       }
@@ -270,11 +275,11 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
                         <p><strong>Sprint</strong><br />{{ names(item.sprints) }}</p>
                       }
                       @if (item.notes) {
-                        <p><strong>Notes</strong><br />{{ item.notes }}</p>
+                        <p>{{ item.notes }}</p>
                       }
-                    </div>
+                    </details>
                   }
-                </details>
+                </article>
               }
             </section>
           } @else if (feature.kind === 'feedback') {
@@ -344,9 +349,9 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
         }
 
         @if (hasMore()) {
-          <p class="message" role="status">
-            More records exist. This view shows the first page returned by the service.
-          </p>
+          <ion-button fill="outline" [disabled]="loadingMore()" (click)="load(false, true)">{{
+            loadingMore() ? 'Loading...' : 'Load more'
+          }}</ion-button>
         }
       </main>
 
@@ -456,6 +461,7 @@ export class ResourcePage {
   readonly error = signal('');
   readonly search = signal('');
   readonly hasMore = signal(false);
+  readonly loadingMore = signal(false);
   readonly updatedAt = signal<number | null>(null);
   readonly selectedWorkLog = signal<WorkLog | null>(null);
   readonly filters = new FormGroup({
@@ -512,32 +518,39 @@ export class ResourcePage {
     }
   }
 
-  load(refresh = false): void {
+  load(refresh = false, more = false): void {
+    if (more && this.loadingMore()) return;
     const filters: Record<string, string> = this.feature.kind === 'work-logs' ? this.filters.getRawValue() : {};
     if (filters['from'] && filters['to'] && filters['from'] > filters['to']) {
       this.error.set('The start date must be before the end date.');
       this.loading.set(false);
+      this.loadingMore.set(false);
       return;
     }
     this.request?.unsubscribe();
-    this.loading.set(true);
+    this.loading.set(!more);
+    this.loadingMore.set(more);
     this.error.set('');
-    this.hasMore.set(false);
-    this.items.set([]);
+    if (!more) {
+      this.hasMore.set(false);
+      this.items.set([]);
+    }
     this.request = this.feature
-      .list(this.selected(), filters, refresh)
+      .list(this.selected(), filters, refresh, more)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: response => {
           this.items.set(response.data);
           this.count.set(response.count);
           this.hasMore.set(response.hasMore);
-          this.updatedAt.set(this.feature.updatedAt(this.selected(), filters));
+          this.updatedAt.set(response.lastUpdated ?? this.feature.updatedAt(this.selected(), filters));
           this.loading.set(false);
+          this.loadingMore.set(false);
         },
         error: error => {
           this.error.set(apiError(error));
           this.loading.set(false);
+          this.loadingMore.set(false);
         },
       });
   }
