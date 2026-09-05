@@ -1,10 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { PlatformService } from './platform.service';
-import { ReportOutputService } from './report-output.service';
+
 const native = vi.hoisted(() => ({ exportPdf: vi.fn().mockResolvedValue({ path: '/cache/exports/report.pdf' }) }));
 vi.mock('@capacitor/core', () => ({ registerPlugin: () => native }));
+
 describe('Report output platform boundary', () => {
+  afterEach(() => {
+    native.exportPdf.mockClear();
+    TestBed.resetTestingModule();
+  });
+
   it('writes through the Office Pulse native export pattern on Android', async () => {
+    const { ReportOutputService } = await import('./report-output.service');
     TestBed.configureTestingModule({ providers: [{ provide: PlatformService, useValue: { android: true } }] });
     await TestBed.inject(ReportOutputService).pdf(
       {
@@ -21,7 +28,8 @@ describe('Report output platform boundary', () => {
     };
     expect(payload.sections[0].rows[0].cells[0]).toContain('Review');
   });
-  it('downloads a real PDF Blob with the selected filename on Web', () => {
+  it('downloads a real PDF Blob with the selected filename on Web', async () => {
+    const { ReportOutputService } = await import('./report-output.service');
     TestBed.configureTestingModule({ providers: [{ provide: PlatformService, useValue: { android: false } }] });
     const create = vi.fn().mockReturnValue('blob:report');
     vi.stubGlobal(
