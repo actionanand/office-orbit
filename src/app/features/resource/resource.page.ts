@@ -102,10 +102,7 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
         } @else if (error() || !visible().length) {
           <app-state-panel [error]="error()" [message]="emptyMessage()" (retry)="load()" />
         } @else {
-          <p class="result-count">
-            {{ visible().length }} {{ feature.kind === 'releases' ? 'releases' : 'items'
-            }}{{ hasMore() ? ' loaded' : '' }}
-          </p>
+          <p class="result-count">{{ visible().length }} {{ resultNoun() }}{{ hasMore() ? ' loaded' : '' }}</p>
 
           @if (feature.kind === 'work-logs') {
             <section class="activity-list" aria-label="Work log history">
@@ -472,6 +469,15 @@ export class ResourcePage {
     const term = this.search().toLowerCase().trim();
     return term ? this.items().filter(item => this.searchText(item).includes(term)) : this.items();
   });
+  readonly resultNoun = computed(() =>
+    this.feature.kind === 'releases'
+      ? this.visible().length === 1
+        ? 'release'
+        : 'releases'
+      : this.visible().length === 1
+        ? 'item'
+        : 'items',
+  );
   readonly workLogs = computed(() => this.visible() as WorkLog[]);
   readonly jiras = computed(() => this.visible() as Jira[]);
   readonly sprintItems = computed(() => this.visible() as Array<Sprint | SprintAllocation>);

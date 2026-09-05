@@ -5,19 +5,10 @@ import { addIcons } from 'ionicons';
 import { closeOutline, documentOutline, printOutline } from 'ionicons/icons';
 import { firstValueFrom } from 'rxjs';
 import { DashboardService } from '../dashboard/dashboard.service';
-import { monthRange } from './calendar';
+import { localDate, monthRange } from './calendar';
 import { ExportOptions, exportCategories, validateExport } from './work-log-report';
 import { WorkLogExportService } from './work-log-export.service';
 
-export function localDate(date: Date): string {
-  return (
-    date.getFullYear() +
-    '-' +
-    String(date.getMonth() + 1).padStart(2, '0') +
-    '-' +
-    String(date.getDate()).padStart(2, '0')
-  );
-}
 @Component({
   selector: 'app-work-log-export',
   imports: [ReactiveFormsModule, IonButton, IonContent, IonHeader, IonIcon, IonModal, IonTitle, IonToolbar],
@@ -34,14 +25,14 @@ export function localDate(date: Date): string {
             slot="end"
             fill="clear"
             aria-label="Close export options"
-            [disabled]="exporter.busy()"
+            [disabled]="exporter.busy() || presetLoading()"
             (click)="closed.emit()"
             ><ion-icon name="close-outline" slot="icon-only"
           /></ion-button> </ion-toolbar
       ></ion-header>
       <ion-content
         ><div class="export-options">
-          <fieldset [disabled]="exporter.busy()">
+          <fieldset [disabled]="exporter.busy() || presetLoading()">
             <label
               >Period<select [value]="preset()" (change)="changePreset($event)">
                 <option value="today">Today</option>
@@ -84,11 +75,11 @@ export function localDate(date: Date): string {
           <p role="status" aria-live="polite">{{ exporter.status() }}</p>
           <div class="export-actions">
             @if (!exporter.android) {
-              <ion-button fill="outline" [disabled]="exporter.busy()" (click)="run('print')"
+              <ion-button fill="outline" [disabled]="exporter.busy() || presetLoading()" (click)="run('print')"
                 ><ion-icon name="print-outline" slot="start" />Print</ion-button
               >
             }
-            <ion-button [disabled]="exporter.busy()" (click)="run('pdf')"
+            <ion-button [disabled]="exporter.busy() || presetLoading()" (click)="run('pdf')"
               ><ion-icon name="document-outline" slot="start" />Export PDF</ion-button
             >
           </div>
@@ -106,6 +97,7 @@ export class WorkLogExportComponent {
   readonly selected = signal<string[]>([...exportCategories]);
   readonly preset = signal('month');
   readonly error = signal('');
+  readonly presetLoading = signal(false);
   readonly form = new FormGroup({
     from: new FormControl(monthRange(localDate(new Date()).slice(0, 7)).from, { nonNullable: true }),
     to: new FormControl(monthRange(localDate(new Date()).slice(0, 7)).to, { nonNullable: true }),
@@ -146,11 +138,13 @@ export class WorkLogExportComponent {
       ({ from, to } = monthRange(localDate(today).slice(0, 7)));
     }
     if (preset === 'sprint') {
+      this.presetLoading.set(true);
       try {
         const sprint = (await firstValueFrom(this.dashboard.get())).currentSprint;
         if (!sprint?.startDate || !sprint.endDate) {
           this.error.set('Current Sprint dates are unavailable. Choose a custom period.');
           this.form.patchValue({ from: '', to: '' });
+          this.presetLoading.set(false);
           return;
         }
         from = sprint.startDate;
@@ -158,9 +152,11 @@ export class WorkLogExportComponent {
       } catch {
         this.error.set('Unable to load Current Sprint dates. Choose a custom period.');
         this.form.patchValue({ from: '', to: '' });
+        this.presetLoading.set(false);
         return;
       }
     }
+    this.presetLoading.set(false);
     this.form.patchValue({ from, to });
   }
   run(action: 'print' | 'pdf'): void {

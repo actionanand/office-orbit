@@ -1,4 +1,6 @@
 import { inject, Service, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { apiError } from '../../core/api/api-error';
 import { CursorService } from '../../core/api/cursor.service';
 import { ReportOutputService } from '../../core/platform/report-output.service';
 import { WorkLog } from '../../shared/models/api.models';
@@ -52,7 +54,11 @@ export class WorkLogExportService {
             : 'PDF downloaded',
       );
     } catch (error) {
-      this.status.set(error instanceof Error ? error.message : 'Unable to export this report. Please try again.');
+      this.status.set(
+        error instanceof HttpErrorResponse
+          ? apiError(error)
+          : 'Unable to prepare or save this report. Please try again.',
+      );
     } finally {
       this.busy.set(false);
     }

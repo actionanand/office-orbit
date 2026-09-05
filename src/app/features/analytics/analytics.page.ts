@@ -8,7 +8,7 @@ import { DashboardService } from '../dashboard/dashboard.service';
 import { DashboardResponse } from '../../shared/models/api.models';
 import { BarChartComponent } from '../../shared/components/bar-chart.component';
 import { AnalyticsService, aggregateWork } from './analytics.service';
-import { localDate } from '../work-logs/work-log-export.component';
+import { localDate } from '../work-logs/calendar';
 import { formatRelativeTime } from '../../shared/utils/format';
 
 @Component({
