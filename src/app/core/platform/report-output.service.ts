@@ -1,4 +1,4 @@
-import { inject, Service } from '@angular/core';
+import { InjectionToken, inject, Service } from '@angular/core';
 import { registerPlugin } from '@capacitor/core';
 import { PlatformService } from './platform.service';
 import { reportHtml, WorkLogReport } from '../../features/work-logs/work-log-report';
@@ -7,11 +7,16 @@ import { reportPdf } from './report-pdf';
 interface NativeReportExporter {
   exportPdf(options: { filename: string; content: string; title: string }): Promise<{ path: string }>;
 }
-const nativeExporter = registerPlugin<NativeReportExporter>('OfficeOrbitExport');
+
+export const NATIVE_REPORT_EXPORTER = new InjectionToken<NativeReportExporter>('Office Orbit native report exporter', {
+  providedIn: 'root',
+  factory: () => registerPlugin<NativeReportExporter>('OfficeOrbitExport'),
+});
 
 @Service()
 export class ReportOutputService {
   private readonly platform = inject(PlatformService);
+  private readonly nativeExporter = inject(NATIVE_REPORT_EXPORTER);
   readonly android = this.platform.android;
   async print(report: WorkLogReport): Promise<void> {
     // A separate document bypasses Ionic Shadow DOM scrolling/fixed-height ancestors.
@@ -49,7 +54,7 @@ export class ReportOutputService {
         section.rows.push({ state: 'normal', cells: [[record.title, ...record.lines].join('\n')] });
         sections.set(record.date, section);
       }
-      await nativeExporter.exportPdf({
+      await this.nativeExporter.exportPdf({
         filename,
         title: 'Office Orbit Work Log Report',
         content: JSON.stringify({
