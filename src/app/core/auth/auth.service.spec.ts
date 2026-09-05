@@ -7,6 +7,7 @@ import { AuthState } from './auth-state';
 import { TokenStorageService } from '../storage/token-storage.service';
 import { environment } from '../../../environments/environment';
 import { apiError } from '../api/api-error';
+import { DataCacheService } from '../cache/data-cache.service';
 describe('AuthService', () => {
   let service: AuthService, http: HttpTestingController;
   const storage = {
@@ -80,5 +81,11 @@ describe('AuthService', () => {
   it('provides safe invalid-password and network messages', () => {
     expect(apiError(new HttpErrorResponse({ status: 401 }), true)).toContain('password');
     expect(apiError(new HttpErrorResponse({ status: 0 }))).toContain('connection');
+  });
+  it('clears authenticated data when signing out', async () => {
+    const cache = TestBed.inject(DataCacheService);
+    cache.set('dashboard:all', { private: true });
+    await service.signOut();
+    expect(cache.size()).toBe(0);
   });
 });

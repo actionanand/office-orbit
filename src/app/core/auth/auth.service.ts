@@ -5,6 +5,8 @@ import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { TokenStorageService, StoredToken } from '../storage/token-storage.service';
 import { AuthState } from './auth-state';
+import { DataCacheService } from '../cache/data-cache.service';
+import { NavigationStateService } from '../cache/navigation-state.service';
 
 interface LoginResponse {
   accessToken: string;
@@ -23,6 +25,8 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly storage = inject(TokenStorageService);
   private readonly router = inject(Router);
+  private readonly dataCache = inject(DataCacheService);
+  private readonly navigationState = inject(NavigationStateService);
   private expiryTimer?: ReturnType<typeof setTimeout>;
   private armExpiry(session: StoredToken): void {
     clearTimeout(this.expiryTimer);
@@ -95,6 +99,8 @@ export class AuthService {
   }
   async signOut(notice = ''): Promise<void> {
     clearTimeout(this.expiryTimer);
+    this.dataCache.clear();
+    this.navigationState.clear();
     this.state.clear();
     this.state.notice.set(notice);
     const clearing = this.storage.clear();

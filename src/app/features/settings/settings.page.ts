@@ -40,7 +40,7 @@ import { environment } from '../../../environments/environment';
             <p>
               {{ lock.enabled() ? 'PIN protection is on.' : 'Add a PIN to lock this app on launch and resume.' }}
             </p>
-            <p class="muted">Your local PIN never replaces your Worker password or extends your session.</p>
+            <p class="muted">Your PIN protects this device. It does not extend your signed-in session.</p>
             <form [formGroup]="form" (ngSubmit)="savePin()">
               @if (lock.enabled()) {
                 <ion-input
@@ -97,7 +97,8 @@ import { environment } from '../../../environments/environment';
         </section>
         <section class="data-card">
           <h2>Session</h2>
-          <p>Sessions expire after approximately one hour. Sign in again using your Worker password when prompted.</p>
+          <p><strong>Signed in</strong></p>
+          <p>Your session is protected by Office Orbit authentication.</p>
           <ion-button fill="outline" (click)="auth.signOut()">Sign out</ion-button>
         </section>
         <section class="data-card">
@@ -112,10 +113,11 @@ import { environment } from '../../../environments/environment';
               <dd>{{ platform.label }}</dd>
             </div>
             <div>
-              <dt>API environment</dt>
-              <dd>{{ api }}</dd>
+              <dt>Version</dt>
+              <dd>{{ version }}</dd>
             </div>
           </dl>
+          <p class="muted">Your local security preferences stay on this device.</p>
         </section>
       </main></ion-content
     >`,
@@ -126,7 +128,7 @@ export class SettingsPage {
   readonly auth = inject(AuthService);
   readonly lock = inject(AppLockService);
   readonly biometric = inject(BiometricService);
-  readonly api = environment.apiBaseUrl;
+  readonly version = environment.appVersion;
   readonly themes: { value: ThemeMode; label: string }[] = [
     { value: 'light', label: 'Light' },
     { value: 'dark', label: 'Dark' },

@@ -6,7 +6,7 @@ export class WorkLinksService extends ReadFeatureService {
   readonly description = 'The resources and references that keep work moving.';
   readonly kind = 'work-links';
   readonly views = [
-    { label: 'Active', path: '/api/work-links/active' },
-    { label: 'All', path: '/api/work-links' },
+    { label: 'Active', path: '/api/work-links/active', relations: true },
+    { label: 'All', path: '/api/work-links', relations: true },
   ];
 }

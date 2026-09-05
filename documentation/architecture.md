@@ -20,9 +20,11 @@ Ionic 9 IonInput exposes a ControlValueAccessor rather than a Signal Forms value
 
 Each collection has a feature-specific service and view allowlist. ReadFeatureService and ResourceService share request/envelope handling. Dashboard has its own service; JiraService also fetches JIRA details.
 
-The only fully specified business contract in the brief is the list envelope. Record fields are represented as Readonly<Record<string, unknown>>, checked before display. The renderer retains all returned fields in expandable details and displays nested relations safely as text. No raw HTML is trusted. Values absent from the server are not fabricated.
+The client models the Worker's documented domain contracts for JIRAs, Work Logs, Sprints, Sprint Allocations, Releases, Feedback, Work Links, and Dashboard. Production views render explicit domain fields. There is no generic object renderer or expandable property dump. Internal IDs and raw API timestamps remain available only to TypeScript for routing, filtering, and relation matching.
 
-Collection requests cancel when a user changes views or leaves the page, preventing stale responses from replacing a newer view. Lists show loading, empty, error and server-has-more states. Cursor continuation is intentionally not guessed because the request contract was not supplied.
+Supported collection endpoints request `include=relations`, allowing the UI to show Project, Company, Team, Sprint, and JIRA names without displaying Notion page IDs. Sprint Allocation endpoints do not support enrichment, so their existing human-readable allocation title is shown without exposing relation IDs.
+
+Collection requests cancel when a user changes views or leaves the page, preventing stale responses from replacing a newer view. Lists use compact, domain-specific rows with layout-matched skeletons and contextual empty states. Work Logs remain bounded to the first server page. Search explicitly covers the loaded page only because the Worker returns `nextCursor` but does not accept a continuation cursor.
 
 ## Platform abstractions
 

@@ -1,6 +1,8 @@
 # Authentication
 
-The Worker is a single-user backend. The login form requires any nonblank username of up to 12 characters and a password; Sign in stays disabled until both are valid. The username is a local form field, is not persisted, and is not sent to the Worker. Office Orbit sends only the entered password to POST /api/auth/login and accepts a Bearer access token with a positive lifetime. There is no registration, recovery, OAuth or refresh-token flow.
+The Worker is a single-user backend. Sign in remains disabled until the login form is valid. Office Orbit never persists entered credentials and sends only the password to `POST /api/auth/login`; the Worker returns a Bearer access token with a positive lifetime. There is no registration, recovery, OAuth, or refresh-token flow.
+
+Authenticated feature data is cached only in memory. Sign-out and Worker 401 handling clear this cache and saved navigation state together with the authenticated session. The data cache never stores credentials or bearer tokens.
 
 The password exists only in the form and in-flight request; the form is cleared after every sign-in attempt. Passwords and access tokens are never logged or displayed in errors.
 

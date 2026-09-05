@@ -6,15 +6,19 @@ export class JiraService extends ReadFeatureService {
   readonly description = 'Your priorities, blockers, and progress in one place.';
   readonly kind = 'jiras';
   readonly views = [
-    { label: 'Active Sprint', path: '/api/jiras/active' },
-    { label: 'Blocked', path: '/api/jiras/blocked' },
-    { label: 'Spillovers', path: '/api/jiras/spillovers' },
-    { label: 'Appraisal', path: '/api/jiras/appraisal' },
-    { label: 'Demo Pending', path: '/api/jiras/demo-pending' },
-    { label: 'Demoed', path: '/api/jiras/demoed' },
-    { label: 'All', path: '/api/jiras' },
+    { label: 'Active', path: '/api/jiras/active', relations: true },
+    { label: 'Blocked', path: '/api/jiras/blocked', relations: true },
+    { label: 'Spillovers', path: '/api/jiras/spillovers', relations: true },
+    { label: 'Demo Pending', path: '/api/jiras/demo-pending', relations: true },
+    { label: 'Demoed', path: '/api/jiras/demoed', relations: true },
+    { label: 'Appraisal', path: '/api/jiras/appraisal', relations: true },
+    { label: 'All', path: '/api/jiras', relations: true },
   ];
-  detail(key: string) {
-    return this.api.detail('/api/jiras/' + encodeURIComponent(key));
+  detail(key: string, refresh = false) {
+    return this.api.detail<import('../../shared/models/api.models').Jira>(
+      '/api/jiras/' + encodeURIComponent(key),
+      { include: 'relations' },
+      refresh,
+    );
   }
 }

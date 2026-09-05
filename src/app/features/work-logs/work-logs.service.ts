@@ -6,7 +6,7 @@ export class WorkLogService extends ReadFeatureService {
   readonly description = 'A record of your effort, decisions, and accomplishments.';
   readonly kind = 'work-logs';
   readonly views = [
-    { label: 'All', path: '/api/work-logs' },
-    { label: 'Appraisal', path: '/api/work-logs/appraisal' },
+    { label: 'All', path: '/api/work-logs', relations: true },
+    { label: 'Appraisal', path: '/api/work-logs/appraisal', relations: true },
   ];
 }
