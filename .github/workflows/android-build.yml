@@ -158,6 +158,7 @@ jobs:
           "$BUILD_TOOLS/zipalign" -f 4 "$UNSIGNED_APK" "$OUTPUT_APK"
           "$BUILD_TOOLS/apksigner" sign --ks android/app/release-keystore.jks --ks-pass env:KEYSTORE_PASSWORD --ks-key-alias "$KEY_ALIAS" --key-pass env:KEY_PASSWORD "$OUTPUT_APK"
           "$BUILD_TOOLS/apksigner" verify --verbose "$OUTPUT_APK"
+          rm -f "releases/${RELEASE_FILE}-unsigned.apk" "releases/${RELEASE_FILE}.apk.idsig"
 
       - name: ⚠️ Create unsigned APK
         if: steps.keystore.outputs.available != 'true' || steps.sign_apk.outcome == 'failure'
@@ -188,6 +189,7 @@ jobs:
           printf '%s' "$KEY_PASSWORD" > "$KEY_PASS_FILE"
           jarsigner -keystore android/app/release-keystore.jks -storepass:file "$STORE_PASS_FILE" -keypass:file "$KEY_PASS_FILE" -signedjar "$OUTPUT_AAB" "$UNSIGNED_AAB" "$KEY_ALIAS"
           jarsigner -verify -verbose -certs "$OUTPUT_AAB"
+          rm -f "releases/${RELEASE_FILE}-unsigned.aab"
 
       - name: ⚠️ Create unsigned AAB
         if: steps.keystore.outputs.available != 'true' || steps.sign_aab.outcome == 'failure'
