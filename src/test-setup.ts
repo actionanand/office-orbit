@@ -21,3 +21,12 @@ if (!window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+const installScrollTo = (prototype: object & { scrollTo?: unknown }) => {
+  if (!prototype.scrollTo) {
+    Object.defineProperty(prototype, 'scrollTo', { value: () => undefined, configurable: true });
+  }
+};
+
+installScrollTo(Element.prototype as object & { scrollTo?: unknown });
+installScrollTo(HTMLElement.prototype as object & { scrollTo?: unknown });
