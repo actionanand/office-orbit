@@ -7,7 +7,7 @@ import { PlatformService } from '../../core/platform/platform.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppLockService } from '../../core/app-lock/app-lock.service';
 import { BiometricService } from '../../core/platform/biometric.service';
-import { environment } from '../../../environments/environment';
+import { appVersion } from '../../core/version/app-version';
 @Component({
   selector: 'app-settings',
   imports: [ReactiveFormsModule, NgOptimizedImage, IonButton, IonContent, IonHeader, IonInput, IonTitle, IonToolbar],
@@ -128,7 +128,7 @@ export class SettingsPage {
   readonly auth = inject(AuthService);
   readonly lock = inject(AppLockService);
   readonly biometric = inject(BiometricService);
-  readonly version = environment.appVersion;
+  readonly version = appVersion;
   readonly themes: { value: ThemeMode; label: string }[] = [
     { value: 'light', label: 'Light' },
     { value: 'dark', label: 'Dark' },

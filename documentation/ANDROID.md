@@ -19,6 +19,8 @@ Office Orbit follows the Life Leaf Capacitor 8 / GitHub Actions release approach
 
 App ID: `com.actionanand.officeorbit.app`. Change only `appId` in capacitor.config.ts before your first store release, then regenerate Android. The native patch derives the Java package from this value. Published application IDs cannot be changed for an existing Play Store listing.
 
+`android-version.json` is the single source for `versionCode` and `versionName`. The Android build, release file names and in-app Settings version all read from this file, so do not duplicate the app version in environment files.
+
 ## Required packages
 
 Run in WSL2:
@@ -87,7 +89,7 @@ On main-android, CI automatically bumps and commits versionCode with [skip ci] b
 - Dependencies are installed with npm ci; lint and Vitest run before building.
 - CI uses Node 24.16, Java 21, minimum SDK 24, target SDK 36.
 - CI generates Android, applies the patch, generates artwork, then runs assembleRelease and bundleRelease.
-- Signed files are `releases/OfficeOrbit-0-1-0.apk` and `releases/OfficeOrbit-0-1-0.aab` for version 0.1.0.
+- Signed files are named from `android-version.json`, such as `releases/OfficeOrbit-1-1-0.apk` and `releases/OfficeOrbit-1-1-0.aab` for version 1.1.0.
 - Missing or failing signing secrets produce explicitly named `-unsigned.apk` / `-unsigned.aab`, following the reference.
 - R8/resource shrinking is enabled. Retain the matching `OfficeOrbit-<version>-mapping.txt` for Play Console deobfuscation.
 - Prior APK/AAB/mapping artifacts are replaced; the most recent outputs are committed to main-android and uploaded as 30-day Actions artifacts.
