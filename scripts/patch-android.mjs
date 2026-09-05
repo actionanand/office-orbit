@@ -100,6 +100,21 @@ public class MainActivity extends BridgeActivity {
 const gradleFile = path.join(android, 'app/build.gradle');
 let gradle = await readFile(gradleFile, 'utf8');
 const version = JSON.parse(await readFile(path.join(root, 'android-version.json'), 'utf8'));
+function normalizeGradleHeader(text) {
+  let output = text.replace(/^\uFEFF/, '');
+  if (/^\s*plugins\s*\{/.test(output)) {
+    const androidBlock = output.match(/\r?\nandroid\s*\{/);
+    const pluginsEnd = output.match(/\r?\n\}\r?\n/);
+    if (androidBlock && (!pluginsEnd || pluginsEnd.index > androidBlock.index)) {
+      output = output.slice(androidBlock.index + 1);
+    } else if (pluginsEnd) {
+      output = output.slice(pluginsEnd.index + pluginsEnd[0].length);
+    }
+  }
+  output = output.replace(/^\s*apply plugin:\s*['"]com\.android\.application['"]\s*\r?\n*/m, '');
+  return `apply plugin: 'com.android.application'\n\n${output.trimStart()}`;
+}
+gradle = normalizeGradleHeader(gradle);
 gradle = gradle.replace(
   /versionCode .*/,
   'versionCode project.hasProperty("versionCode") ? project.versionCode.toInteger() : ' + version.versionCode,
@@ -111,6 +126,9 @@ gradle = gradle.replace(
 gradle = gradle.replace(/minifyEnabled\s+false/, 'minifyEnabled true');
 if (!gradle.includes('shrinkResources true'))
   gradle = gradle.replace('minifyEnabled true', 'minifyEnabled true\n            shrinkResources true');
+if (!/^apply plugin:\s*['"]com\.android\.application['"]\s*\r?\n\r?\nandroid\s*\{/m.test(gradle)) {
+  throw new Error(`Could not normalize ${gradleFile}. Expected Android application plugin followed by android block.`);
+}
 await writeFile(gradleFile, gradle);
 const proguard = path.join(android, 'app/proguard-rules.pro');
 const rules = await readFile(proguard, 'utf8');

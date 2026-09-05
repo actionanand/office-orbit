@@ -80,6 +80,8 @@ test('Android patch is idempotent and restricts permissions and backup', () =>
     assert.match(activity, /package com.example.officeorbit;/);
     assert.match(activity, /registerPlugin\(OfficeOrbitExportPlugin.class\)/);
     assert.equal(manifest.match(/\.exportprovider/g)?.length, 1);
+    const gradle = readFileSync(path.join(root, 'android/app/build.gradle'), 'utf8');
+    assert.match(gradle, /^apply plugin: 'com\.android\.application'\n\nandroid \{/);
     const exporter = readFileSync(
       path.join(root, 'android/app/src/main/java/com/example/officeorbit/OfficeOrbitExportPlugin.java'),
       'utf8',
@@ -88,4 +90,28 @@ test('Android patch is idempotent and restricts permissions and backup', () =>
     assert.match(exporter, /FLAG_GRANT_READ_URI_PERMISSION/);
     assert.match(exporter, /application\/pdf/);
     assert.doesNotMatch(manifest, /WRITE_EXTERNAL_STORAGE|MANAGE_EXTERNAL_STORAGE/);
+  }));
+
+test('Android patch repairs malformed generated Gradle plugin header', () =>
+  fixture(root => {
+    write(root, 'capacitor.config.ts', "export default {appId: 'com.example.officeorbit'};");
+    write(root, 'android-version.json', JSON.stringify({ versionCode: 12, versionName: '2.4.0' }));
+    write(root, 'src/assets/office-orbit.png', 'fixture artwork');
+    write(
+      root,
+      'android/app/src/main/AndroidManifest.xml',
+      '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:allowBackup="true"><activity android:name=".MainActivity"></activity></application></manifest>',
+    );
+    write(
+      root,
+      'android/app/build.gradle',
+      'plugins {\n    id \'com.android.application\'\nandroid {\n    defaultConfig {\n        versionCode 1\n        versionName "1.0"\n    }\n    buildTypes { release { minifyEnabled false } }\n}\n',
+    );
+    write(root, 'android/app/proguard-rules.pro', '# generated');
+    runScript(root, 'patch-android.mjs');
+    const gradle = readFileSync(path.join(root, 'android/app/build.gradle'), 'utf8');
+    assert.match(gradle, /^apply plugin: 'com\.android\.application'\n\nandroid \{/);
+    assert.doesNotMatch(gradle, /^plugins \{/);
+    assert.match(gradle, /versionCode project\.hasProperty\("versionCode"\)/);
+    assert.match(gradle, /versionName project\.hasProperty\("versionName"\)/);
   }));
