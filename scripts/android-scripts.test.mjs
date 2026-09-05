@@ -121,4 +121,6 @@ test('Android workflow builds through guarded script without post-patch Gradle s
   assert.match(workflow, /run: node scripts\/build-android\.mjs/);
   assert.doesNotMatch(workflow, /sed -i 's\/versionCode/);
   assert.doesNotMatch(workflow, /sed -i 's\/versionName/);
+  assert.match(workflow, /rm -f "releases\/\$\{RELEASE_FILE\}-unsigned\.apk"/);
+  assert.match(workflow, /rm -f "releases\/\$\{RELEASE_FILE\}-unsigned\.aab"/);
 });

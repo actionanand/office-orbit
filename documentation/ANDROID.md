@@ -51,7 +51,7 @@ npm run android:version
 npm run android:release
 ```
 
-This builds both unsigned release formats and copies them and any R8 mapping to releases/. The release helper reapplies and validates the Android patch immediately before Gradle runs, so generated Gradle files are normalized after Capacitor sync. Signing is optional and handled by GitHub Actions. Unsigned APKs cannot be installed as-is.
+This removes old APK, AAB, APK signing sidecar and R8 mapping files before building, then copies the current unsigned release formats and any R8 mapping to releases/. The release helper reapplies and validates the Android patch immediately before Gradle runs, so generated Gradle files are normalized after Capacitor sync. Signing is optional and handled by GitHub Actions. Unsigned APKs cannot be installed as-is.
 
 ## Splash and launcher sizing
 
@@ -92,7 +92,7 @@ On main-android, CI automatically bumps and commits versionCode with [skip ci] b
 - Signed files are named from `android-version.json`, such as `releases/OfficeOrbit-1-1-0.apk` and `releases/OfficeOrbit-1-1-0.aab` for version 1.1.0.
 - Missing or failing signing secrets produce explicitly named `-unsigned.apk` / `-unsigned.aab`, following the reference.
 - R8/resource shrinking is enabled. Retain the matching `OfficeOrbit-<version>-mapping.txt` for Play Console deobfuscation.
-- Prior APK/AAB/mapping artifacts are replaced; the most recent outputs are committed to main-android and uploaded as 30-day Actions artifacts.
+- Prior APK/AAB/APK signing sidecar/mapping artifacts are removed before each release build. When signing succeeds, temporary `-unsigned` release copies are removed before the release folder is committed.
 - The Actions summary identifies signed versus unsigned artifacts.
 - Decoded signing material is deleted even when the job fails.
 - Generated commits use [skip ci]. Repository Actions permissions must allow the bot to push to main-android. Branch protection may require a suitable repository policy.
