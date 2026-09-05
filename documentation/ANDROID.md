@@ -51,7 +51,7 @@ npm run android:version
 npm run android:release
 ```
 
-This builds both unsigned release formats and copies them and any R8 mapping to releases/. Signing is optional and handled by GitHub Actions. Unsigned APKs cannot be installed as-is.
+This builds both unsigned release formats and copies them and any R8 mapping to releases/. The release helper reapplies and validates the Android patch immediately before Gradle runs, so generated Gradle files are normalized after Capacitor sync. Signing is optional and handled by GitHub Actions. Unsigned APKs cannot be installed as-is.
 
 ## Splash and launcher sizing
 
@@ -88,7 +88,7 @@ On main-android, CI automatically bumps and commits versionCode with [skip ci] b
 - Runs serialize by branch.
 - Dependencies are installed with npm ci; lint and Vitest run before building.
 - CI uses Node 24.16, Java 21, minimum SDK 24, target SDK 36.
-- CI generates Android, applies the patch, generates artwork, then runs assembleRelease and bundleRelease.
+- CI generates Android, applies the patch, generates artwork, then runs the guarded release helper for assembleRelease and bundleRelease.
 - Signed files are named from `android-version.json`, such as `releases/OfficeOrbit-1-1-0.apk` and `releases/OfficeOrbit-1-1-0.aab` for version 1.1.0.
 - Missing or failing signing secrets produce explicitly named `-unsigned.apk` / `-unsigned.aab`, following the reference.
 - R8/resource shrinking is enabled. Retain the matching `OfficeOrbit-<version>-mapping.txt` for Play Console deobfuscation.

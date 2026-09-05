@@ -115,3 +115,10 @@ test('Android patch repairs malformed generated Gradle plugin header', () =>
     assert.match(gradle, /versionCode project\.hasProperty\("versionCode"\)/);
     assert.match(gradle, /versionName project\.hasProperty\("versionName"\)/);
   }));
+
+test('Android workflow builds through guarded script without post-patch Gradle sed', () => {
+  const workflow = readFileSync(path.join(process.cwd(), '.github/workflows/android-build.yml'), 'utf8');
+  assert.match(workflow, /run: node scripts\/build-android\.mjs/);
+  assert.doesNotMatch(workflow, /sed -i 's\/versionCode/);
+  assert.doesNotMatch(workflow, /sed -i 's\/versionName/);
+});

@@ -1,6 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, copyFileSync, mkdirSync, existsSync } from 'node:fs';
 const version = JSON.parse(readFileSync('android-version.json', 'utf8'));
+execFileSync(process.execPath, ['scripts/patch-android.mjs'], { stdio: 'inherit' });
+const gradle = readFileSync('android/app/build.gradle', 'utf8');
+if (!/^apply plugin:\s*['"]com\.android\.application['"]\s*\r?\n\r?\nandroid\s*\{/m.test(gradle)) {
+  const preview = gradle.split(/\r?\n/).slice(0, 8).join('\n');
+  throw new Error(`android/app/build.gradle is not ready for release build:\n${preview}`);
+}
 execFileSync(
   './gradlew',
   ['assembleRelease', 'bundleRelease', '-PversionCode=' + version.versionCode, '-PversionName=' + version.versionName],
