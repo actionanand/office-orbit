@@ -43,6 +43,12 @@ export class ReportOutputService {
   }
   async pdf(report: WorkLogReport, filename: string): Promise<void> {
     if (this.android) {
+      const sections = new Map<string, { title: string; rows: { state: string; cells: string[] }[] }>();
+      for (const record of report.records) {
+        const section = sections.get(record.date) ?? { title: record.date, rows: [] };
+        section.rows.push({ state: 'normal', cells: [[record.title, ...record.lines].join('\n')] });
+        sections.set(record.date, section);
+      }
       await nativeExporter.exportPdf({
         filename,
         title: 'Office Orbit Work Log Report',
@@ -54,10 +60,7 @@ export class ReportOutputService {
             { label: 'Categories', value: report.categories },
           ],
           headers: ['Work Log'],
-          sections: report.records.map(record => ({
-            title: record.date,
-            rows: [{ state: 'normal', cells: [[record.title, ...record.lines].join('\n')] }],
-          })),
+          sections: [...sections.values()],
         }),
       });
     } else {

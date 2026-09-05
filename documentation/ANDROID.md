@@ -12,7 +12,7 @@ Office Orbit follows the Life Leaf Capacitor 8 / GitHub Actions release approach
 | scripts/patch-android.mjs           | Branding, 168dp launch image, backup exclusions, biometric permission, R8 |
 | scripts/generate-android-assets.mjs | Launcher densities, adaptive foregrounds, splash and store icon           |
 | scripts/build-android.mjs           | Local WSL APK/AAB build and release collection                            |
-| scripts/generate-keystore.mjs       | Non-overwriting PKCS12 signing-key generator                              |
+| scripts/generate-keystore.mjs       | Non-overwriting OpenSSL PKCS12 signing-key generator                      |
 | scripts/detect-keystore-format.mjs  | Inspect a keystore using Java keytool                                     |
 | .github/workflows/android-build.yml | Install, lint/test, bump, build, sign, verify, commit and upload          |
 | src/assets/office-orbit.png         | Canonical app and brand icon                                              |
@@ -31,10 +31,10 @@ Commit package.json and the regenerated package-lock.json together. CI uses npm 
 
 ## Local WSL2 workflow
 
-Use Node 24.16 (matching CI), Java 21, Android SDK/Studio, and ImageMagick:
+Use Node 24.16 (matching CI), Java 21, Android SDK/Studio, OpenSSL, and ImageMagick:
 
 ```bash
-sudo apt-get install imagemagick
+sudo apt-get install openssl imagemagick
 npm run android:add
 npm run android:sync
 npm run android:open
@@ -108,16 +108,20 @@ Set these under **Repository Settings → Secrets and variables → Actions**:
 | KEY_ALIAS         | Key alias; the supplied generator uses officeorbit          |
 | KEY_PASSWORD      | Private-key password; with PKCS12 use the keystore password |
 
-Generate a key once on a trusted machine with Java:
+Generate a key once on a trusted WSL/Linux machine with OpenSSL:
 
 ```bash
-npm run generate-keystore
+npm run generate-keystore -- --password 'KEYSTORE_PASSWORD'
 test -s release-keystore.jks
 base64 -w 0 release-keystore.jks > keystore.b64.txt
 npm run keystore:type
 ```
 
-The generator prompts through keytool, or accepts KEYSTORE_PASSWORD from your environment. It refuses to overwrite an existing key. Never commit keys, encoded key files, or passwords. Keep an offline backup of the key.
+Replace `KEYSTORE_PASSWORD` with your real password. The generator uses OpenSSL, so it does not require `keytool` to create the keystore. The `keystore:type` check still uses Java `keytool` to inspect the generated file when Java is available.
+
+The generator also accepts `KEYSTORE_PASSWORD` or `ANDROID_KEYSTORE_PASSWORD` from the environment, and prompts interactively when no password is supplied. It refuses to overwrite an existing key. Avoid putting a real password on a shared terminal, in shell history, CI logs, or source-controlled files.
+
+Never commit `.jks`, `.keystore`, encoded key text, or passwords. Keep a secure offline backup of the release key; losing it can prevent future Play Store updates.
 
 ## Storage and permissions
 

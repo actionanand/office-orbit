@@ -24,7 +24,13 @@ describe('Report output platform boundary', () => {
   it('downloads a real PDF Blob with the selected filename on Web', () => {
     TestBed.configureTestingModule({ providers: [{ provide: PlatformService, useValue: { android: false } }] });
     const create = vi.fn().mockReturnValue('blob:report');
-    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: create, revokeObjectURL: vi.fn() }));
+    vi.stubGlobal(
+      'URL',
+      class extends URL {
+        static override createObjectURL = create;
+        static override revokeObjectURL = vi.fn();
+      },
+    );
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const blob = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
     TestBed.inject(ReportOutputService).download(blob, 'report.pdf');

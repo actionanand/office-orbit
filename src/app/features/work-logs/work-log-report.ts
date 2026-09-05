@@ -84,10 +84,12 @@ export function reportHtml(report: WorkLogReport): string {
     '</p></header>' +
     report.records
       .map(
-        record =>
-          '<article><time>' +
-          escape(record.date) +
-          '</time><h3>' +
+        (record, index) =>
+          '<article>' +
+          (index === 0 || report.records[index - 1].date !== record.date
+            ? '<time>' + escape(record.date) + '</time>'
+            : '') +
+          '<h3>' +
           escape(record.title) +
           '</h3>' +
           record.lines.map(line => '<p>' + escape(line) + '</p>').join('') +

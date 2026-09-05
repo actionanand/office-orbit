@@ -53,7 +53,7 @@ describe('ResourcePage presentation', () => {
     const element: HTMLElement = fixture.nativeElement;
     expect(element.querySelectorAll('.release-card')).toHaveLength(1);
     expect(element.querySelector('.release-card details')).toBeNull();
-    expect(element.textContent).toContain('1 releases');
+    expect(element.textContent).toContain('1 release');
     expect(element.textContent).not.toContain('private-release-id');
     expect(element.textContent).not.toContain('Load more');
     expect(element.textContent).not.toContain('items on this page');
