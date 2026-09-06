@@ -123,9 +123,11 @@ test('Android patch repairs malformed generated Gradle plugin header', () =>
 
 test('Android workflow builds through guarded script without post-patch Gradle sed', () => {
   const workflow = readFileSync(path.join(process.cwd(), '.github/workflows/android-build.yml'), 'utf8');
+  const assets = readFileSync(path.join(process.cwd(), 'scripts/generate-android-assets.mjs'), 'utf8');
   assert.match(workflow, /run: node scripts\/build-android\.mjs/);
   assert.doesNotMatch(workflow, /sed -i 's\/versionCode/);
   assert.doesNotMatch(workflow, /sed -i 's\/versionName/);
   assert.match(workflow, /rm -f "releases\/\$\{RELEASE_FILE\}-unsigned\.apk"/);
   assert.match(workflow, /rm -f "releases\/\$\{RELEASE_FILE\}-unsigned\.aab"/);
+  assert.match(assets, /convert\(512, 288, res \+ '\/drawable-nodpi\/office_orbit_splash_logo\.png'\)/);
 });

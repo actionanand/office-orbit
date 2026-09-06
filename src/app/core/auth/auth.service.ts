@@ -216,7 +216,10 @@ export class AuthService {
         await this.storage.clear();
         return;
       }
-      throw error;
+      // A restored token is never trusted when validation is unavailable, but
+      // the login route must remain reachable so the user can authenticate again.
+      this.state.clear();
+      this.state.notice.set('Your previous session could not be restored. Sign in again to continue.');
     }
   }
   async validate(): Promise<void> {

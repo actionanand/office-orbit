@@ -8,11 +8,11 @@ The password exists only in the form and in-flight request; the form is cleared 
 
 ## Session storage
 
-Android: native encrypted storage backed by Android Keystore through @aparajita/capacitor-secure-storage. Failure never falls back to browser storage.
+Android: native encrypted storage backed by Android Keystore through @aparajita/capacitor-secure-storage. A non-responsive native plugin is abandoned after four seconds so it cannot block startup. The token then remains memory-only for the current run and is never written to browser storage.
 
 Web: sessionStorage, so reloads in the same tab retain the session, subject to browser session-restoration behavior. The native plugin's web localStorage implementation is never used. Application code never writes a token to localStorage.
 
-The stored object contains only the access token and non-secret session timing metadata: `expiresAt`, `renewAfter`, optional `sessionStartedAt`, and `sessionExpiresAt`. Startup validates restored tokens through GET /api/auth/status and restores server-provided timing metadata. Expired, absolute-session-expired, or corrupt session metadata is removed. Network failures do not authorize protected pages.
+The stored object contains only the access token and non-secret session timing metadata: `expiresAt`, `renewAfter`, optional `sessionStartedAt`, and `sessionExpiresAt`. Startup validates restored tokens through GET /api/auth/status and restores server-provided timing metadata. Expired, absolute-session-expired, or corrupt session metadata is removed. If validation is unavailable, the token is not trusted and the app continues to Login so the user can authenticate again; protected pages remain inaccessible.
 
 ## Sliding sessions
 

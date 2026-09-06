@@ -43,13 +43,15 @@ describe('TokenStorageService', () => {
     await service.save(session({ accessToken: 'expired', expiresAt: 0 }));
     expect(await service.read()).toBeNull();
   });
-  it('uses native storage on Android without falling back to web', async () => {
+  it('keeps the current Android session in memory when native storage fails', async () => {
     TestBed.overrideProvider(PlatformService, { useValue: { android: true } });
     const service = TestBed.inject(TokenStorageService);
-    await service.save(session({ accessToken: 'test' }));
+    const token = session({ accessToken: 'test' });
+    await service.save(token);
     expect(native.set).toHaveBeenCalled();
     expect(sessionStorage.length).toBe(0);
     native.get.mockRejectedValueOnce(new Error('Device storage failed'));
-    await expect(service.read()).rejects.toThrow();
+    expect(await service.read()).toEqual(token);
+    expect(sessionStorage.length).toBe(0);
   });
 });

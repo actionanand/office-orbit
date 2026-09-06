@@ -36,7 +36,8 @@ export class StartupService {
           await this.auth.restore();
           await this.lock.initialize();
           if (this.platform.android && !this.listening) {
-            await App.addListener('appStateChange', ({ isActive }) => {
+            this.listening = true;
+            void App.addListener('appStateChange', ({ isActive }) => {
               if (this.biometric.prompting()) return;
               if (isActive) {
                 if (this.lock.enabled()) this.lock.lock();
@@ -54,8 +55,9 @@ export class StartupService {
                 this.auth.setForeground(false);
                 this.lock.lock();
               }
+            }).catch(() => {
+              this.listening = false;
             });
-            this.listening = true;
           }
         })(),
         20_000,

@@ -59,7 +59,7 @@ The original PNG is never modified. ImageMagick derives all Android artwork:
 
 - Legacy launcher artwork occupies 70% of 48/72/96/144/192px density canvases.
 - Adaptive foregrounds use a 108dp-equivalent canvas with artwork limited to 60dp, inside Android's 66dp safe region, so common launcher masks do not clip the brand.
-- The splash bitmap fits 360px of a centered 512px transparent canvas. Reapplying the native patch preserves this generated safe-area bitmap instead of replacing it with the edge-to-edge source artwork.
+- The splash bitmap fits 288px of a centered 512px transparent canvas. This smaller footprint protects the wide orbit ring from Android's circular splash mask. Reapplying the native patch preserves the generated safe-area bitmap instead of replacing it with the edge-to-edge source artwork.
 - A centered 168dp × 168dp launch ImageView is shown for 1.1 seconds. Android's platform splash uses the same bounded drawable. The Capacitor splash is configured for 1.8 seconds with CENTER_INSIDE and no spinner.
 - Startup authorization has its own loading screen, independent of the timed native splash. Native startup is capped at 20 seconds; failures show a retry action instead of an endless spinner.
 - The Play Store icon uses a 420px composition on an opaque 512px `#f3f7f4` canvas.
@@ -129,7 +129,7 @@ Never commit `.jks`, `.keystore`, encoded key text, or passwords. Keep a secure 
 
 Only Internet and biometric permission are needed. The patch adds USE_BIOMETRIC; it does not copy Life Leaf's diary, notification, alarms, boot receiver or share-target functionality.
 
-Worker access tokens and PIN metadata use native Keystore-backed encrypted storage. Both Android backup and device-transfer policies exclude application data. Release cleartext HTTP is disabled. The app has no Notion credentials or Worker signing secrets.
+Worker access tokens use native Keystore-backed encrypted storage. If that plugin does not respond, the token remains memory-only for the current run and the user signs in again after restarting; tokens never fall back to browser storage. PIN records contain only a salted verifier and may fall back to the app-private IndexedDB used by the Life Leaf security pattern. Both Android backup and device-transfer policies exclude application data. Release cleartext HTTP is disabled. The app has no Notion credentials or Worker signing secrets.
 
 ## Troubleshooting
 

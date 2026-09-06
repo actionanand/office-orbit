@@ -1,13 +1,13 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import { AuthState } from '../auth/auth-state';
-import { NativeStorageService } from '../storage/native-storage.service';
+import { PinStorageService } from '../storage/pin-storage.service';
 import { PlatformService } from '../platform/platform.service';
 import { BiometricService } from '../platform/biometric.service';
 import { createPin, parsePin, PinRecord, verifyPin } from './pin';
 
 @Service()
 export class AppLockService {
-  private readonly storage = inject(NativeStorageService);
+  private readonly storage = inject(PinStorageService);
   private readonly platform = inject(PlatformService);
   private readonly auth = inject(AuthState);
   private readonly biometric = inject(BiometricService);
@@ -23,7 +23,7 @@ export class AppLockService {
       this.auth.localLocked.set(false);
       return;
     }
-    const raw = await this.storage.get('pin');
+    const raw = await this.storage.get();
     this.record.set(raw ? parsePin(raw) : null);
     this.locked.set(this.enabled());
     this.auth.localLocked.set(this.locked());
@@ -37,7 +37,7 @@ export class AppLockService {
     }
   }
   private async save(record: PinRecord): Promise<void> {
-    await this.storage.set('pin', JSON.stringify(record));
+    await this.storage.set(JSON.stringify(record));
     this.record.set(record);
   }
   private async confirm(pin: string): Promise<void> {
@@ -103,7 +103,7 @@ export class AppLockService {
     this.requireSession();
     await this.confirm(pin);
     this.requireSession();
-    await this.storage.remove('pin');
+    await this.storage.remove();
     this.record.set(null);
     this.locked.set(false);
     this.auth.localLocked.set(false);
