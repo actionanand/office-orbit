@@ -52,6 +52,15 @@ describe('local app lock', () => {
     lock.lock();
     expect(lock.locked()).toBe(true);
   });
+  it('trusts a successful account sign-in without asking for the device PIN again', async () => {
+    saved = JSON.stringify(await createPin('4391'));
+    const lock = TestBed.inject(AppLockService);
+    await lock.initialize();
+    expect(lock.locked()).toBe(true);
+    lock.unlockAfterSignIn();
+    expect(lock.locked()).toBe(false);
+    expect(TestBed.inject(AuthState).localLocked()).toBe(false);
+  });
   it('persists throttling and refuses attempts until the delay expires', async () => {
     saved = JSON.stringify({ ...(await createPin('4391')), failures: 4 });
     const lock = TestBed.inject(AppLockService);

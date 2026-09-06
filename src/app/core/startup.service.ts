@@ -18,6 +18,7 @@ export class StartupService {
   readonly phase = signal<'loading' | 'ready' | 'error'>('loading');
   private initialized?: Promise<void>;
   private listening = false;
+  private activityTrackingInstalled = false;
   private attempt = 0;
   start(): Promise<void> {
     return (this.initialized ??= this.initialize());
@@ -32,7 +33,10 @@ export class StartupService {
     try {
       await this.withDeadline(
         (async () => {
-          this.auth.installActivityTracking();
+          if (!this.activityTrackingInstalled) {
+            this.auth.installActivityTracking();
+            this.activityTrackingInstalled = true;
+          }
           await this.auth.restore();
           await this.lock.initialize();
           if (this.platform.android && !this.listening) {
@@ -40,13 +44,12 @@ export class StartupService {
             void App.addListener('appStateChange', ({ isActive }) => {
               if (this.biometric.prompting()) return;
               if (isActive) {
-                if (this.lock.enabled()) this.lock.lock();
                 this.auth.setForeground(true);
                 if (!this.auth.state.valid()) {
                   void this.auth.signOut();
                   return;
                 }
-                if (this.lock.enabled()) {
+                if (this.lock.locked()) {
                   void this.router.navigateByUrl('/unlock', { replaceUrl: true });
                 } else {
                   void this.auth.evaluateRenewal();

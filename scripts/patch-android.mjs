@@ -54,16 +54,16 @@ await write(
   path.join(res, 'drawable/office_orbit_splash_icon.xml'),
   `<layer-list xmlns:android="http://schemas.android.com/apk/res/android"><item android:width="168dp" android:height="168dp" android:gravity="center" android:drawable="@drawable/office_orbit_splash_logo"/></layer-list>`,
 );
-for (const [directory, background] of [
-  ['values', '#f3f7f4'],
-  ['values-night', '#101b17'],
+for (const [directory, background, dark] of [
+  ['values', '#f3f7f4', false],
+  ['values-night', '#101b17', true],
 ]) {
   await write(
     path.join(res, directory, 'styles.xml'),
     `<resources>
 <style name="AppTheme" parent="Theme.AppCompat.DayNight.DarkActionBar"><item name="colorPrimary">#17633f</item><item name="colorPrimaryDark">#145737</item><item name="colorAccent">#17633f</item></style>
-<style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar"><item name="windowActionModeOverlay">true</item><item name="android:background">@null</item><item name="android:statusBarColor">${background}</item><item name="android:navigationBarColor">${background}</item></style>
-<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen"><item name="windowSplashScreenBackground">${background}</item><item name="windowSplashScreenAnimatedIcon">@drawable/office_orbit_splash_icon</item><item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item></style>
+<style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar"><item name="windowActionModeOverlay">true</item><item name="android:background">@null</item><item name="android:statusBarColor">${background}</item><item name="android:navigationBarColor">${background}</item><item name="android:windowLightStatusBar">${dark ? 'false' : 'true'}</item><item name="android:windowLightNavigationBar">${dark ? 'false' : 'true'}</item></style>
+<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen"><item name="windowSplashScreenBackground">${background}</item><item name="windowSplashScreenAnimatedIcon">@drawable/office_orbit_splash_icon</item><item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item><item name="android:statusBarColor">${background}</item><item name="android:navigationBarColor">${background}</item><item name="android:windowLightStatusBar">${dark ? 'false' : 'true'}</item><item name="android:windowLightNavigationBar">${dark ? 'false' : 'true'}</item></style>
 </resources>`,
   );
 }
@@ -72,10 +72,12 @@ await write(
   javaFile,
   `package ${appId};
 import android.os.Bundle;
+import android.os.Build;
 import android.graphics.Color;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.content.res.Configuration;
 import com.getcapacitor.BridgeActivity;
@@ -83,6 +85,9 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
   @Override public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      getBridge().getWebView().setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
+    }
     final FrameLayout overlay = new FrameLayout(this);
     boolean dark = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
     overlay.setBackgroundColor(Color.parseColor(dark ? "#101b17" : "#f3f7f4"));

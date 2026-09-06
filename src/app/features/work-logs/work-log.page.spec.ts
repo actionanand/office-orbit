@@ -6,6 +6,14 @@ import { provideHttpClient } from '@angular/common/http';
 import { WorkLog } from '../../shared/models/api.models';
 import { WorkLogPage } from './work-log.page';
 import { WorkLogStore } from './work-log.store';
+import { WorkLogExportService } from './work-log-export.service';
+
+const exporter = {
+  android: false,
+  busy: signal(false),
+  status: signal(''),
+  run: vi.fn().mockResolvedValue(undefined),
+};
 
 const log = (id: string, date: string): WorkLog => ({
   id,
@@ -61,6 +69,7 @@ describe('WorkLogPage calendar', () => {
         provideHttpClient(),
         { provide: WorkLogStore, useValue: store },
         { provide: PrintService, useValue: { supported: true, print: vi.fn() } },
+        { provide: WorkLogExportService, useValue: exporter },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(WorkLogPage);
@@ -102,6 +111,7 @@ describe('WorkLogPage calendar', () => {
         provideHttpClient(),
         { provide: WorkLogStore, useValue: store },
         { provide: PrintService, useValue: { supported: true, print } },
+        { provide: WorkLogExportService, useValue: exporter },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(WorkLogPage);

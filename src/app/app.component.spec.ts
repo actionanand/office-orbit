@@ -22,7 +22,7 @@ describe('AppComponent', () => {
     }).compileComponents();
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Opening your workspace');
+    expect(fixture.nativeElement.textContent).toContain('Qurio is preparing your work orbit');
   });
   it('offers a retry instead of leaving an endless spinner after startup fails', async () => {
     startup.phase.set('error');

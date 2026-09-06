@@ -368,6 +368,14 @@ ion-app > router-outlet + * {
   flex-wrap: wrap;
   gap: 8px;
 }
+.security-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.settings form h3 {
+  margin: 20px 0 8px;
+}
 .more-grid {
   display: grid;
   gap: 14px;

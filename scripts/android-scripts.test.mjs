@@ -82,11 +82,16 @@ test('Android patch is idempotent and restricts permissions and backup', () =>
       'utf8',
     );
     assert.match(activity, /Math.round\(168/);
+    assert.match(activity, /IMPORTANT_FOR_AUTOFILL_YES/);
     assert.match(activity, /package com.example.officeorbit;/);
     assert.match(activity, /registerPlugin\(OfficeOrbitExportPlugin.class\)/);
     assert.equal(manifest.match(/\.exportprovider/g)?.length, 1);
     const gradle = readFileSync(path.join(root, 'android/app/build.gradle'), 'utf8');
     assert.match(gradle, /^apply plugin: 'com\.android\.application'\n\nandroid \{/);
+    const lightStyles = readFileSync(path.join(root, 'android/app/src/main/res/values/styles.xml'), 'utf8');
+    const darkStyles = readFileSync(path.join(root, 'android/app/src/main/res/values-night/styles.xml'), 'utf8');
+    assert.match(lightStyles, /android:windowLightStatusBar">true/);
+    assert.match(darkStyles, /android:windowLightStatusBar">false/);
     const exporter = readFileSync(
       path.join(root, 'android/app/src/main/java/com/example/officeorbit/OfficeOrbitExportPlugin.java'),
       'utf8',

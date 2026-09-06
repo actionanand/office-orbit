@@ -33,18 +33,24 @@ import { StartupService } from '../../core/startup.service';
             >
           </div>
         } @else {
-          <form [formGroup]="form" (ngSubmit)="submit()">
+          <form [formGroup]="form" autocomplete="on" (ngSubmit)="submit()">
             <ion-input
+              id="office-orbit-username"
+              name="username"
               label="Username"
               labelPlacement="stacked"
               fill="outline"
               type="text"
               autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
               maxlength="12"
               required
               formControlName="username"
               [errorText]="form.controls.username.touched && form.controls.username.invalid ? 'Enter username.' : ''" />
             <ion-input
+              id="office-orbit-password"
+              name="password"
               label="Password"
               labelPlacement="stacked"
               fill="outline"
@@ -122,15 +128,12 @@ export class LoginPage {
     this.message.set('');
     try {
       await this.auth.login(this.form.controls.password.value);
-      this.lock.lock();
-      this.form.reset();
-      await this.router.navigateByUrl(this.lock.locked() ? '/unlock' : '/app/dashboard', {
-        replaceUrl: true,
-      });
+      this.lock.unlockAfterSignIn();
+      await this.router.navigateByUrl('/app/dashboard', { replaceUrl: true });
     } catch (error) {
       this.message.set(apiError(error, true));
+      this.form.controls.password.reset();
     } finally {
-      this.form.reset();
       this.busy.set(false);
     }
   }

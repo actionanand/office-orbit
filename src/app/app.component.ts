@@ -10,7 +10,7 @@ import { AuthService } from './core/auth/auth.service';
   template: `<ion-app>
     @if (startup.phase() === 'loading') {
       <div class="session-shield" role="status">
-        <ion-spinner aria-label="Initializing Office Orbit" /><span>Opening your workspace…</span>
+        <ion-spinner aria-label="Initializing Office Orbit" /><span>Qurio is preparing your work orbit…</span>
       </div>
     } @else if (startup.phase() === 'error') {
       <div class="session-shield" role="alert">

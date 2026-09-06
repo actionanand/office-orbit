@@ -26,9 +26,10 @@ export class BiometricService {
     return this.available();
   }
   async authenticate(): Promise<void> {
-    if (!(await this.check())) throw new Error('Biometric unlock is unavailable. Use your PIN.');
+    if (this.prompting()) throw new Error('Biometric verification is already open.');
     this.prompting.set(true);
     try {
+      if (!(await this.check())) throw new Error('Biometric unlock is unavailable. Use your PIN.');
       const { BiometricAuth, AndroidBiometryStrength } = await import('@aparajita/capacitor-biometric-auth');
       await BiometricAuth.authenticate({
         reason: 'Unlock Office Orbit',
@@ -36,7 +37,8 @@ export class BiometricService {
         allowDeviceCredential: false,
         androidBiometryStrength: AndroidBiometryStrength.strong,
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Biometric unlock is unavailable. Use your PIN.') throw error;
       throw new Error('Biometric verification was cancelled or unavailable. Use your PIN to continue.');
     } finally {
       this.prompting.set(false);

@@ -36,6 +36,11 @@ export class AppLockService {
       this.auth.localLocked.set(true);
     }
   }
+  unlockAfterSignIn(): void {
+    this.requireSession();
+    this.locked.set(false);
+    this.auth.localLocked.set(false);
+  }
   private async save(record: PinRecord): Promise<void> {
     await this.storage.set(JSON.stringify(record));
     this.record.set(record);
