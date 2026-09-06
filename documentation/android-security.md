@@ -2,7 +2,7 @@
 
 ## Secure local state
 
-SecureStorage 8.0.0 encrypts Android data using Keystore-backed keys. Only token/expiry metadata, a PIN verifier record, and local biometric preferences are stored there. Web bypasses this plugin completely.
+SecureStorage 8.0.0 encrypts Android session data using Keystore-backed keys. Native calls have a four-second deadline. If the plugin is unavailable, tokens remain memory-only and the salted PIN verifier can use the app-private IndexedDB security store; neither path stores plaintext credentials. Web bypasses the native plugin completely.
 
 The PIN is numeric, 4–6 digits, confirmed on setup. A fresh 16-byte random salt and PBKDF2-SHA256 with 600,000 iterations derive a 256-bit verifier. The record stores algorithm version, iteration count, verifier, salt and throttle metadata. It never stores the PIN. Verification compares derived bytes without early exit.
 

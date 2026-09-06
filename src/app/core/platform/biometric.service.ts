@@ -10,7 +10,16 @@ export class BiometricService {
     if (!this.platform.android) return false;
     try {
       const { BiometricAuth } = await import('@aparajita/capacitor-biometric-auth');
-      this.available.set((await BiometricAuth.checkBiometry()).strongBiometryIsAvailable);
+      this.available.set(
+        (
+          await Promise.race([
+            BiometricAuth.checkBiometry(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Biometric detection did not respond.')), 4_000),
+            ),
+          ])
+        ).strongBiometryIsAvailable,
+      );
     } catch {
       this.available.set(false);
     }

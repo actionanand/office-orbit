@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { AppLockService } from './app-lock.service';
-import { NativeStorageService } from '../storage/native-storage.service';
+import { PinStorageService } from '../storage/pin-storage.service';
 import { PlatformService } from '../platform/platform.service';
 import { BiometricService } from '../platform/biometric.service';
 import { AuthState } from '../auth/auth-state';
@@ -25,10 +25,10 @@ describe('local app lock', () => {
         { provide: PlatformService, useValue: { android: true } },
         { provide: BiometricService, useValue: biometric },
         {
-          provide: NativeStorageService,
+          provide: PinStorageService,
           useValue: {
             get: async () => saved,
-            set: async (_key: string, value: string) => {
+            set: async (value: string) => {
               saved = value;
             },
             remove: async () => {
@@ -85,7 +85,7 @@ describe('local app lock', () => {
       providers: [
         { provide: PlatformService, useValue: { android: false } },
         {
-          provide: NativeStorageService,
+          provide: PinStorageService,
           useValue: {
             get: () => {
               throw new Error('Native storage accessed on web');

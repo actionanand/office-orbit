@@ -16,9 +16,20 @@ export class TokenStorageService {
   private readonly native = inject(NativeStorageService);
   private readonly key = 'office-orbit.session';
   private pending: Promise<void> = Promise.resolve();
+  private volatileSession: StoredToken | null = null;
+  private nativeAvailable = true;
   async read(): Promise<StoredToken | null> {
     await this.pending.catch(() => undefined);
-    const raw = this.platform.android ? await this.native.get('session') : sessionStorage.getItem(this.key);
+    let raw: string | null;
+    if (this.platform.android) {
+      if (!this.nativeAvailable) return this.volatileSession;
+      try {
+        raw = await this.native.get('session');
+      } catch {
+        this.nativeAvailable = false;
+        return this.volatileSession;
+      }
+    } else raw = sessionStorage.getItem(this.key);
     if (!raw) return null;
     try {
       const value: unknown = JSON.parse(raw);
@@ -71,14 +82,28 @@ export class TokenStorageService {
   }
   save(value: StoredToken): Promise<void> {
     return this.enqueue(async () => {
-      if (this.platform.android) await this.native.set('session', JSON.stringify(value));
-      else sessionStorage.setItem(this.key, JSON.stringify(value));
+      if (this.platform.android) {
+        this.volatileSession = value;
+        if (this.nativeAvailable)
+          try {
+            await this.native.set('session', JSON.stringify(value));
+          } catch {
+            this.nativeAvailable = false;
+          }
+      } else sessionStorage.setItem(this.key, JSON.stringify(value));
     });
   }
   clear(): Promise<void> {
     return this.enqueue(async () => {
-      if (this.platform.android) await this.native.remove('session');
-      else sessionStorage.removeItem(this.key);
+      if (this.platform.android) {
+        this.volatileSession = null;
+        if (this.nativeAvailable)
+          try {
+            await this.native.remove('session');
+          } catch {
+            this.nativeAvailable = false;
+          }
+      } else sessionStorage.removeItem(this.key);
     });
   }
 }

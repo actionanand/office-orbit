@@ -100,6 +100,16 @@ describe('AuthService', () => {
     expect(TestBed.inject(AuthState).session()).toBeNull();
     expect(storage.clear).toHaveBeenCalled();
   });
+  it('continues unauthenticated when restored-session validation is unavailable', async () => {
+    storage.read.mockResolvedValueOnce(session({ accessToken: 'unverified' }));
+    const pending = service.restore();
+    await Promise.resolve();
+    http.expectOne(environment.apiBaseUrl + '/api/auth/status').error(new ProgressEvent('network'));
+    await pending;
+    expect(service.state.valid()).toBe(false);
+    expect(service.state.notice()).toContain('Sign in again');
+    expect(storage.clear).not.toHaveBeenCalled();
+  });
   it('provides safe invalid-password and network messages', () => {
     expect(apiError(new HttpErrorResponse({ status: 401 }), true)).toContain('password');
     expect(apiError(new HttpErrorResponse({ status: 0 }))).toContain('connection');

@@ -47,6 +47,7 @@ writeFileSync(
 );
 mkdirSync(res + '/drawable-nodpi', { recursive: true });
 mkdirSync('releases', { recursive: true });
-convert(512, 360, res + '/drawable-nodpi/office_orbit_splash_logo.png');
+// Keep the wide orbit ring comfortably inside Android 12's circular splash mask.
+convert(512, 288, res + '/drawable-nodpi/office_orbit_splash_logo.png');
 convert(512, 420, 'releases/playstore-icon.png', '#f3f7f4');
 console.log('Generated Office Orbit launcher, splash and Play Store icons.');
