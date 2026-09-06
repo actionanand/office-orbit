@@ -41,8 +41,58 @@ import { appVersion } from '../../core/version/app-version';
               {{ lock.enabled() ? 'PIN protection is on.' : 'Add a PIN to lock this app on launch and resume.' }}
             </p>
             <p class="muted">Your PIN protects this device. It does not extend your signed-in session.</p>
-            <form [formGroup]="form" (ngSubmit)="savePin()">
-              @if (lock.enabled()) {
+            @if (!lock.enabled()) {
+              <form [formGroup]="form" (ngSubmit)="savePin()">
+                <ion-input
+                  label="PIN (4–6 digits)"
+                  labelPlacement="stacked"
+                  fill="outline"
+                  type="password"
+                  inputmode="numeric"
+                  maxlength="6"
+                  autocomplete="off"
+                  formControlName="pin" />
+                <ion-input
+                  label="Confirm PIN"
+                  labelPlacement="stacked"
+                  fill="outline"
+                  type="password"
+                  inputmode="numeric"
+                  maxlength="6"
+                  autocomplete="off"
+                  formControlName="confirm" />
+                <ion-button type="submit" [disabled]="busy()">Enable PIN</ion-button>
+              </form>
+            } @else if (securityAction() === null) {
+              <div class="security-actions" role="group" aria-label="PIN and biometric settings">
+                <ion-button type="button" fill="outline" (click)="chooseSecurityAction('change')"
+                  >Change PIN</ion-button
+                >
+                @if (biometric.available() || lock.biometricEnabled()) {
+                  <ion-button type="button" fill="outline" (click)="chooseSecurityAction('biometric')">{{
+                    lock.biometricEnabled() ? 'Turn off biometric unlock' : 'Set up biometric unlock'
+                  }}</ion-button>
+                }
+                <ion-button type="button" fill="outline" color="danger" (click)="chooseSecurityAction('disable')"
+                  >Turn off PIN protection</ion-button
+                >
+              </div>
+            } @else {
+              <form [formGroup]="form" (ngSubmit)="submitSecurityAction()">
+                <h3>
+                  @switch (securityAction()) {
+                    @case ('change') {
+                      Change your PIN
+                    }
+                    @case ('disable') {
+                      Turn off PIN protection
+                    }
+                    @case ('biometric') {
+                      {{ lock.biometricEnabled() ? 'Turn off biometric unlock' : 'Set up biometric unlock' }}
+                    }
+                  }
+                </h3>
+                <p class="muted">Enter your current PIN to confirm this change.</p>
                 <ion-input
                   label="Current PIN"
                   labelPlacement="stacked"
@@ -52,41 +102,37 @@ import { appVersion } from '../../core/version/app-version';
                   maxlength="6"
                   autocomplete="off"
                   formControlName="current" />
-              }
-              <ion-input
-                [label]="lock.enabled() ? 'New PIN (4–6 digits)' : 'PIN (4–6 digits)'"
-                labelPlacement="stacked"
-                fill="outline"
-                type="password"
-                inputmode="numeric"
-                maxlength="6"
-                autocomplete="off"
-                formControlName="pin" /><ion-input
-                label="Confirm PIN"
-                labelPlacement="stacked"
-                fill="outline"
-                type="password"
-                inputmode="numeric"
-                maxlength="6"
-                autocomplete="off"
-                formControlName="confirm" />
-              <div class="button-row">
-                <ion-button type="submit" [disabled]="busy()">{{
-                  lock.enabled() ? 'Change PIN' : 'Enable PIN'
-                }}</ion-button>
-                @if (lock.enabled()) {
-                  <ion-button type="button" fill="outline" [disabled]="busy()" (click)="disable()"
-                    >Disable PIN</ion-button
-                  >
+                @if (securityAction() === 'change') {
+                  <ion-input
+                    label="New PIN (4–6 digits)"
+                    labelPlacement="stacked"
+                    fill="outline"
+                    type="password"
+                    inputmode="numeric"
+                    maxlength="6"
+                    autocomplete="off"
+                    formControlName="pin" />
+                  <ion-input
+                    label="Confirm new PIN"
+                    labelPlacement="stacked"
+                    fill="outline"
+                    type="password"
+                    inputmode="numeric"
+                    maxlength="6"
+                    autocomplete="off"
+                    formControlName="confirm" />
                 }
-              </div>
-              @if (lock.enabled() && (biometric.available() || lock.biometricEnabled())) {
-                <ion-button type="button" fill="outline" [disabled]="busy()" (click)="toggleBiometric()">{{
-                  lock.biometricEnabled() ? 'Disable biometric unlock' : 'Use biometric unlock'
-                }}</ion-button>
-                <p class="muted">Enter your current PIN above to change biometric access.</p>
-              }
-            </form>
+                @if (securityAction() === 'biometric' && !lock.biometricEnabled()) {
+                  <p class="muted">Android will ask for your fingerprint or face once after your PIN is accepted.</p>
+                }
+                <div class="button-row">
+                  <ion-button type="submit" [disabled]="busy()">Continue</ion-button>
+                  <ion-button type="button" fill="clear" [disabled]="busy()" (click)="cancelSecurityAction()"
+                    >Cancel</ion-button
+                  >
+                </div>
+              </form>
+            }
           } @else {
             <p>PIN and biometric app lock are available in the Android app.</p>
             <p class="muted">Web sessions are stored for this browser session only.</p>
@@ -151,6 +197,7 @@ export class SettingsPage {
   ];
   readonly busy = signal(false);
   readonly message = signal('');
+  readonly securityAction = signal<'change' | 'disable' | 'biometric' | null>(null);
   readonly form = new FormGroup({
     current: new FormControl('', { nonNullable: true }),
     pin: new FormControl('', { nonNullable: true }),
@@ -164,6 +211,16 @@ export class SettingsPage {
     }
     await this.perform(() => this.lock.setPin(pin, current), 'PIN protection updated.');
   }
+  chooseSecurityAction(action: 'change' | 'disable' | 'biometric'): void {
+    this.form.reset();
+    this.message.set('');
+    this.securityAction.set(action);
+  }
+  cancelSecurityAction(): void {
+    this.form.reset();
+    this.message.set('');
+    this.securityAction.set(null);
+  }
   async disable() {
     await this.perform(
       () => this.lock.disable(this.form.controls.current.value),
@@ -176,12 +233,26 @@ export class SettingsPage {
       'Biometric preference updated.',
     );
   }
+  async submitSecurityAction(): Promise<void> {
+    switch (this.securityAction()) {
+      case 'change':
+        await this.savePin();
+        break;
+      case 'disable':
+        await this.disable();
+        break;
+      case 'biometric':
+        await this.toggleBiometric();
+        break;
+    }
+  }
   private async perform(action: () => Promise<void>, success: string) {
     if (this.busy()) return;
     this.busy.set(true);
     try {
       await action();
       this.form.reset();
+      this.securityAction.set(null);
       this.message.set(success);
     } catch (error) {
       this.message.set(error instanceof Error ? error.message : 'Unable to update security settings.');

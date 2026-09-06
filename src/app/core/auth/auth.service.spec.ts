@@ -190,7 +190,7 @@ describe('AuthService', () => {
     http.expectNone(environment.apiBaseUrl + '/api/auth/renew');
   });
   it('keeps a valid token after temporary renewal failure but clears on renewal 401', async () => {
-    service.state.session.set(session({ renewAfter: Date.now() - 1 }));
+    service.state.session.set(session({ expiresAt: Date.now() + 120000, renewAfter: Date.now() - 1 }));
     service.state.verified.set(true);
     service.state.lastActivityAt.set(Date.now());
     const temporary = service.evaluateRenewal();

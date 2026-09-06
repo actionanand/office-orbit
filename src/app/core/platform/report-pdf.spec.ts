@@ -8,7 +8,12 @@ describe('selectable web PDF output', () => {
       generated: '2026-09-06',
       records: [{ date: '2026-09-05', title: 'Review', lines: ['Selectable meeting notes'] }],
     });
-    const content = new TextDecoder().decode(await blob.arrayBuffer());
+    const content = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error ?? new Error('Unable to read generated PDF.'));
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsText(blob);
+    });
     expect(content).toContain('(Selectable meeting notes) Tj');
     expect(content).toContain('/BaseFont /Helvetica');
     expect(content).not.toContain('/Subtype /Image');

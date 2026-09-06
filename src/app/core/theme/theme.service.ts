@@ -1,9 +1,11 @@
 import { DOCUMENT, inject, Service, signal } from '@angular/core';
+import { PlatformService } from '../platform/platform.service';
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 @Service()
 export class ThemeService {
   private readonly document = inject(DOCUMENT);
+  private readonly platform = inject(PlatformService);
   private readonly media = window.matchMedia('(prefers-color-scheme: dark)');
   readonly mode = signal<ThemeMode>('system');
   constructor() {
@@ -30,5 +32,10 @@ export class ThemeService {
     this.document.documentElement.classList.toggle('ion-palette-dark', dark);
     this.document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
     this.document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#101b17' : '#f3f7f4');
+    if (this.platform.android) {
+      void import('@capacitor/status-bar')
+        .then(({ StatusBar, Style }) => StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }))
+        .catch(() => undefined);
+    }
   }
 }
