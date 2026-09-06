@@ -4,7 +4,7 @@ Office Orbit uses Angular 22 standalone components and automatic @Service provid
 
 ## Startup and navigation
 
-StartupService initializes the theme and native lock metadata, restores the Worker session, verifies /api/auth/status, then marks startup ready. A loading shield appears while this runs. Startup errors leave authentication unverified and offer Retry. Corrupt security metadata is never treated as a disabled lock. AuthService owns sliding session timing and renews through /api/auth/renew only during recent foreground activity.
+StartupService initializes the theme and native lock metadata, restores the Worker session, verifies /api/auth/status, then marks startup ready. A loading shield appears while this runs. A 20-second startup deadline prevents unresolved native plugin calls from leaving the application on an endless spinner. Startup errors leave authentication unverified and offer Retry. Corrupt security metadata is never treated as a disabled lock. AuthService owns sliding session timing and renews through /api/auth/renew only during recent foreground activity.
 
 Functional guards check startup, Worker authentication and local-lock state. Each protected child route is guarded. The responsive ShellComponent hosts an ordinary Angular RouterOutlet so feature views are destroyed instead of being retained by Ionic's navigation stack. Its signal condition removes protected DOM as soon as the app locks or the session ends.
 

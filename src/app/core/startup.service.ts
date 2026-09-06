@@ -18,6 +18,7 @@ export class StartupService {
   readonly phase = signal<'loading' | 'ready' | 'error'>('loading');
   private initialized?: Promise<void>;
   private listening = false;
+  private attempt = 0;
   start(): Promise<void> {
     return (this.initialized ??= this.initialize());
   }
@@ -26,37 +27,58 @@ export class StartupService {
     await this.start();
   }
   private async initialize(): Promise<void> {
+    const attempt = ++this.attempt;
     this.phase.set('loading');
     try {
-      this.auth.installActivityTracking();
-      await this.auth.restore();
-      await this.lock.initialize();
-      if (this.platform.android && !this.listening) {
-        await App.addListener('appStateChange', ({ isActive }) => {
-          if (this.biometric.prompting()) return;
-          if (isActive) {
-            if (this.lock.enabled()) this.lock.lock();
-            this.auth.setForeground(true);
-            if (!this.auth.state.valid()) {
-              void this.auth.signOut();
-              return;
-            }
-            if (this.lock.enabled()) {
-              void this.router.navigateByUrl('/unlock', { replaceUrl: true });
-            } else {
-              void this.auth.evaluateRenewal();
-            }
-          } else {
-            this.auth.setForeground(false);
-            this.lock.lock();
+      await this.withDeadline(
+        (async () => {
+          this.auth.installActivityTracking();
+          await this.auth.restore();
+          await this.lock.initialize();
+          if (this.platform.android && !this.listening) {
+            await App.addListener('appStateChange', ({ isActive }) => {
+              if (this.biometric.prompting()) return;
+              if (isActive) {
+                if (this.lock.enabled()) this.lock.lock();
+                this.auth.setForeground(true);
+                if (!this.auth.state.valid()) {
+                  void this.auth.signOut();
+                  return;
+                }
+                if (this.lock.enabled()) {
+                  void this.router.navigateByUrl('/unlock', { replaceUrl: true });
+                } else {
+                  void this.auth.evaluateRenewal();
+                }
+              } else {
+                this.auth.setForeground(false);
+                this.lock.lock();
+              }
+            });
+            this.listening = true;
           }
-        });
-        this.listening = true;
-      }
-      this.phase.set('ready');
+        })(),
+        20_000,
+      );
+      if (attempt === this.attempt) this.phase.set('ready');
     } catch {
-      this.auth.state.verified.set(false);
-      this.phase.set('error');
+      if (attempt === this.attempt) {
+        this.auth.state.verified.set(false);
+        this.phase.set('error');
+      }
+    }
+  }
+  private async withDeadline<T>(operation: Promise<T>, milliseconds: number): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Startup timed out')), milliseconds);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
     }
   }
 }

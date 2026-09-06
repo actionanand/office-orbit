@@ -1,16 +1,22 @@
 import { Component, DestroyRef, inject } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { IonApp, IonSpinner } from '@ionic/angular';
+import { IonApp, IonButton, IonSpinner } from '@ionic/angular';
 import { StartupService } from './core/startup.service';
 import { AuthService } from './core/auth/auth.service';
 @Component({
   selector: 'app-root',
-  imports: [IonApp, RouterOutlet, IonSpinner],
+  imports: [IonApp, IonButton, RouterOutlet, IonSpinner],
   template: `<ion-app>
     @if (startup.phase() === 'loading') {
       <div class="session-shield" role="status">
         <ion-spinner aria-label="Initializing Office Orbit" /><span>Opening your workspace…</span>
+      </div>
+    } @else if (startup.phase() === 'error') {
+      <div class="session-shield" role="alert">
+        <strong>Office Orbit could not finish starting.</strong>
+        <span>Check your connection, then try again.</span>
+        <ion-button fill="outline" (click)="retryStartup()">Try again</ion-button>
       </div>
     }
     <router-outlet
@@ -35,5 +41,8 @@ export class AppComponent {
         }
       });
     void this.startup.start();
+  }
+  async retryStartup(): Promise<void> {
+    await this.startup.retry();
   }
 }

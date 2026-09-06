@@ -46,10 +46,10 @@ await write(
   `<data-extraction-rules><cloud-backup>${excludes}</cloud-backup><device-transfer>${excludes}</device-transfer></data-extraction-rules>`,
 );
 await mkdir(path.join(res, 'drawable-nodpi'), { recursive: true });
-await copyFile(
-  path.join(root, 'src/assets/office-orbit.png'),
-  path.join(res, 'drawable-nodpi/office_orbit_splash_logo.png'),
-);
+const splashLogo = path.join(res, 'drawable-nodpi/office_orbit_splash_logo.png');
+// android:assets writes a safely padded splash bitmap. Preserve it when the
+// release helper reapplies this patch immediately before Gradle runs.
+if (!existsSync(splashLogo)) await copyFile(path.join(root, 'src/assets/office-orbit.png'), splashLogo);
 await write(
   path.join(res, 'drawable/office_orbit_splash_icon.xml'),
   `<layer-list xmlns:android="http://schemas.android.com/apk/res/android"><item android:width="168dp" android:height="168dp" android:gravity="center" android:drawable="@drawable/office_orbit_splash_logo"/></layer-list>`,
