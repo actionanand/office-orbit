@@ -57,4 +57,14 @@ describe('deterministic startup', () => {
     expect(startup.phase()).toBe('ready');
     expect(auth.installActivityTracking).toHaveBeenCalledOnce();
   });
+  it('fails closed when a native startup operation never settles', async () => {
+    vi.useFakeTimers();
+    auth.restore.mockReturnValueOnce(new Promise<void>(() => {}));
+    const startup = TestBed.inject(StartupService);
+    const result = startup.start();
+    await vi.advanceTimersByTimeAsync(20_000);
+    await result;
+    expect(startup.phase()).toBe('error');
+    vi.useRealTimers();
+  });
 });

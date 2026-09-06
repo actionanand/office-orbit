@@ -1,137 +1,146 @@
-import { WorkLogReport } from '../../features/work-logs/work-log-report';
+import type { WorkLogReport } from '../../features/work-logs/work-log-report';
 
-/** Browser-native page layout with JPEG PDF pages. Unicode uses the browser font renderer. */
+interface PdfPage {
+  commands: string[];
+  y: number;
+}
+
+const PAGE_WIDTH = 595;
+const PAGE_HEIGHT = 842;
+const MARGIN = 42;
+const CONTENT_BOTTOM = 790;
+
+/** Creates a compact PDF with a real text layer so report content remains selectable and searchable. */
 export async function reportPdf(report: WorkLogReport): Promise<Blob> {
-  await document.fonts.ready;
-  const pages: Uint8Array[] = [];
-  const canvas = document.createElement('canvas');
-  canvas.width = 1190;
-  canvas.height = 1684;
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('PDF rendering is unavailable.');
-  let y = 0;
-  const begin = () => {
-    context.fillStyle = '#fff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = '#17633f';
-    context.font = 'bold 34px sans-serif';
-    context.fillText('Office Orbit', 72, 80);
-    context.fillStyle = '#182b21';
-    context.font = '24px sans-serif';
-    context.fillText('Work Log Report', 72, 120);
-    y = 165;
+  const pages: PdfPage[] = [];
+  let page = createPage(pages);
+
+  const ensureSpace = (height: number) => {
+    if (page.y + height <= CONTENT_BOTTOM) return;
+    page = createPage(pages);
   };
-  const finish = () => {
-    context.fillStyle = '#46584d';
-    context.font = '18px sans-serif';
-    context.fillText('Page ' + (pages.length + 1), 72, 1630);
-    const binary = atob(canvas.toDataURL('image/jpeg', 0.94).split(',')[1]);
-    pages.push(Uint8Array.from(binary, character => character.charCodeAt(0)));
-  };
-  const wrap = (text: string): string[] => {
-    const lines: string[] = [];
-    for (const paragraph of text.split('\n')) {
-      let line = '';
-      for (const character of paragraph) {
-        if (context.measureText(line + character).width > 1046) {
-          lines.push(line);
-          line = '';
-        }
-        line += character;
-      }
-      lines.push(line);
-    }
-    return lines;
-  };
-  const draw = (text: string, bold = false) => {
-    context.font = (bold ? 'bold ' : '') + '22px sans-serif';
-    for (const line of wrap(text)) {
-      if (y > 1560) {
-        finish();
-        begin();
-        context.font = (bold ? 'bold ' : '') + '22px sans-serif';
-      }
-      context.fillStyle = '#182b21';
-      context.fillText(line, 72, y);
-      y += 31;
+  const draw = (value: string, options: { bold?: boolean; size?: number; color?: string } = {}) => {
+    const size = options.size ?? 11;
+    const lineHeight = Math.ceil(size * 1.45);
+    const lines = wrapText(value, Math.max(20, Math.floor((PAGE_WIDTH - MARGIN * 2) / (size * 0.52))));
+    for (const line of lines) {
+      ensureSpace(lineHeight);
+      page.commands.push(
+        `BT /${options.bold ? 'F2' : 'F1'} ${size} Tf ${options.color ?? '0.09 0.17 0.13'} rg 1 0 0 1 ${MARGIN} ${PAGE_HEIGHT - page.y} Tm (${pdfText(line)}) Tj ET`,
+      );
+      page.y += lineHeight;
     }
   };
-  begin();
+  const gap = (height: number) => {
+    ensureSpace(height);
+    page.y += height;
+  };
+
+  draw('Office Orbit', { bold: true, size: 18, color: '0.09 0.39 0.25' });
+  draw('Work Log Report', { size: 13 });
+  gap(8);
   draw('Period: ' + report.period);
   draw('Categories: ' + report.categories);
   draw('Generated: ' + report.generated);
-  y += 25;
+  gap(14);
+
   for (const record of report.records) {
-    context.font = '22px sans-serif';
-    const height = [record.date, record.title, ...record.lines].reduce((sum, line) => sum + wrap(line).length * 31, 30);
-    if (height < 1350 && y + height > 1560) {
-      finish();
-      begin();
-    }
-    draw(record.date, true);
-    draw(record.title, true);
+    const estimatedLines = [record.date, record.title, ...record.lines].reduce(
+      (count, value) => count + wrapText(value, 86).length,
+      0,
+    );
+    if (estimatedLines < 36) ensureSpace(estimatedLines * 16 + 14);
+    draw(record.date, { bold: true, size: 10, color: '0.27 0.35 0.30' });
+    draw(record.title, { bold: true, size: 12 });
     for (const line of record.lines) draw(line);
-    y += 25;
-    await Promise.resolve();
+    gap(12);
   }
-  finish();
-  canvas.width = 0;
-  canvas.height = 0;
-  const encoder = new TextEncoder();
-  const parts: Uint8Array[] = [];
-  const offsets = [0];
-  let length = 0;
-  const append = (part: string | Uint8Array) => {
-    const bytes = typeof part === 'string' ? encoder.encode(part) : part;
-    parts.push(bytes);
-    length += bytes.length;
-  };
-  const object = (id: number, body: string | Uint8Array, prefix = '') => {
-    offsets[id] = length;
-    append(id + ' 0 obj\n');
-    append(prefix);
-    append(body);
-    append('\nendobj\n');
-  };
-  append('%PDF-1.4\n');
-  object(1, '<< /Type /Catalog /Pages 2 0 R >>');
-  object(
-    2,
-    '<< /Type /Pages /Count ' +
-      pages.length +
-      ' /Kids [' +
-      pages.map((_, index) => 3 + index * 3 + ' 0 R').join(' ') +
-      '] >>',
-  );
-  pages.forEach((jpeg, index) => {
-    const id = 3 + index * 3;
-    object(
-      id,
-      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im0 ' +
-        (id + 1) +
-        ' 0 R >> >> /Contents ' +
-        (id + 2) +
-        ' 0 R >>',
+
+  pages.forEach((entry, index) => {
+    entry.commands.push(
+      `BT /F1 9 Tf 0.27 0.35 0.30 rg 1 0 0 1 ${MARGIN} 24 Tm (Office Orbit  |  Page ${index + 1}) Tj ET`,
     );
-    offsets[id + 1] = length;
-    append(
-      id +
-        1 +
-        ' 0 obj\n<< /Type /XObject /Subtype /Image /Width 1190 /Height 1684 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' +
-        jpeg.length +
-        ' >>\nstream\n',
-    );
-    append(jpeg);
-    append('\nendstream\nendobj\n');
-    const stream = 'q 595 0 0 842 0 0 cm /Im0 Do Q';
-    object(id + 2, '<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream');
   });
-  const xref = length;
-  append('xref\n0 ' + offsets.length + '\n0000000000 65535 f \n');
-  for (const offset of offsets.slice(1)) append(String(offset).padStart(10, '0') + ' 00000 n \n');
-  append('trailer\n<< /Size ' + offsets.length + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
-  return new Blob(
-    parts.map(part => part.slice().buffer),
-    { type: 'application/pdf' },
-  );
+  return pdfBlob(pages);
+}
+
+function createPage(pages: PdfPage[]): PdfPage {
+  const page = { commands: [], y: 48 };
+  pages.push(page);
+  return page;
+}
+
+function wrapText(value: string, maximumCharacters: number): string[] {
+  const lines: string[] = [];
+  for (const paragraph of value.replace(/\r/g, '').split('\n')) {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      lines.push('');
+      continue;
+    }
+    let line = '';
+    for (const word of words) {
+      const pieces: string[] = [];
+      for (let index = 0; index < word.length; index += maximumCharacters) {
+        pieces.push(word.slice(index, index + maximumCharacters));
+      }
+      for (const piece of pieces) {
+        const next = line ? `${line} ${piece}` : piece;
+        if (next.length <= maximumCharacters) line = next;
+        else {
+          if (line) lines.push(line);
+          line = piece;
+        }
+      }
+    }
+    if (line) lines.push(line);
+  }
+  return lines;
+}
+
+function pdfText(value: string): string {
+  return value
+    .replace(/[\u2010-\u2015]/g, '-')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/\u2026/g, '...')
+    .replace(/\u00b7/g, '|')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\x20-\x7e]/g, '?')
+    .replace(/([\\()])/g, '\\$1');
+}
+
+function pdfBlob(pages: PdfPage[]): Blob {
+  const fontRegular = 3 + pages.length * 2;
+  const fontBold = fontRegular + 1;
+  const objects: string[] = [];
+  objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objects[2] =
+    `<< /Type /Pages /Count ${pages.length} /Kids [` +
+    pages.map((_, index) => `${3 + index * 2} 0 R`).join(' ') +
+    '] >>';
+  pages.forEach((page, index) => {
+    const pageId = 3 + index * 2;
+    const contentId = pageId + 1;
+    const stream = page.commands.join('\n');
+    objects[pageId] =
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] ` +
+      `/Resources << /Font << /F1 ${fontRegular} 0 R /F2 ${fontBold} 0 R >> >> /Contents ${contentId} 0 R >>`;
+    objects[contentId] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+  });
+  objects[fontRegular] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objects[fontBold] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+
+  let output = '%PDF-1.4\n%OfficeOrbit\n';
+  const offsets = Array<number>(objects.length).fill(0);
+  for (let id = 1; id < objects.length; id++) {
+    offsets[id] = output.length;
+    output += `${id} 0 obj\n${objects[id]}\nendobj\n`;
+  }
+  const xref = output.length;
+  output += `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
+  for (const offset of offsets.slice(1)) output += `${String(offset).padStart(10, '0')} 00000 n \n`;
+  output += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return new Blob([new TextEncoder().encode(output)], { type: 'application/pdf' });
 }

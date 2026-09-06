@@ -64,9 +64,14 @@ test('Android patch is idempotent and restricts permissions and backup', () =>
         })
         .sort(([a], [b]) => a.localeCompare(b));
     }
+    write(root, 'android/app/src/main/res/drawable-nodpi/office_orbit_splash_logo.png', 'padded artwork');
     const first = snapshot(path.join(root, 'android'));
     runScript(root, 'patch-android.mjs');
     assert.deepEqual(snapshot(path.join(root, 'android')), first);
+    assert.equal(
+      readFileSync(path.join(root, 'android/app/src/main/res/drawable-nodpi/office_orbit_splash_logo.png'), 'utf8'),
+      'padded artwork',
+    );
     const manifest = readFileSync(path.join(root, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
     assert.match(manifest, /allowBackup="false"/);
     assert.match(manifest, /usesCleartextTraffic="false"/);

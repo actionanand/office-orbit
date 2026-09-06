@@ -59,9 +59,9 @@ The original PNG is never modified. ImageMagick derives all Android artwork:
 
 - Legacy launcher artwork occupies 70% of 48/72/96/144/192px density canvases.
 - Adaptive foregrounds use a 108dp-equivalent canvas with artwork limited to 60dp, inside Android's 66dp safe region, so common launcher masks do not clip the brand.
-- The splash bitmap fits 360px of a centered 512px transparent canvas.
+- The splash bitmap fits 360px of a centered 512px transparent canvas. Reapplying the native patch preserves this generated safe-area bitmap instead of replacing it with the edge-to-edge source artwork.
 - A centered 168dp × 168dp launch ImageView is shown for 1.1 seconds. Android's platform splash uses the same bounded drawable. The Capacitor splash is configured for 1.8 seconds with CENTER_INSIDE and no spinner.
-- Startup authorization has its own loading screen, independent of the timed native splash.
+- Startup authorization has its own loading screen, independent of the timed native splash. Native startup is capped at 20 seconds; failures show a retry action instead of an endless spinner.
 - The Play Store icon uses a 420px composition on an opaque 512px `#f3f7f4` canvas.
 - Light native surfaces use `#f3f7f4`; Android night resources use `#101b17`. The native launch background follows the OS; Angular then applies the saved app theme.
 
@@ -140,6 +140,7 @@ Worker access tokens and PIN metadata use native Keystore-backed encrypted stora
 - **Unsigned output:** inspect the workflow summary and all four signing secrets, including the key alias and PKCS12 password behavior.
 - **Worker network error on Android:** check HTTPS connectivity and Worker CORS for https://localhost.
 - **Local Worker unreachable:** emulator localhost is the emulator itself; use 10.0.2.2 and a development-only cleartext configuration.
+- **Opening screen does not finish:** startup now stops after 20 seconds and presents Try again. Check `adb logcat` for a native storage, biometric or network failure instead of waiting on the spinner indefinitely.
 - **Play code conflict:** bump versionCode before rebuilding.
 - **API or native security plugin failure:** startup fails closed; fix connectivity/storage and retry.
 
