@@ -4,7 +4,7 @@ Office Orbit uses Angular 22 standalone components and automatic @Service provid
 
 ## Startup and navigation
 
-StartupService initializes the theme and native lock metadata, restores the Worker session, verifies /api/auth/status, then marks startup ready. A loading shield appears while this runs. Startup errors leave authentication unverified and offer Retry. Corrupt security metadata is never treated as a disabled lock.
+StartupService initializes the theme and native lock metadata, restores the Worker session, verifies /api/auth/status, then marks startup ready. A loading shield appears while this runs. Startup errors leave authentication unverified and offer Retry. Corrupt security metadata is never treated as a disabled lock. AuthService owns sliding session timing and renews through /api/auth/renew only during recent foreground activity.
 
 Functional guards check startup, Worker authentication and local-lock state. Each protected child route is guarded. The responsive ShellComponent hosts an ordinary Angular RouterOutlet so feature views are destroyed instead of being retained by Ionic's navigation stack. Its signal condition removes protected DOM as soon as the app locks or the session ends.
 
@@ -12,7 +12,7 @@ Android uses a five-item bottom navigation; desktop uses a sidebar. More links t
 
 ## State
 
-Signals hold session, lock, request and theme state; computed signals derive visibility and filtered records. HttpClient/RxJS handle requests and cancellation. No NgRx, business-data persistence, or write endpoints are introduced.
+Signals hold session, renewal, foreground/activity, lock, request and theme state; computed signals derive visibility and filtered records. HttpClient/RxJS handle requests and cancellation. No NgRx, business-data persistence, or write endpoints are introduced.
 
 Ionic 9 IonInput exposes a ControlValueAccessor rather than a Signal Forms value model in this installation. Password/PIN forms therefore use typed Reactive Forms, with signal-based UI state, as the specified fallback. Native date filters also use Reactive Forms to keep one form strategy.
 
@@ -30,7 +30,7 @@ Collection requests cancel when a user changes views or leaves the page, prevent
 
 - PlatformService detects Android.
 - NativeStorageService imports the Keystore storage plugin only for Android.
-- TokenStorageService routes native session storage versus web sessionStorage.
+- TokenStorageService routes native session storage versus web sessionStorage and stores non-secret session timing metadata with the access token.
 - BiometricService checks enrolled strong biometrics and performs local authentication.
 - LinksService permits only HTTP(S), opens Android Custom Tabs through Capacitor Browser, and uses noopener/noreferrer on web.
 - ThemeService applies Ionic CSS variables and observes system-theme changes in Automatic mode.

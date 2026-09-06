@@ -1855,6 +1855,8 @@ details > summary {
 .native-chart .native-chart {
   border: 0;
   padding: 0;
+  background: transparent;
+  height: auto;
 }
 .native-chart figcaption {
   font-weight: 650;

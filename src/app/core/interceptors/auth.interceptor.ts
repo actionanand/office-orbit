@@ -7,6 +7,7 @@ import { AuthState } from '../auth/auth-state';
 import { TokenStorageService } from '../storage/token-storage.service';
 import { DataCacheService } from '../cache/data-cache.service';
 import { NavigationStateService } from '../cache/navigation-state.service';
+import { ACTIVITY_THROTTLE_MS } from '../auth/session-policy';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const state = inject(AuthState);
@@ -23,6 +24,10 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     protectedRequest && session
       ? request.clone({ setHeaders: { Authorization: `Bearer ${session.accessToken}` } })
       : request;
+  if (protectedRequest && session && url.pathname !== '/api/auth/renew') {
+    const now = Date.now();
+    if (now - state.lastActivityAt() >= ACTIVITY_THROTTLE_MS) state.lastActivityAt.set(now);
+  }
   return next(outgoing).pipe(
     catchError((error: unknown) => {
       if (

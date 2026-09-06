@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { NgOptimizedImage } from '@angular/common';
 import { IonButton, IonContent, IonHeader, IonInput, IonTitle, IonToolbar } from '@ionic/angular';
@@ -98,7 +98,18 @@ import { appVersion } from '../../core/version/app-version';
         <section class="data-card">
           <h2>Session</h2>
           <p><strong>Signed in</strong></p>
-          <p>Your session is protected by Office Orbit authentication.</p>
+          <p>
+            Office Orbit keeps your session active while you are working. For security, you'll be asked to sign in again
+            after the maximum session period.
+          </p>
+          @if (sessionExpiresBy()) {
+            <dl>
+              <div>
+                <dt>Session expires by</dt>
+                <dd>{{ sessionExpiresBy() }}</dd>
+              </div>
+            </dl>
+          }
           <ion-button fill="outline" (click)="auth.signOut()">Sign out</ion-button>
         </section>
         <section class="data-card">
@@ -129,6 +140,10 @@ export class SettingsPage {
   readonly lock = inject(AppLockService);
   readonly biometric = inject(BiometricService);
   readonly version = appVersion;
+  readonly sessionExpiresBy = computed(() => {
+    const value = this.auth.state.session()?.sessionExpiresAt;
+    return value ? new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(value) : '';
+  });
   readonly themes: { value: ThemeMode; label: string }[] = [
     { value: 'light', label: 'Light' },
     { value: 'dark', label: 'Dark' },

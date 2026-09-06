@@ -5,6 +5,7 @@ import { IonButton, IonContent, IonIcon, IonInput, IonSpinner } from '@ionic/ang
 import { addIcons } from 'ionicons';
 import { fingerPrintOutline, lockOpenOutline } from 'ionicons/icons';
 import { AppLockService } from '../../core/app-lock/app-lock.service';
+import { AuthService } from '../../core/auth/auth.service';
 @Component({
   selector: 'app-unlock',
   imports: [ReactiveFormsModule, IonButton, IonContent, IonIcon, IonInput, IonSpinner],
@@ -48,6 +49,7 @@ import { AppLockService } from '../../core/app-lock/app-lock.service';
 })
 export class UnlockPage {
   readonly lock = inject(AppLockService);
+  private readonly auth = inject(AuthService);
   private router = inject(Router);
   readonly pin = new FormControl('', {
     nonNullable: true,
@@ -77,6 +79,8 @@ export class UnlockPage {
     this.message.set('');
     try {
       await action();
+      this.auth.recordActivity();
+      await this.auth.evaluateRenewal();
       await this.router.navigateByUrl('/app/dashboard', { replaceUrl: true });
     } catch (error) {
       this.message.set(error instanceof Error ? error.message : 'Unable to unlock. Use your PIN.');

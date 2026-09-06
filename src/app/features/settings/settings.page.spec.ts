@@ -9,12 +9,18 @@ import { SettingsPage } from './settings.page';
 
 describe('SettingsPage', () => {
   it('shows human session and app information without the API URL', async () => {
+    const session = signal({
+      accessToken: 'hidden',
+      expiresAt: Date.now() + 60000,
+      renewAfter: Date.now() + 45000,
+      sessionExpiresAt: Date.now() + 600000,
+    });
     await TestBed.configureTestingModule({
       imports: [SettingsPage],
       providers: [
         { provide: ThemeService, useValue: { mode: signal('system'), set: vi.fn() } },
         { provide: PlatformService, useValue: { android: false, label: 'Web' } },
-        { provide: AuthService, useValue: { signOut: vi.fn() } },
+        { provide: AuthService, useValue: { signOut: vi.fn(), state: { session } } },
         {
           provide: AppLockService,
           useValue: {
@@ -31,10 +37,12 @@ describe('SettingsPage', () => {
     const fixture = TestBed.createComponent(SettingsPage);
     fixture.detectChanges();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Your session is protected by Office Orbit authentication.');
+    expect(text).toContain('Office Orbit keeps your session active while you are working.');
+    expect(text).toContain('Session expires by');
     expect(text).toContain('Version');
     expect(text).not.toContain('work-tracker-api');
     expect(text).not.toContain('API environment');
     expect(text).not.toContain('Worker password');
+    expect(text).not.toContain('JWT');
   });
 });
