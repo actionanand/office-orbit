@@ -7,8 +7,9 @@ Only the Worker is called. The application has no Notion API client or backend s
 
 ## Authentication
 
-- POST /api/auth/login — JSON body with password only; response accessToken, tokenType and expiresIn.
-- GET /api/auth/status — authenticated, subject, expiresAt.
+- POST /api/auth/login — JSON body with password only; response accessToken, tokenType, expiresIn, and optional expiresAt, renewAfter, sessionExpiresAt.
+- POST /api/auth/renew — protected Bearer request with no request body; response either renewed=true with a replacement accessToken or renewed=false with updated timing metadata.
+- GET /api/auth/status — authenticated, subject, expiresAt, renewAfter, optional sessionStartedAt, sessionExpiresAt.
 - GET / and OPTIONS are public; other /api/* calls require a Bearer token.
 - Login 400/401/429 and authenticated 401s are handled separately.
 
@@ -53,4 +54,4 @@ Work Activity analytics use bounded Work Logs and local aggregation. Historical 
 
 UI states cover loading, empty collections, retryable errors and partial lists. Request cancellation prevents obsolete responses from changing a newer collection view. JIRA keys are URL-encoded. External links accept HTTP(S) only, without embedded credentials. Text is rendered through Angular interpolation; the app never inserts Worker HTML.
 
-No backend write support, refresh endpoints, password recovery endpoints or Notion calls are invented.
+No backend write support, refresh tokens, password recovery endpoints or Notion calls are invented.

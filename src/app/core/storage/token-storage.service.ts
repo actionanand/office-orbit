@@ -5,6 +5,9 @@ import { NativeStorageService } from './native-storage.service';
 export interface StoredToken {
   accessToken: string;
   expiresAt: number;
+  renewAfter: number;
+  sessionStartedAt?: number;
+  sessionExpiresAt: number;
 }
 
 @Service()
@@ -30,7 +33,30 @@ export class TokenStorageService {
         Number.isFinite(value.expiresAt) &&
         value.expiresAt > Date.now()
       ) {
-        return { accessToken: value.accessToken, expiresAt: value.expiresAt };
+        const renewAfter =
+          'renewAfter' in value && typeof value.renewAfter === 'number' && Number.isFinite(value.renewAfter)
+            ? value.renewAfter
+            : value.expiresAt - 15 * 60 * 1000;
+        const sessionExpiresAt =
+          'sessionExpiresAt' in value &&
+          typeof value.sessionExpiresAt === 'number' &&
+          Number.isFinite(value.sessionExpiresAt)
+            ? value.sessionExpiresAt
+            : value.expiresAt;
+        if (sessionExpiresAt <= Date.now()) {
+          await this.clear();
+          return null;
+        }
+        return {
+          accessToken: value.accessToken,
+          expiresAt: value.expiresAt,
+          renewAfter,
+          sessionStartedAt:
+            'sessionStartedAt' in value && typeof value.sessionStartedAt === 'number'
+              ? value.sessionStartedAt
+              : undefined,
+          sessionExpiresAt,
+        };
       }
     } catch {
       /* Corrupt sessions are discarded. */

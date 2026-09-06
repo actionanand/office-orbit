@@ -9,17 +9,25 @@ import { Router } from '@angular/router';
 import { signal } from '@angular/core';
 describe('deterministic startup', () => {
   const verified = signal(false);
-  const auth = { restore: vi.fn().mockResolvedValue(undefined), state: { verified } };
-  const lock = { initialize: vi.fn().mockResolvedValue(undefined) };
+  const auth = {
+    restore: vi.fn().mockResolvedValue(undefined),
+    installActivityTracking: vi.fn(),
+    setForeground: vi.fn(),
+    evaluateRenewal: vi.fn().mockResolvedValue(undefined),
+    signOut: vi.fn().mockResolvedValue(undefined),
+    state: { verified, valid: vi.fn(() => true) },
+  };
+  const lock = { initialize: vi.fn().mockResolvedValue(undefined), lock: vi.fn(), enabled: vi.fn(() => false) };
   beforeEach(() => {
     vi.clearAllMocks();
     auth.restore.mockResolvedValue(undefined);
+    auth.state.valid.mockReturnValue(true);
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: auth },
         { provide: AppLockService, useValue: lock },
         { provide: PlatformService, useValue: { android: false } },
-        { provide: BiometricService, useValue: {} },
+        { provide: BiometricService, useValue: { prompting: vi.fn(() => false) } },
         { provide: ThemeService, useValue: {} },
         { provide: Router, useValue: {} },
       ],
@@ -47,5 +55,6 @@ describe('deterministic startup', () => {
     expect(verified()).toBe(false);
     await startup.retry();
     expect(startup.phase()).toBe('ready');
+    expect(auth.installActivityTracking).toHaveBeenCalledOnce();
   });
 });

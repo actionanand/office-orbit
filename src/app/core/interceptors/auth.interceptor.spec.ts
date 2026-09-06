@@ -10,6 +10,12 @@ describe('authInterceptor', () => {
   let http: HttpTestingController, client: HttpClient, state: AuthState;
   const storage = { clear: vi.fn().mockResolvedValue(undefined) };
   const router = { navigateByUrl: vi.fn().mockResolvedValue(true) };
+  const session = (accessToken = 'test-bearer') => ({
+    accessToken,
+    expiresAt: Date.now() + 60000,
+    renewAfter: Date.now() + 30000,
+    sessionExpiresAt: Date.now() + 600000,
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     TestBed.configureTestingModule({
@@ -23,20 +29,23 @@ describe('authInterceptor', () => {
     http = TestBed.inject(HttpTestingController);
     client = TestBed.inject(HttpClient);
     state = TestBed.inject(AuthState);
-    state.session.set({ accessToken: 'test-bearer', expiresAt: Date.now() + 60000 });
+    state.session.set(session());
     state.verified.set(true);
   });
   afterEach(() => http.verify());
   it('attaches bearer only to protected requests on the exact Worker origin', () => {
     for (const url of [
       environment.apiBaseUrl + '/api/jiras',
+      environment.apiBaseUrl + '/api/auth/renew',
       environment.apiBaseUrl + '/api/auth/login',
       'https://example.com/api/jiras',
       environment.apiBaseUrl + '.example.com/api/jiras',
     ]) {
       client.get(url).subscribe();
       const request = http.expectOne(url);
-      expect(request.request.headers.has('Authorization')).toBe(url === environment.apiBaseUrl + '/api/jiras');
+      expect(request.request.headers.has('Authorization')).toBe(
+        url === environment.apiBaseUrl + '/api/jiras' || url === environment.apiBaseUrl + '/api/auth/renew',
+      );
       request.flush({});
     }
   });
@@ -56,7 +65,7 @@ describe('authInterceptor', () => {
   });
   it('ignores stale unauthorized responses after a new session is established', () => {
     client.get(environment.apiBaseUrl + '/api/jiras').subscribe({ error: () => undefined });
-    state.session.set({ accessToken: 'new-token', expiresAt: Date.now() + 60000 });
+    state.session.set(session('new-token'));
     http.expectOne(environment.apiBaseUrl + '/api/jiras').flush({}, { status: 401, statusText: 'Unauthorized' });
     expect(state.session()?.accessToken).toBe('new-token');
   });

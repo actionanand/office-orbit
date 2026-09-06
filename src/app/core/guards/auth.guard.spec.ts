@@ -7,6 +7,12 @@ import { AppLockService } from '../app-lock/app-lock.service';
 import { signal } from '@angular/core';
 describe('authGuard', () => {
   const locked = signal(false);
+  const session = (expiresAt = Date.now() + 60000) => ({
+    accessToken: 'test',
+    expiresAt,
+    renewAfter: Date.now() + 30000,
+    sessionExpiresAt: Date.now() + 600000,
+  });
   beforeEach(() => {
     locked.set(false);
     TestBed.configureTestingModule({
@@ -24,7 +30,7 @@ describe('authGuard', () => {
   });
   it('requires local unlock even with a valid Worker session', async () => {
     const state = TestBed.inject(AuthState);
-    state.session.set({ accessToken: 'test', expiresAt: Date.now() + 60000 });
+    state.session.set(session());
     state.verified.set(true);
     locked.set(true);
     expect(await check()).toEqual(TestBed.inject(Router).parseUrl('/unlock'));
@@ -33,7 +39,7 @@ describe('authGuard', () => {
   });
   it('does not let local unlock bypass an expired session', async () => {
     const state = TestBed.inject(AuthState);
-    state.session.set({ accessToken: 'test', expiresAt: 0 });
+    state.session.set(session(0));
     state.verified.set(true);
     expect(await check()).toEqual(TestBed.inject(Router).parseUrl('/login'));
   });

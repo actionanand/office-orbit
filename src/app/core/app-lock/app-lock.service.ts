@@ -20,16 +20,21 @@ export class AppLockService {
   async initialize(): Promise<void> {
     if (!this.platform.android) {
       this.locked.set(false);
+      this.auth.localLocked.set(false);
       return;
     }
     const raw = await this.storage.get('pin');
     this.record.set(raw ? parsePin(raw) : null);
     this.locked.set(this.enabled());
+    this.auth.localLocked.set(this.locked());
     if (this.enabled()) await this.biometric.check();
   }
   lock(): void {
     this.lockRevision++;
-    if (this.enabled()) this.locked.set(true);
+    if (this.enabled()) {
+      this.locked.set(true);
+      this.auth.localLocked.set(true);
+    }
   }
   private async save(record: PinRecord): Promise<void> {
     await this.storage.set('pin', JSON.stringify(record));
@@ -66,7 +71,10 @@ export class AppLockService {
     this.requireSession();
     await this.confirm(pin);
     this.requireSession();
-    if (revision === this.lockRevision) this.locked.set(false);
+    if (revision === this.lockRevision) {
+      this.locked.set(false);
+      this.auth.localLocked.set(false);
+    }
   }
   async unlockBiometric(): Promise<void> {
     const revision = this.lockRevision;
@@ -74,7 +82,10 @@ export class AppLockService {
     if (!this.biometricEnabled()) throw new Error('Use your PIN to unlock.');
     await this.biometric.authenticate();
     this.requireSession();
-    if (revision === this.lockRevision) this.locked.set(false);
+    if (revision === this.lockRevision) {
+      this.locked.set(false);
+      this.auth.localLocked.set(false);
+    }
   }
   async setPin(pin: string, current = ''): Promise<void> {
     const revision = this.lockRevision;
@@ -85,6 +96,7 @@ export class AppLockService {
     this.requireSession();
     await this.save(record);
     this.locked.set(revision !== this.lockRevision);
+    this.auth.localLocked.set(this.locked());
     await this.biometric.check();
   }
   async disable(pin: string): Promise<void> {
@@ -94,6 +106,7 @@ export class AppLockService {
     await this.storage.remove('pin');
     this.record.set(null);
     this.locked.set(false);
+    this.auth.localLocked.set(false);
   }
   async setBiometric(enabled: boolean, pin: string): Promise<void> {
     this.requireSession();

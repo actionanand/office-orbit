@@ -6,6 +6,12 @@ import { BiometricService } from '../platform/biometric.service';
 import { AuthState } from '../auth/auth-state';
 import { createPin, parsePin } from './pin';
 describe('local app lock', () => {
+  const session = () => ({
+    accessToken: 'test',
+    expiresAt: Date.now() + 600000,
+    renewAfter: Date.now() + 540000,
+    sessionExpiresAt: Date.now() + 3600000,
+  });
   let saved: string | null = null;
   const biometric = {
     check: vi.fn().mockResolvedValue(true),
@@ -33,7 +39,7 @@ describe('local app lock', () => {
       ],
     });
     const state = TestBed.inject(AuthState);
-    state.session.set({ accessToken: 'test', expiresAt: Date.now() + 600000 });
+    state.session.set(session());
     state.verified.set(true);
   });
   it('locks at cold launch and verifies a salted PIN', async () => {

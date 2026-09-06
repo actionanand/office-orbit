@@ -28,18 +28,27 @@ export class StartupService {
   private async initialize(): Promise<void> {
     this.phase.set('loading');
     try {
-      await this.lock.initialize();
+      this.auth.installActivityTracking();
       await this.auth.restore();
+      await this.lock.initialize();
       if (this.platform.android && !this.listening) {
         await App.addListener('appStateChange', ({ isActive }) => {
           if (this.biometric.prompting()) return;
-          this.lock.lock();
           if (isActive) {
+            if (this.lock.enabled()) this.lock.lock();
+            this.auth.setForeground(true);
             if (!this.auth.state.valid()) {
               void this.auth.signOut();
               return;
             }
-            if (this.lock.enabled()) void this.router.navigateByUrl('/unlock', { replaceUrl: true });
+            if (this.lock.enabled()) {
+              void this.router.navigateByUrl('/unlock', { replaceUrl: true });
+            } else {
+              void this.auth.evaluateRenewal();
+            }
+          } else {
+            this.auth.setForeground(false);
+            this.lock.lock();
           }
         });
         this.listening = true;

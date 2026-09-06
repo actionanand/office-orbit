@@ -3,6 +3,7 @@ import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonApp, IonSpinner } from '@ionic/angular';
 import { StartupService } from './core/startup.service';
+import { AuthService } from './core/auth/auth.service';
 @Component({
   selector: 'app-root',
   imports: [IonApp, RouterOutlet, IonSpinner],
@@ -18,10 +19,12 @@ import { StartupService } from './core/startup.service';
 export class AppComponent {
   readonly startup = inject(StartupService);
   constructor() {
+    const auth = inject(AuthService);
     inject(Router)
       .events.pipe(takeUntilDestroyed(inject(DestroyRef)))
       .subscribe(event => {
-        if (event instanceof NavigationEnd)
+        if (event instanceof NavigationEnd) {
+          auth.recordActivity();
           requestAnimationFrame(() => {
             const heading = document.querySelector<HTMLElement>('h1');
             if (heading) {
@@ -29,6 +32,7 @@ export class AppComponent {
               heading.focus({ preventScroll: true });
             }
           });
+        }
       });
     void this.startup.start();
   }
