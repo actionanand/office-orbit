@@ -8,6 +8,7 @@ export interface StoredToken {
   renewAfter: number;
   sessionStartedAt?: number;
   sessionExpiresAt: number;
+  sessionKind: 'fresh' | 'extended';
 }
 
 @Service()
@@ -65,6 +66,7 @@ export class TokenStorageService {
               ? value.sessionStartedAt
               : undefined,
           sessionExpiresAt,
+          sessionKind: 'sessionKind' in value && value.sessionKind === 'extended' ? 'extended' : 'fresh',
         };
       }
     } catch {

@@ -11,6 +11,7 @@ describe('local app lock', () => {
     expiresAt: Date.now() + 600000,
     renewAfter: Date.now() + 540000,
     sessionExpiresAt: Date.now() + 3600000,
+    sessionKind: 'fresh' as const,
   });
   let saved: string | null = null;
   const biometric = {

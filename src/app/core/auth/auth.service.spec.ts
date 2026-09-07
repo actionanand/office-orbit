@@ -4,17 +4,18 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { AuthService } from './auth.service';
 import { AuthState } from './auth-state';
-import { TokenStorageService } from '../storage/token-storage.service';
+import { StoredToken, TokenStorageService } from '../storage/token-storage.service';
 import { environment } from '../../../environments/environment';
 import { apiError } from '../api/api-error';
 import { DataCacheService } from '../cache/data-cache.service';
 describe('AuthService', () => {
   let service: AuthService, http: HttpTestingController;
-  const session = (overrides: Record<string, number | string> = {}) => ({
+  const session = (overrides: Partial<StoredToken> = {}): StoredToken => ({
     accessToken: 'restored',
     expiresAt: Date.now() + 60000,
     renewAfter: Date.now() + 45000,
     sessionExpiresAt: Date.now() + 600000,
+    sessionKind: 'fresh',
     ...overrides,
   });
   const storage = {
@@ -61,6 +62,7 @@ describe('AuthService', () => {
       renewAfter: Date.now() + 2700000,
       sessionStartedAt: undefined,
       sessionExpiresAt: Date.now() + 28800000,
+      sessionKind: 'fresh',
     });
   });
   it('keeps failed login unauthenticated and explains 429', async () => {
@@ -74,7 +76,7 @@ describe('AuthService', () => {
     expect(storage.save).not.toHaveBeenCalled();
   });
   it('verifies a restored token with the Worker before authenticating', async () => {
-    storage.read.mockResolvedValueOnce(session());
+    storage.read.mockResolvedValueOnce(session({ sessionKind: 'extended' }));
     const pending = service.restore();
     await Promise.resolve();
     expect(service.state.authenticated()).toBe(false);
@@ -90,6 +92,7 @@ describe('AuthService', () => {
     expect(service.state.valid()).toBe(true);
     expect(service.state.session()?.renewAfter).toBe(Date.now() + 15000);
     expect(service.state.session()?.sessionExpiresAt).toBe(Date.now() + 300000);
+    expect(service.state.session()?.sessionKind).toBe('extended');
   });
   it('discards a revoked token at startup', async () => {
     storage.read.mockResolvedValueOnce(session({ accessToken: 'revoked' }));
@@ -148,10 +151,13 @@ describe('AuthService', () => {
     });
     await Promise.all([first, second]);
     expect(service.state.session()?.accessToken).toBe('renewed-token');
-    expect(storage.save).toHaveBeenLastCalledWith(expect.objectContaining({ accessToken: 'renewed-token' }));
+    expect(service.state.session()?.sessionKind).toBe('extended');
+    expect(storage.save).toHaveBeenLastCalledWith(
+      expect.objectContaining({ accessToken: 'renewed-token', sessionKind: 'extended' }),
+    );
   });
   it('keeps the current token when renewal is not yet due', async () => {
-    const current = session({ renewAfter: Date.now() - 1 });
+    const current = session({ renewAfter: Date.now() - 1, sessionKind: 'extended' });
     service.state.session.set(current);
     service.state.verified.set(true);
     service.state.lastActivityAt.set(Date.now());
@@ -164,6 +170,7 @@ describe('AuthService', () => {
     });
     await pending;
     expect(service.state.session()?.accessToken).toBe('restored');
+    expect(service.state.session()?.sessionKind).toBe('extended');
   });
   it('does not renew while hidden, inactive, or locally locked', async () => {
     service.state.session.set(session({ renewAfter: Date.now() - 1 }));

@@ -15,6 +15,7 @@ describe('authInterceptor', () => {
     expiresAt: Date.now() + 60000,
     renewAfter: Date.now() + 30000,
     sessionExpiresAt: Date.now() + 600000,
+    sessionKind: 'fresh' as const,
   });
   beforeEach(() => {
     vi.clearAllMocks();

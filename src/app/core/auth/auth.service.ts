@@ -71,6 +71,7 @@ export class AuthService {
   private sessionFromResponse(
     response: LoginResponse | RenewResponse | AuthStatus,
     current: StoredToken | null,
+    sessionKind: StoredToken['sessionKind'] = current?.sessionKind ?? 'fresh',
   ): StoredToken {
     const now = Date.now();
     const expiresIn = 'expiresIn' in response ? response.expiresIn : undefined;
@@ -91,6 +92,7 @@ export class AuthService {
       renewAfter,
       sessionStartedAt: this.parseTimestamp((response as AuthStatus).sessionStartedAt) ?? current?.sessionStartedAt,
       sessionExpiresAt,
+      sessionKind,
     };
   }
   private setSession(session: StoredToken): void {
@@ -182,7 +184,7 @@ export class AuthService {
         throw new Error('Invalid session response');
       }
       const next = response.renewed
-        ? this.sessionFromResponse(response, session)
+        ? this.sessionFromResponse(response, session, 'extended')
         : { ...session, ...this.sessionFromResponse({ ...response, accessToken: session.accessToken }, session) };
       await this.storage.save(next);
       if (this.state.session() !== session) return;
