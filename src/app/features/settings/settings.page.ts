@@ -144,15 +144,12 @@ import { appVersion } from '../../core/version/app-version';
         <section class="data-card">
           <h2>Session</h2>
           <p><strong>Signed in</strong></p>
-          <p>
-            Office Orbit keeps your session active while you are working. For security, you'll be asked to sign in again
-            after the maximum session period.
-          </p>
-          @if (sessionExpiresBy()) {
+          <p>{{ sessionKind() }}</p>
+          @if (expiresAt()) {
             <dl>
               <div>
-                <dt>Session expires by</dt>
-                <dd>{{ sessionExpiresBy() }}</dd>
+                <dt>Expires at</dt>
+                <dd>{{ expiresAt() }}</dd>
               </div>
             </dl>
           }
@@ -186,9 +183,24 @@ export class SettingsPage {
   readonly lock = inject(AppLockService);
   readonly biometric = inject(BiometricService);
   readonly version = appVersion;
-  readonly sessionExpiresBy = computed(() => {
-    const value = this.auth.state.session()?.sessionExpiresAt;
-    return value ? new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(value) : '';
+  readonly sessionKind = computed(() =>
+    this.auth.state.session()?.sessionKind === 'extended' ? 'Extended session' : 'Fresh session',
+  );
+  readonly expiresAt = computed(() => {
+    const value = this.auth.state.session()?.expiresAt;
+    if (!value) return '';
+    const expiry = new Date(value);
+    const now = new Date();
+    const sameDay =
+      expiry.getFullYear() === now.getFullYear() &&
+      expiry.getMonth() === now.getMonth() &&
+      expiry.getDate() === now.getDate();
+    return new Intl.DateTimeFormat(
+      undefined,
+      sameDay
+        ? { hour: 'numeric', minute: '2-digit' }
+        : { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' },
+    ).format(expiry);
   });
   readonly themes: { value: ThemeMode; label: string }[] = [
     { value: 'light', label: 'Light' },

@@ -1,13 +1,14 @@
 import { TestBed } from '@angular/core/testing';
-import { TokenStorageService } from './token-storage.service';
+import { StoredToken, TokenStorageService } from './token-storage.service';
 import { NativeStorageService } from './native-storage.service';
 import { PlatformService } from '../platform/platform.service';
 describe('TokenStorageService', () => {
-  const session = (overrides: Partial<Parameters<TokenStorageService['save']>[0]> = {}) => ({
+  const session = (overrides: Partial<StoredToken> = {}): StoredToken => ({
     accessToken: 'test-access-token',
     expiresAt: Date.now() + 60000,
     renewAfter: Date.now() + 45000,
     sessionExpiresAt: Date.now() + 600000,
+    sessionKind: 'fresh',
     ...overrides,
   });
   const native = {
@@ -35,6 +36,17 @@ describe('TokenStorageService', () => {
     expect(native.set).not.toHaveBeenCalled();
     await service.clear();
     expect(await service.read()).toBeNull();
+  });
+  it('defaults legacy stored sessions to fresh', async () => {
+    const service = TestBed.inject(TokenStorageService);
+    const { sessionKind: _sessionKind, ...legacy } = session();
+    sessionStorage.setItem('office-orbit.session', JSON.stringify(legacy));
+    expect((await service.read())?.sessionKind).toBe('fresh');
+  });
+  it('persists an extended session kind', async () => {
+    const service = TestBed.inject(TokenStorageService);
+    await service.save(session({ sessionKind: 'extended' }));
+    expect((await service.read())?.sessionKind).toBe('extended');
   });
   it('discards expired and corrupt sessions', async () => {
     const service = TestBed.inject(TokenStorageService);

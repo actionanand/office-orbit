@@ -12,6 +12,7 @@ describe('authGuard', () => {
     expiresAt,
     renewAfter: Date.now() + 30000,
     sessionExpiresAt: Date.now() + 600000,
+    sessionKind: 'fresh' as const,
   });
   beforeEach(() => {
     locked.set(false);
