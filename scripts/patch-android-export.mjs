@@ -512,7 +512,7 @@ public class OfficeOrbitExportPlugin extends Plugin {
   private void shareFile(File file, String mimeType, String title) {
     Uri uri = FileProvider.getUriForFile(
       getContext(),
-      getContext().getPackageName() + ".exportprovider",
+      getContext().getPackageName() + ".fileprovider",
       file
     );
 
@@ -575,7 +575,7 @@ if (!/android:name="androidx\.core\.content\.FileProvider"/.test(manifest)) {
     /<\/application>/,
     `        <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="\${applicationId}.exportprovider"
+            android:authorities="\${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

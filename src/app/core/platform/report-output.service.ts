@@ -54,7 +54,7 @@ export class ReportOutputService {
         section.rows.push({ state: 'normal', cells: [[record.title, ...record.lines].join('\n')] });
         sections.set(record.date, section);
       }
-      await this.nativeExporter.exportPdf({
+      const exporting = this.nativeExporter.exportPdf({
         filename,
         title: 'Office Orbit Work Log Report',
         content: JSON.stringify({
@@ -68,6 +68,17 @@ export class ReportOutputService {
           sections: [...sections.values()],
         }),
       });
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          exporting,
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error('PDF export timed out. Please try again.')), 20_000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
     } else {
       const blob = await reportPdf(report);
       this.download(blob, filename);

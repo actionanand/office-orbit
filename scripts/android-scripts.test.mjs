@@ -85,7 +85,7 @@ test('Android patch is idempotent and restricts permissions and backup', () =>
     assert.match(activity, /IMPORTANT_FOR_AUTOFILL_YES/);
     assert.match(activity, /package com.example.officeorbit;/);
     assert.match(activity, /registerPlugin\(OfficeOrbitExportPlugin.class\)/);
-    assert.equal(manifest.match(/\.exportprovider/g)?.length, 1);
+    assert.equal(manifest.match(/\.fileprovider/g)?.length, 1);
     const gradle = readFileSync(path.join(root, 'android/app/build.gradle'), 'utf8');
     assert.match(gradle, /^apply plugin: 'com\.android\.application'\n\nandroid \{/);
     const lightStyles = readFileSync(path.join(root, 'android/app/src/main/res/values/styles.xml'), 'utf8');
@@ -98,6 +98,7 @@ test('Android patch is idempotent and restricts permissions and backup', () =>
     );
     assert.match(exporter, /getCacheDir\(\)/);
     assert.match(exporter, /FLAG_GRANT_READ_URI_PERMISSION/);
+    assert.match(exporter, /getPackageName\(\) \+ "\.fileprovider"/);
     assert.match(exporter, /application\/pdf/);
     assert.doesNotMatch(manifest, /WRITE_EXTERNAL_STORAGE|MANAGE_EXTERNAL_STORAGE/);
   }));

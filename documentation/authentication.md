@@ -4,15 +4,15 @@ The Worker is a single-user backend. Sign in remains disabled until the login fo
 
 Authenticated feature data is cached only in memory. Sign-out and Worker 401 handling clear this cache and saved navigation state together with the authenticated session. The data cache never stores credentials or bearer tokens.
 
-The password exists only in the form and in-flight request; the form is cleared after every sign-in attempt. Passwords and access tokens are never logged or displayed in errors.
+The password exists only in the form and in-flight request; failed attempts clear the password field. Standard username and current-password autofill metadata lets Android's configured password manager offer to save and restore credentials. Passwords and access tokens are never logged or displayed in errors.
 
 ## Session storage
 
-Android: native encrypted storage backed by Android Keystore through @aparajita/capacitor-secure-storage. A non-responsive native plugin is abandoned after four seconds so it cannot block startup. The token then remains memory-only for the current run and is never written to browser storage.
+Android: native encrypted storage backed by Android Keystore through @aparajita/capacitor-secure-storage. Native operations have a twelve-second deadline. A failed durable save fails the login operation instead of silently creating a memory-only session that disappears when the app closes. A transient read failure presents startup retry instead of incorrectly treating the user as signed out. Tokens are never written to browser storage on Android.
 
 Web: sessionStorage, so reloads in the same tab retain the session, subject to browser session-restoration behavior. The native plugin's web localStorage implementation is never used. Application code never writes a token to localStorage.
 
-The stored object contains only the access token and non-secret session timing metadata: `expiresAt`, `renewAfter`, optional `sessionStartedAt`, and `sessionExpiresAt`. Startup validates restored tokens through GET /api/auth/status and restores server-provided timing metadata. Expired, absolute-session-expired, or corrupt session metadata is removed. If validation is unavailable, the token is not trusted and the app continues to Login so the user can authenticate again; protected pages remain inaccessible.
+The stored object contains only the access token and non-secret session timing metadata: `expiresAt`, `renewAfter`, optional `sessionStartedAt`, and `sessionExpiresAt`. Startup validates restored tokens through GET /api/auth/status and restores server-provided timing metadata. Expired, absolute-session-expired, corrupt, or server-revoked sessions are removed. During a temporary connection failure, a securely stored and locally unexpired Android session continues behind the configured PIN or biometric lock; protected API calls still reject revoked tokens with a 401.
 
 ## Sliding sessions
 
@@ -40,7 +40,7 @@ Android PIN/biometrics protect local access while a valid Worker session exists.
 
 Startup verifies the Worker before protected content is shown. Android local lock remains active when needed; renewal is blocked while the local lock is active and is re-evaluated after successful unlock. An expiry timer signs out; guards and unlock methods independently check expiry. A local unlock cannot override a revoked session after a Worker 401.
 
-Sign-out removes only the backend session. Theme and PIN preferences persist. Reauthentication on a PIN-enabled device still requires local unlock. If you forget the PIN, there is no invented backend recovery endpoint: resetting Android app data clears local settings and requires a fresh Worker sign-in.
+Sign-out removes only the backend session. Theme and PIN preferences persist. After password reauthentication on a PIN-enabled device, Office Orbit asks whether to keep the existing PIN and biometric configuration or reset device protection. Keeping it resumes the newly authenticated session; resetting it removes the stored PIN and biometric preference. If the backend session is still valid when the app reopens, the login form is skipped and only the local PIN/biometric screen is shown.
 
 ## Tests
 

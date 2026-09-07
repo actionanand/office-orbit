@@ -24,15 +24,31 @@ import { StartupService } from '../../core/startup.service';
       </section>
       <section class="auth-card" aria-labelledby="sign-in-title">
         <ion-icon name="lock-closed-outline" aria-hidden="true" />
-        <h2 id="sign-in-title">Welcome back</h2>
-        <p>Enter your credentials.</p>
-        @if (startup.phase() === 'error') {
+        @if (securityChoice()) {
+          <h2 id="sign-in-title">Keep device protection?</h2>
+          <p>
+            You are signed in again. Keep your existing PIN and biometric unlock, or reset device protection and set it
+            up later.
+          </p>
+          @if (message()) {
+            <div class="message error" role="alert">{{ message() }}</div>
+          }
+          <ion-button expand="block" [disabled]="busy()" (click)="keepDeviceProtection()"
+            >Keep PIN and biometric</ion-button
+          >
+          <ion-button expand="block" fill="outline" [disabled]="busy()" (click)="resetDeviceProtection()"
+            >Reset device protection</ion-button
+          >
+        } @else if (startup.phase() === 'error') {
+          <h2 id="sign-in-title">Welcome back</h2>
           <div class="message error" role="alert">
             We couldn’t verify your existing session. Check your connection.<ion-button fill="clear" (click)="retry()"
               >Try again</ion-button
             >
           </div>
         } @else {
+          <h2 id="sign-in-title">Welcome back</h2>
+          <p>Enter your credentials.</p>
           <form [formGroup]="form" autocomplete="on" (ngSubmit)="submit()">
             <ion-input
               id="office-orbit-username"
@@ -104,6 +120,7 @@ export class LoginPage {
   readonly visible = signal(false);
   readonly busy = signal(false);
   readonly message = signal('');
+  readonly securityChoice = signal(false);
   constructor() {
     addIcons({ eyeOffOutline, eyeOutline, lockClosedOutline });
   }
@@ -128,11 +145,41 @@ export class LoginPage {
     this.message.set('');
     try {
       await this.auth.login(this.form.controls.password.value);
-      this.lock.unlockAfterSignIn();
-      await this.router.navigateByUrl('/app/dashboard', { replaceUrl: true });
+      if (this.lock.enabled()) {
+        this.securityChoice.set(true);
+      } else {
+        this.lock.unlockAfterSignIn();
+        await this.router.navigateByUrl('/app/dashboard', { replaceUrl: true });
+      }
     } catch (error) {
       this.message.set(apiError(error, true));
       this.form.controls.password.reset();
+    } finally {
+      this.busy.set(false);
+    }
+  }
+  async keepDeviceProtection(): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.message.set('');
+    try {
+      this.lock.unlockAfterSignIn();
+      await this.router.navigateByUrl('/app/dashboard', { replaceUrl: true });
+    } catch (error) {
+      this.message.set(error instanceof Error ? error.message : 'Unable to continue. Please sign in again.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+  async resetDeviceProtection(): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(true);
+    this.message.set('');
+    try {
+      await this.lock.resetAfterSignIn();
+      await this.router.navigateByUrl('/app/dashboard', { replaceUrl: true });
+    } catch (error) {
+      this.message.set(error instanceof Error ? error.message : 'Unable to reset device protection.');
     } finally {
       this.busy.set(false);
     }
