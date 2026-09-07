@@ -100,14 +100,14 @@ describe('AuthService', () => {
     expect(TestBed.inject(AuthState).session()).toBeNull();
     expect(storage.clear).toHaveBeenCalled();
   });
-  it('continues unauthenticated when restored-session validation is unavailable', async () => {
+  it('keeps a securely restored unexpired session when validation is temporarily unavailable', async () => {
     storage.read.mockResolvedValueOnce(session({ accessToken: 'unverified' }));
     const pending = service.restore();
     await Promise.resolve();
     http.expectOne(environment.apiBaseUrl + '/api/auth/status').error(new ProgressEvent('network'));
     await pending;
-    expect(service.state.valid()).toBe(false);
-    expect(service.state.notice()).toContain('Sign in again');
+    expect(service.state.valid()).toBe(true);
+    expect(service.state.notice()).toContain('saved session');
     expect(storage.clear).not.toHaveBeenCalled();
   });
   it('provides safe invalid-password and network messages', () => {

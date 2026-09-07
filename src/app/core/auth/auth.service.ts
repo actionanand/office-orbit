@@ -216,10 +216,12 @@ export class AuthService {
         await this.storage.clear();
         return;
       }
-      // A restored token is never trusted when validation is unavailable, but
-      // the login route must remain reachable so the user can authenticate again.
-      this.state.clear();
-      this.state.notice.set('Your previous session could not be restored. Sign in again to continue.');
+      // A securely stored, locally unexpired session remains usable during a
+      // temporary status-check failure. Protected API calls still enforce 401s.
+      if (this.state.session() === session) {
+        this.setSession(session);
+        this.state.notice.set('Using your saved session. Connection verification will retry while you work.');
+      }
     }
   }
   async validate(): Promise<void> {

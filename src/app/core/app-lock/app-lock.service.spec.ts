@@ -61,6 +61,15 @@ describe('local app lock', () => {
     expect(lock.locked()).toBe(false);
     expect(TestBed.inject(AuthState).localLocked()).toBe(false);
   });
+  it('can reset existing device protection after account re-authentication', async () => {
+    saved = JSON.stringify(await createPin('4391'));
+    const lock = TestBed.inject(AppLockService);
+    await lock.initialize();
+    await lock.resetAfterSignIn();
+    expect(saved).toBeNull();
+    expect(lock.enabled()).toBe(false);
+    expect(lock.locked()).toBe(false);
+  });
   it('persists throttling and refuses attempts until the delay expires', async () => {
     saved = JSON.stringify({ ...(await createPin('4391')), failures: 4 });
     const lock = TestBed.inject(AppLockService);

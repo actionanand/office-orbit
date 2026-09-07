@@ -54,4 +54,10 @@ describe('TokenStorageService', () => {
     expect(await service.read()).toEqual(token);
     expect(sessionStorage.length).toBe(0);
   });
+  it('does not report an Android login as durable when secure storage cannot save it', async () => {
+    TestBed.overrideProvider(PlatformService, { useValue: { android: true } });
+    native.set.mockRejectedValueOnce(new Error('Device storage failed'));
+    const service = TestBed.inject(TokenStorageService);
+    await expect(service.save(session())).rejects.toThrow('Device storage failed');
+  });
 });

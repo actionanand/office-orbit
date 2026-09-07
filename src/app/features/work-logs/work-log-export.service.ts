@@ -57,7 +57,9 @@ export class WorkLogExportService {
       this.status.set(
         error instanceof HttpErrorResponse
           ? apiError(error)
-          : 'Unable to prepare or save this report. Please try again.',
+          : error instanceof Error
+            ? error.message
+            : 'Unable to prepare or save this report. Please try again.',
       );
     } finally {
       this.busy.set(false);
