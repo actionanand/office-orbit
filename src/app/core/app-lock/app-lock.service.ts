@@ -15,19 +15,50 @@ export class AppLockService {
   readonly enabled = computed(() => this.record() !== null);
   readonly biometricEnabled = computed(() => this.record()?.biometric ?? false);
   readonly locked = signal(true);
+  // Set when a stored protection record exists over a valid session but cannot be
+  // read/parsed. Protected content must not render; a safe recovery is required.
+  readonly recovery = signal(false);
   private checking = false;
   private lockRevision = 0;
   async initialize(): Promise<void> {
-    if (!this.platform.android) {
-      this.locked.set(false);
-      this.auth.localLocked.set(false);
-      return;
+    this.recovery.set(false);
+    let raw: string | null = null;
+    let unreadable = false;
+    try {
+      raw = await this.storage.get();
+    } catch {
+      unreadable = true;
     }
-    const raw = await this.storage.get();
-    this.record.set(raw ? parsePin(raw) : null);
-    this.locked.set(this.enabled());
-    this.auth.localLocked.set(this.locked());
-    if (this.enabled()) await this.biometric.check();
+    if (!unreadable && raw !== null) {
+      try {
+        this.record.set(parsePin(raw));
+      } catch {
+        this.record.set(null);
+        unreadable = true;
+      }
+    } else {
+      this.record.set(null);
+    }
+    // An unreadable record only matters when there is a session to protect. Without
+    // a valid session the user simply proceeds to the Worker login screen.
+    if (unreadable && this.auth.valid()) this.recovery.set(true);
+    const shouldLock = this.enabled() || this.recovery();
+    this.locked.set(shouldLock);
+    this.auth.localLocked.set(shouldLock);
+    if (this.enabled() && this.platform.android) void this.biometric.check();
+  }
+  // Discards a protection record that could not be read after the user has
+  // re-authenticated, returning the app to a clean, unlocked state.
+  async clearUnreadable(): Promise<void> {
+    try {
+      await this.storage.remove();
+    } catch {
+      /* Best-effort removal; a later successful save overwrites the value. */
+    }
+    this.record.set(null);
+    this.recovery.set(false);
+    this.locked.set(false);
+    this.auth.localLocked.set(false);
   }
   lock(): void {
     this.lockRevision++;
@@ -102,14 +133,13 @@ export class AppLockService {
   async setPin(pin: string, current = ''): Promise<void> {
     const revision = this.lockRevision;
     this.requireSession();
-    if (!this.platform.android) throw new Error('PIN is available on Android.');
     if (this.enabled()) await this.confirm(current);
     const record = await createPin(pin);
     this.requireSession();
     await this.save(record);
     this.locked.set(revision !== this.lockRevision);
     this.auth.localLocked.set(this.locked());
-    await this.biometric.check();
+    if (this.platform.android) void this.biometric.check();
   }
   async disable(pin: string): Promise<void> {
     this.requireSession();
@@ -122,6 +152,7 @@ export class AppLockService {
   }
   async setBiometric(enabled: boolean, pin: string): Promise<void> {
     this.requireSession();
+    if (!this.platform.android) throw new Error('Biometric unlock is available on Android.');
     await this.confirm(pin);
     if (enabled) await this.biometric.authenticate();
     this.requireSession();

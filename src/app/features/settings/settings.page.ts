@@ -36,15 +36,78 @@ import { appVersion } from '../../core/version/app-version';
         </section>
         <section class="data-card">
           <h2>Security</h2>
-          @if (platform.android) {
-            <p>
-              {{ lock.enabled() ? 'PIN protection is on.' : 'Add a PIN to lock this app on launch and resume.' }}
-            </p>
-            <p class="muted">Your PIN protects this device. It does not extend your signed-in session.</p>
-            @if (!lock.enabled()) {
-              <form [formGroup]="form" (ngSubmit)="savePin()">
+          <p>
+            {{
+              lock.enabled()
+                ? 'PIN protection is on.'
+                : platform.android
+                  ? 'Add a PIN to lock this app on launch and resume.'
+                  : 'Add a PIN to lock this app when you reload or reopen it.'
+            }}
+          </p>
+          <p class="muted">Your PIN protects this device. It does not extend your signed-in session.</p>
+          @if (!lock.enabled()) {
+            <form [formGroup]="form" (ngSubmit)="savePin()">
+              <ion-input
+                label="PIN (4–6 digits)"
+                labelPlacement="stacked"
+                fill="outline"
+                type="password"
+                inputmode="numeric"
+                maxlength="6"
+                autocomplete="off"
+                formControlName="pin" />
+              <ion-input
+                label="Confirm PIN"
+                labelPlacement="stacked"
+                fill="outline"
+                type="password"
+                inputmode="numeric"
+                maxlength="6"
+                autocomplete="off"
+                formControlName="confirm" />
+              <ion-button type="submit" [disabled]="busy()">Enable PIN</ion-button>
+            </form>
+          } @else if (securityAction() === null) {
+            <div class="security-actions" role="group" aria-label="PIN and biometric settings">
+              <ion-button type="button" fill="outline" (click)="chooseSecurityAction('change')">Change PIN</ion-button>
+              @if (platform.android && (biometric.available() || lock.biometricEnabled())) {
+                <ion-button type="button" fill="outline" (click)="chooseSecurityAction('biometric')">{{
+                  lock.biometricEnabled() ? 'Turn off biometric unlock' : 'Set up biometric unlock'
+                }}</ion-button>
+              }
+              <ion-button type="button" fill="outline" color="danger" (click)="chooseSecurityAction('disable')"
+                >Turn off PIN protection</ion-button
+              >
+            </div>
+          } @else {
+            <form [formGroup]="form" (ngSubmit)="submitSecurityAction()">
+              <h3>
+                @switch (securityAction()) {
+                  @case ('change') {
+                    Change your PIN
+                  }
+                  @case ('disable') {
+                    Turn off PIN protection
+                  }
+                  @case ('biometric') {
+                    {{ lock.biometricEnabled() ? 'Turn off biometric unlock' : 'Set up biometric unlock' }}
+                  }
+                }
+              </h3>
+              <p class="muted">Enter your current PIN to confirm this change.</p>
+              <ion-input
+                label="Current PIN"
+                labelPlacement="stacked"
+                fill="outline"
+                type="password"
+                inputmode="numeric"
+                maxlength="6"
+                autocomplete="off"
+                formControlName="current" />
+              @if (securityAction() === 'change') {
                 <ion-input
-                  label="PIN (4–6 digits)"
+                  label="New PIN (4–6 digits)"
                   labelPlacement="stacked"
                   fill="outline"
                   type="password"
@@ -53,7 +116,7 @@ import { appVersion } from '../../core/version/app-version';
                   autocomplete="off"
                   formControlName="pin" />
                 <ion-input
-                  label="Confirm PIN"
+                  label="Confirm new PIN"
                   labelPlacement="stacked"
                   fill="outline"
                   type="password"
@@ -61,81 +124,17 @@ import { appVersion } from '../../core/version/app-version';
                   maxlength="6"
                   autocomplete="off"
                   formControlName="confirm" />
-                <ion-button type="submit" [disabled]="busy()">Enable PIN</ion-button>
-              </form>
-            } @else if (securityAction() === null) {
-              <div class="security-actions" role="group" aria-label="PIN and biometric settings">
-                <ion-button type="button" fill="outline" (click)="chooseSecurityAction('change')"
-                  >Change PIN</ion-button
-                >
-                @if (biometric.available() || lock.biometricEnabled()) {
-                  <ion-button type="button" fill="outline" (click)="chooseSecurityAction('biometric')">{{
-                    lock.biometricEnabled() ? 'Turn off biometric unlock' : 'Set up biometric unlock'
-                  }}</ion-button>
-                }
-                <ion-button type="button" fill="outline" color="danger" (click)="chooseSecurityAction('disable')"
-                  >Turn off PIN protection</ion-button
+              }
+              @if (securityAction() === 'biometric' && !lock.biometricEnabled()) {
+                <p class="muted">Android will ask for your fingerprint or face once after your PIN is accepted.</p>
+              }
+              <div class="button-row">
+                <ion-button type="submit" [disabled]="busy()">Continue</ion-button>
+                <ion-button type="button" fill="clear" [disabled]="busy()" (click)="cancelSecurityAction()"
+                  >Cancel</ion-button
                 >
               </div>
-            } @else {
-              <form [formGroup]="form" (ngSubmit)="submitSecurityAction()">
-                <h3>
-                  @switch (securityAction()) {
-                    @case ('change') {
-                      Change your PIN
-                    }
-                    @case ('disable') {
-                      Turn off PIN protection
-                    }
-                    @case ('biometric') {
-                      {{ lock.biometricEnabled() ? 'Turn off biometric unlock' : 'Set up biometric unlock' }}
-                    }
-                  }
-                </h3>
-                <p class="muted">Enter your current PIN to confirm this change.</p>
-                <ion-input
-                  label="Current PIN"
-                  labelPlacement="stacked"
-                  fill="outline"
-                  type="password"
-                  inputmode="numeric"
-                  maxlength="6"
-                  autocomplete="off"
-                  formControlName="current" />
-                @if (securityAction() === 'change') {
-                  <ion-input
-                    label="New PIN (4–6 digits)"
-                    labelPlacement="stacked"
-                    fill="outline"
-                    type="password"
-                    inputmode="numeric"
-                    maxlength="6"
-                    autocomplete="off"
-                    formControlName="pin" />
-                  <ion-input
-                    label="Confirm new PIN"
-                    labelPlacement="stacked"
-                    fill="outline"
-                    type="password"
-                    inputmode="numeric"
-                    maxlength="6"
-                    autocomplete="off"
-                    formControlName="confirm" />
-                }
-                @if (securityAction() === 'biometric' && !lock.biometricEnabled()) {
-                  <p class="muted">Android will ask for your fingerprint or face once after your PIN is accepted.</p>
-                }
-                <div class="button-row">
-                  <ion-button type="submit" [disabled]="busy()">Continue</ion-button>
-                  <ion-button type="button" fill="clear" [disabled]="busy()" (click)="cancelSecurityAction()"
-                    >Cancel</ion-button
-                  >
-                </div>
-              </form>
-            }
-          } @else {
-            <p>PIN and biometric app lock are available in the Android app.</p>
-            <p class="muted">Web sessions are stored for this browser session only.</p>
+            </form>
           }
           @if (message()) {
             <p class="message" role="status">{{ message() }}</p>

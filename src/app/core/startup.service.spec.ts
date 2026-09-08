@@ -17,11 +17,18 @@ describe('deterministic startup', () => {
     signOut: vi.fn().mockResolvedValue(undefined),
     state: { verified, valid: vi.fn(() => true) },
   };
-  const lock = { initialize: vi.fn().mockResolvedValue(undefined), lock: vi.fn(), enabled: vi.fn(() => false) };
+  const lock = {
+    initialize: vi.fn().mockResolvedValue(undefined),
+    lock: vi.fn(),
+    enabled: vi.fn(() => false),
+    recovery: vi.fn(() => false),
+    clearUnreadable: vi.fn().mockResolvedValue(undefined),
+  };
   beforeEach(() => {
     vi.clearAllMocks();
     auth.restore.mockResolvedValue(undefined);
     auth.state.valid.mockReturnValue(true);
+    lock.recovery.mockReturnValue(false);
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: auth },
@@ -66,5 +73,21 @@ describe('deterministic startup', () => {
     await result;
     expect(startup.phase()).toBe('error');
     vi.useRealTimers();
+  });
+  it('lets an unauthenticated user reach sign-in when startup fails', async () => {
+    auth.restore.mockRejectedValueOnce(new Error('offline'));
+    auth.state.valid.mockReturnValue(false);
+    const startup = TestBed.inject(StartupService);
+    await startup.start();
+    expect(startup.phase()).toBe('ready');
+    expect(startup.reason()).toBe('network');
+  });
+  it('recovers safely from an unreadable local protection record', async () => {
+    lock.recovery.mockReturnValue(true);
+    const startup = TestBed.inject(StartupService);
+    await startup.start();
+    expect(lock.clearUnreadable).toHaveBeenCalledOnce();
+    expect(auth.signOut).toHaveBeenCalledOnce();
+    expect(startup.phase()).toBe('ready');
   });
 });
