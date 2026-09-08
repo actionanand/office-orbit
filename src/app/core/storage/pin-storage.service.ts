@@ -1,14 +1,16 @@
 import { inject, Service } from '@angular/core';
 import { NativeStorageService } from './native-storage.service';
+import { PlatformService } from '../platform/platform.service';
 
 @Service()
 export class PinStorageService {
   private readonly native = inject(NativeStorageService);
+  private readonly platform = inject(PlatformService);
   private nativeAvailable = true;
   private database?: Promise<IDBDatabase>;
 
   async get(): Promise<string | null> {
-    if (this.nativeAvailable)
+    if (this.platform.android && this.nativeAvailable)
       try {
         return await this.native.get('pin');
       } catch {
@@ -17,7 +19,7 @@ export class PinStorageService {
     return (await this.request<string | undefined>((await this.store('readonly')).get('pin'))) ?? null;
   }
   async set(value: string): Promise<void> {
-    if (this.nativeAvailable)
+    if (this.platform.android && this.nativeAvailable)
       try {
         await this.native.set('pin', value);
         return;
@@ -27,7 +29,7 @@ export class PinStorageService {
     await this.request((await this.store('readwrite')).put(value, 'pin'));
   }
   async remove(): Promise<void> {
-    if (this.nativeAvailable)
+    if (this.platform.android && this.nativeAvailable)
       try {
         await this.native.remove('pin');
         return;

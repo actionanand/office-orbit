@@ -98,25 +98,81 @@ describe('local app lock', () => {
     await expect(lock.unlock('4391')).rejects.toThrow('expired');
     expect(lock.locked()).toBe(true);
   });
-  it('disables local lock on web without reading native storage', async () => {
-    TestBed.resetTestingModule();
-    TestBed.configureTestingModule({
-      providers: [
-        { provide: PlatformService, useValue: { android: false } },
-        {
-          provide: PinStorageService,
-          useValue: {
-            get: () => {
-              throw new Error('Native storage accessed on web');
-            },
-          },
-        },
-        { provide: BiometricService, useValue: biometric },
-      ],
-    });
+  it('enters recovery for an unreadable record over a valid session', async () => {
+    saved = 'not-json';
     const lock = TestBed.inject(AppLockService);
     await lock.initialize();
+    expect(lock.recovery()).toBe(true);
+    expect(lock.locked()).toBe(true);
     expect(lock.enabled()).toBe(false);
+    await lock.clearUnreadable();
+    expect(saved).toBeNull();
+    expect(lock.recovery()).toBe(false);
     expect(lock.locked()).toBe(false);
+  });
+  it('does not enter recovery for an unreadable record without a session', async () => {
+    saved = 'not-json';
+    TestBed.inject(AuthState).clear();
+    const lock = TestBed.inject(AppLockService);
+    await lock.initialize();
+    expect(lock.recovery()).toBe(false);
+    expect(lock.locked()).toBe(false);
+    expect(lock.enabled()).toBe(false);
+  });
+  describe('web platform', () => {
+    let webSaved: string | null;
+    const configure = () => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          { provide: PlatformService, useValue: { android: false } },
+          { provide: BiometricService, useValue: biometric },
+          {
+            provide: PinStorageService,
+            useValue: {
+              get: async () => webSaved,
+              set: async (value: string) => {
+                webSaved = value;
+              },
+              remove: async () => {
+                webSaved = null;
+              },
+            },
+          },
+        ],
+      });
+      const state = TestBed.inject(AuthState);
+      state.session.set(session());
+      state.verified.set(true);
+    };
+    it('supports a PIN on web and locks at cold launch', async () => {
+      webSaved = JSON.stringify(await createPin('4391'));
+      configure();
+      const lock = TestBed.inject(AppLockService);
+      await lock.initialize();
+      expect(lock.enabled()).toBe(true);
+      expect(lock.locked()).toBe(true);
+      await lock.unlock('4391');
+      expect(lock.locked()).toBe(false);
+    });
+    it('stays unlocked on web when no PIN is configured', async () => {
+      webSaved = null;
+      configure();
+      const lock = TestBed.inject(AppLockService);
+      await lock.initialize();
+      expect(lock.enabled()).toBe(false);
+      expect(lock.locked()).toBe(false);
+    });
+    it('sets a PIN on web without native storage and never enables biometric there', async () => {
+      webSaved = null;
+      configure();
+      const lock = TestBed.inject(AppLockService);
+      await lock.initialize();
+      await lock.setPin('4391');
+      expect(webSaved).not.toBeNull();
+      expect(lock.enabled()).toBe(true);
+      await expect(lock.setBiometric(true, '4391')).rejects.toThrow('Android');
+      expect(biometric.authenticate).not.toHaveBeenCalled();
+    });
   });
 });

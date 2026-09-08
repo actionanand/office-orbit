@@ -9,6 +9,7 @@ import { eyeOffOutline, eyeOutline, lockClosedOutline } from 'ionicons/icons';
 import { apiError } from '../../core/api/api-error';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppLockService } from '../../core/app-lock/app-lock.service';
+import { PlatformService } from '../../core/platform/platform.service';
 import { StartupService } from '../../core/startup.service';
 
 @Component({
@@ -26,19 +27,23 @@ import { StartupService } from '../../core/startup.service';
         <ion-icon name="lock-closed-outline" aria-hidden="true" />
         @if (securityChoice()) {
           <h2 id="sign-in-title">Keep device protection?</h2>
-          <p>
-            You are signed in again. Keep your existing PIN and biometric unlock, or reset device protection and set it
-            up later.
-          </p>
+          @if (platform.android) {
+            <p>
+              You are signed in again. Keep your existing PIN and biometric unlock, or reset device protection and set
+              it up later.
+            </p>
+          } @else {
+            <p>You are signed in again. Keep your existing PIN protection, or reset it and set up a new PIN later.</p>
+          }
           @if (message()) {
             <div class="message error" role="alert">{{ message() }}</div>
           }
-          <ion-button expand="block" [disabled]="busy()" (click)="keepDeviceProtection()"
-            >Keep PIN and biometric</ion-button
-          >
-          <ion-button expand="block" fill="outline" [disabled]="busy()" (click)="resetDeviceProtection()"
-            >Reset device protection</ion-button
-          >
+          <ion-button expand="block" [disabled]="busy()" (click)="keepDeviceProtection()">{{
+            platform.android ? 'Keep PIN and biometric' : 'Keep existing PIN'
+          }}</ion-button>
+          <ion-button expand="block" fill="outline" [disabled]="busy()" (click)="resetDeviceProtection()">{{
+            platform.android ? 'Reset device protection' : 'Reset PIN protection'
+          }}</ion-button>
         } @else if (startup.phase() === 'error') {
           <h2 id="sign-in-title">Welcome back</h2>
           <div class="message error" role="alert">
@@ -107,6 +112,7 @@ import { StartupService } from '../../core/startup.service';
 export class LoginPage {
   readonly auth = inject(AuthService);
   readonly startup = inject(StartupService);
+  readonly platform = inject(PlatformService);
   private readonly lock = inject(AppLockService);
   private readonly router = inject(Router);
   readonly form = new FormGroup({

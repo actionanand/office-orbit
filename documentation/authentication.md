@@ -8,7 +8,7 @@ The password exists only in the form and in-flight request; failed attempts clea
 
 ## Session storage
 
-Android: native encrypted storage backed by Android Keystore through @aparajita/capacitor-secure-storage. Native operations have a twelve-second deadline. A failed durable save fails the login operation instead of silently creating a memory-only session that disappears when the app closes. A transient read failure presents startup retry instead of incorrectly treating the user as signed out. Tokens are never written to browser storage on Android.
+Android: native encrypted storage backed by Android Keystore through @aparajita/capacitor-secure-storage. Native operations have an eight-second deadline so two sequential startup reads and the biometric probe stay within the twenty-second startup budget and a slow Keystore cannot stall the app. A failed durable save fails the login operation instead of silently creating a memory-only session that disappears when the app closes. A transient read failure keeps a locally unexpired session; a persistent failure still lets the user reach the Worker login screen rather than trapping the app. Tokens are never written to browser storage on Android.
 
 Web: sessionStorage, so reloads in the same tab retain the session, subject to browser session-restoration behavior. The native plugin's web localStorage implementation is never used. Application code never writes a token to localStorage.
 
@@ -36,12 +36,22 @@ Central error messages cover 400, 401, 404, 429, network and backend failures, w
 
 ## Local lock is separate
 
-Android PIN/biometrics protect local access while a valid Worker session exists. They never create a token, change token expiry, or authenticate to the Worker with an invented password.
+A local app lock protects access while a valid Worker session exists. It never creates a token, changes token expiry, or authenticates to the Worker with an invented password. A PIN is supported on both Web and Android; biometric unlock is Android-only and always requires a configured PIN as fallback.
 
-Startup verifies the Worker before protected content is shown. Android local lock remains active when needed; renewal is blocked while the local lock is active and is re-evaluated after successful unlock. An expiry timer signs out; guards and unlock methods independently check expiry. A local unlock cannot override a revoked session after a Worker 401.
+PIN verifier storage is platform-specific and selected explicitly, without probing native storage on the web first. Android stores the salted PIN verifier in Keystore-backed secure storage (with the app-private IndexedDB security store as a fallback). Web stores the verifier directly in the same IndexedDB security store. Neither path stores a plaintext PIN.
 
-Sign-out removes only the backend session. Theme and PIN preferences persist. After password reauthentication on a PIN-enabled device, Office Orbit asks whether to keep the existing PIN and biometric configuration or reset device protection. Keeping it resumes the newly authenticated session; resetting it removes the stored PIN and biometric preference. If the backend session is still valid when the app reopens, the login form is skipped and only the local PIN/biometric screen is shown.
+Startup verifies the Worker before protected content is shown. The local lock remains active when needed; renewal is blocked while the local lock is active and is re-evaluated after successful unlock. An expiry timer signs out; guards and unlock methods independently check expiry. A local unlock cannot override a revoked session after a Worker 401.
+
+### Startup routing and recovery
+
+After initialization the app routes deterministically and guards enforce the same rules independently, so a deep link to a protected route obeys them too: no valid session goes to `/login`; a valid session with a locked PIN goes to `/unlock`; otherwise `/app/dashboard`. A local PIN, storage, or biometric initialization problem never blocks an unauthenticated user from reaching the Worker login screen — startup fails closed to `/login` rather than a blocking error. Local security failures are reported distinctly from connection failures instead of a single generic "check your connection" message. If a valid session exists but a configured protection record cannot be read or parsed, the app does not display protected content: it clears the unreadable record and requires Worker password reauthentication (a safe recovery), never a silent bypass.
+
+Sign-out removes only the backend session. Theme and PIN preferences persist. After password reauthentication on a device that still has a configured PIN, Office Orbit asks whether to keep the existing protection or reset it. On Android the prompt covers the PIN and biometric preference; on Web it covers the PIN only, with no biometric wording. Keeping it resumes the newly authenticated session; resetting it removes the stored PIN (and, on Android, the biometric preference). If the backend session is still valid when the app reopens, the login form is skipped and only the local unlock screen is shown. A PIN or biometric can never recreate a missing or expired backend session; when the token or absolute session is gone, the Worker password is required again.
+
+## Android WebView origin and CORS
+
+Capacitor runs the Android app with `androidScheme: 'https'`, so the WebView origin is `https://localhost`. The Worker at the configured `apiBaseUrl` must allow that origin: its CORS policy must permit `https://localhost` (and, for the emulator development flow, any dev origin used), reflect it in `Access-Control-Allow-Origin`, allow the `Authorization` and `Content-Type` request headers, and answer `OPTIONS` preflight for `/api/auth/*` and other protected routes. Do not loosen CORS to `*` for authenticated requests. The Worker source is not part of this repository; if Android sign-in fails with a network/CORS error while the site works in a browser, verify the Worker allows the `https://localhost` origin.
 
 ## Tests
 
-Mocked tests cover login serialization, session timing storage, invalid credentials/429, session restoration, revoked tokens, renewal outcomes, single-flight renewal, activity/foreground/local-lock renewal guards, renewal failure behavior, interception scope, stale 401s, guards, expired sessions, platform-specific storage, startup and local unlock. They never call the production Worker. Run npm run test:ci after installing dependencies in WSL.
+Mocked tests cover login serialization, session timing storage, invalid credentials/429, session restoration, revoked tokens, renewal outcomes, single-flight renewal, activity/foreground/local-lock renewal guards, renewal failure behavior, interception scope, stale 401s, guards, expired sessions, platform-specific storage, startup, startup recovery from an unreadable protection record, an unauthenticated user still reaching sign-in after a startup failure, cross-platform (Web and Android) PIN behavior, corrupt/unsupported PIN records, and local unlock. They never call the production Worker. Run npm run test:ci after installing dependencies in WSL.

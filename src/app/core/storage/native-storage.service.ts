@@ -24,7 +24,9 @@ export class NativeStorageService {
       return await Promise.race([
         operation(),
         new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error('Secure storage did not respond.')), 12_000);
+          // Keep two sequential startup reads plus the biometric probe within the
+          // StartupService deadline so a slow Keystore cannot stall the app.
+          timer = setTimeout(() => reject(new Error('Secure storage did not respond.')), 8_000);
         }),
       ]);
     } finally {

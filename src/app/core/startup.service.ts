@@ -16,6 +16,9 @@ export class StartupService {
   private readonly router = inject(Router);
   private readonly theme = inject(ThemeService);
   readonly phase = signal<'loading' | 'ready' | 'error'>('loading');
+  // Distinguishes a local security/storage failure from a backend/network one so
+  // the UI does not report every startup problem as a connection error.
+  readonly reason = signal<'network' | 'local' | null>(null);
   private initialized?: Promise<void>;
   private listening = false;
   private activityTrackingInstalled = false;
@@ -30,6 +33,7 @@ export class StartupService {
   private async initialize(): Promise<void> {
     const attempt = ++this.attempt;
     this.phase.set('loading');
+    this.reason.set(null);
     try {
       await this.withDeadline(
         (async () => {
@@ -65,11 +69,28 @@ export class StartupService {
         })(),
         20_000,
       );
-      if (attempt === this.attempt) this.phase.set('ready');
+      if (attempt !== this.attempt) return;
+      // A stored local-protection record that cannot be read over a valid session
+      // must not expose data. Reset it and require Worker password reauthentication.
+      if (this.lock.recovery()) {
+        await this.lock.clearUnreadable();
+        this.phase.set('ready');
+        await this.auth.signOut('Your saved PIN could not be read. Sign in again to continue.');
+        return;
+      }
+      this.phase.set('ready');
     } catch {
-      if (attempt === this.attempt) {
-        this.auth.state.verified.set(false);
+      if (attempt !== this.attempt) return;
+      // Fail closed: drop any unverified session so protected content stays hidden.
+      // Without a valid session the user must still be able to reach the login
+      // screen, so only surface the blocking error when a session is at risk.
+      this.auth.state.verified.set(false);
+      if (this.auth.state.valid()) {
+        this.reason.set('local');
         this.phase.set('error');
+      } else {
+        this.reason.set('network');
+        this.phase.set('ready');
       }
     }
   }

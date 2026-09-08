@@ -5,6 +5,7 @@ import { IonButton, IonContent, IonIcon, IonInput, IonSpinner } from '@ionic/ang
 import { addIcons } from 'ionicons';
 import { fingerPrintOutline, lockOpenOutline } from 'ionicons/icons';
 import { AppLockService } from '../../core/app-lock/app-lock.service';
+import { PlatformService } from '../../core/platform/platform.service';
 @Component({
   selector: 'app-unlock',
   imports: [ReactiveFormsModule, IonButton, IonContent, IonIcon, IonInput, IonSpinner],
@@ -36,7 +37,7 @@ import { AppLockService } from '../../core/app-lock/app-lock.service';
               Unlock
             }
           </ion-button>
-          @if (lock.biometricEnabled()) {
+          @if (platform.android && lock.biometricEnabled()) {
             <ion-button expand="block" fill="outline" type="button" (click)="bio()"
               ><ion-icon slot="start" name="finger-print-outline" />Use biometric</ion-button
             >
@@ -48,6 +49,7 @@ import { AppLockService } from '../../core/app-lock/app-lock.service';
 })
 export class UnlockPage {
   readonly lock = inject(AppLockService);
+  readonly platform = inject(PlatformService);
   private router = inject(Router);
   readonly pin = new FormControl('', {
     nonNullable: true,

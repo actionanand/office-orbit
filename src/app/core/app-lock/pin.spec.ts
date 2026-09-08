@@ -19,4 +19,12 @@ describe('PIN derivation', () => {
     expect(() => parsePin('{}')).toThrow();
     expect(() => parsePin('invalid')).toThrow();
   });
+  it('rejects unsupported versions and tampered salt or verifier', async () => {
+    const record = await createPin('4391');
+    expect(() => parsePin(JSON.stringify({ ...record, version: 2 }))).toThrow();
+    expect(() => parsePin(JSON.stringify({ ...record, iterations: 1000 }))).toThrow();
+    expect(() => parsePin(JSON.stringify({ ...record, salt: 'short' }))).toThrow();
+    expect(() => parsePin(JSON.stringify({ ...record, verifier: 'short' }))).toThrow();
+    expect(() => parsePin(JSON.stringify({ ...record, failures: -1 }))).toThrow();
+  });
 });
