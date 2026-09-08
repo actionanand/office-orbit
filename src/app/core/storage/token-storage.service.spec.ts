@@ -66,6 +66,13 @@ describe('TokenStorageService', () => {
     expect(await service.read()).toEqual(token);
     expect(sessionStorage.length).toBe(0);
   });
+  it('starts Android anonymously when native storage cannot restore a session', async () => {
+    TestBed.overrideProvider(PlatformService, { useValue: { android: true } });
+    native.get.mockRejectedValueOnce(new Error('Stored session is unreadable'));
+    const service = TestBed.inject(TokenStorageService);
+    await expect(service.read()).resolves.toBeNull();
+    expect(sessionStorage.length).toBe(0);
+  });
   it('does not report an Android login as durable when secure storage cannot save it', async () => {
     TestBed.overrideProvider(PlatformService, { useValue: { android: true } });
     native.set.mockRejectedValueOnce(new Error('Device storage failed'));
