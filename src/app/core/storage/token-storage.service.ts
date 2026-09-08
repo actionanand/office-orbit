@@ -24,9 +24,11 @@ export class TokenStorageService {
     if (this.platform.android) {
       try {
         raw = await this.native.get('session');
-      } catch (error) {
+      } catch {
         if (this.volatileSession) return this.volatileSession;
-        throw error;
+        // An unreadable saved session must not prevent Android from reaching
+        // sign-in. A subsequent successful login overwrites the native value.
+        return null;
       }
     } else raw = sessionStorage.getItem(this.key);
     if (!raw) return null;
