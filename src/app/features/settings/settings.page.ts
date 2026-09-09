@@ -3,7 +3,17 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { NgOptimizedImage } from '@angular/common';
 import { interval } from 'rxjs';
-import { IonButton, IonContent, IonHeader, IonInput, IonTitle, IonToolbar } from '@ionic/angular';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonInput,
+  IonSelect,
+  IonSelectOption,
+  IonTitle,
+  IonToggle,
+  IonToolbar,
+} from '@ionic/angular';
 import { ThemeService, ThemeMode } from '../../core/theme/theme.service';
 import { PlatformService } from '../../core/platform/platform.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -12,7 +22,19 @@ import { BiometricService } from '../../core/platform/biometric.service';
 import { appVersion } from '../../core/version/app-version';
 @Component({
   selector: 'app-settings',
-  imports: [ReactiveFormsModule, NgOptimizedImage, IonButton, IonContent, IonHeader, IonInput, IonTitle, IonToolbar],
+  imports: [
+    ReactiveFormsModule,
+    NgOptimizedImage,
+    IonButton,
+    IonContent,
+    IonHeader,
+    IonInput,
+    IonSelect,
+    IonSelectOption,
+    IonTitle,
+    IonToggle,
+    IonToolbar,
+  ],
   template: ` <ion-header class="ion-no-border"
       ><ion-toolbar><ion-title>Settings</ion-title></ion-toolbar></ion-header
     ><ion-content
@@ -83,17 +105,17 @@ import { appVersion } from '../../core/version/app-version';
               >
             </div>
             <div class="lock-timeout">
-              <p>Lock automatically after inactivity.</p>
-              <div class="theme-options" role="group" aria-label="Automatic lock timeout">
+              <ion-select
+                label="Lock automatically after inactivity"
+                labelPlacement="stacked"
+                fill="outline"
+                interface="popover"
+                [value]="lock.lockAfterMinutes()"
+                (ionChange)="lock.setLockAfterMinutes($event.detail.value)">
                 @for (option of lockTimeouts; track option.value) {
-                  <button
-                    [class.selected]="lock.lockAfterMinutes() === option.value"
-                    [attr.aria-pressed]="lock.lockAfterMinutes() === option.value"
-                    (click)="lock.setLockAfterMinutes(option.value)">
-                    {{ option.label }}
-                  </button>
+                  <ion-select-option [value]="option.value">{{ option.label }}</ion-select-option>
                 }
-              </div>
+              </ion-select>
               <ion-button type="button" fill="outline" (click)="lockNow()">Lock now</ion-button>
             </div>
           } @else {
@@ -172,27 +194,19 @@ import { appVersion } from '../../core/version/app-version';
             </dl>
           }
           <div class="session-preferences">
-            <p class="muted">Time format</p>
-            <div class="theme-options" role="group" aria-label="Time format">
-              @for (option of timeFormats; track option.value) {
-                <button
-                  [class.selected]="timeFormat() === option.value"
-                  [attr.aria-pressed]="timeFormat() === option.value"
-                  (click)="setTimeFormat(option.value)">
-                  {{ option.label }}
-                </button>
-              }
+            <div class="setting-row">
+              <label for="time-format-toggle">Use 24-hour time</label>
+              <ion-toggle
+                id="time-format-toggle"
+                [checked]="timeFormat() === '24'"
+                (ionChange)="setTimeFormat($event.detail.checked ? '24' : '12')" />
             </div>
-            <p class="muted">Show remaining time until sign-out</p>
-            <div class="theme-options" role="group" aria-label="Remaining time display">
-              @for (option of remainingTimeOptions; track option.label) {
-                <button
-                  [class.selected]="showRemainingTime() === option.value"
-                  [attr.aria-pressed]="showRemainingTime() === option.value"
-                  (click)="setShowRemainingTime(option.value)">
-                  {{ option.label }}
-                </button>
-              }
+            <div class="setting-row">
+              <label for="remaining-time-toggle">Show remaining time until sign-out</label>
+              <ion-toggle
+                id="remaining-time-toggle"
+                [checked]="showRemainingTime()"
+                (ionChange)="setShowRemainingTime($event.detail.checked)" />
             </div>
           </div>
           <ion-button fill="outline" (click)="auth.signOut()">Sign out</ion-button>
@@ -276,14 +290,6 @@ export class SettingsPage {
     { value: 1, label: '1 minute' },
     { value: 5, label: '5 minutes' },
     { value: 10, label: '10 minutes' },
-  ];
-  readonly timeFormats: { value: '12' | '24'; label: string }[] = [
-    { value: '12', label: '12-hour (AM/PM)' },
-    { value: '24', label: '24-hour' },
-  ];
-  readonly remainingTimeOptions: { value: boolean; label: string }[] = [
-    { value: false, label: 'Off' },
-    { value: true, label: 'On' },
   ];
   readonly busy = signal(false);
   readonly message = signal('');

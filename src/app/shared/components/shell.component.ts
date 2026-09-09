@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { IonIcon } from '@ionic/angular';
+import { IonButton, IonIcon } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   gridOutline,
@@ -20,7 +20,7 @@ import { AppLockService } from '../../core/app-lock/app-lock.service';
 import { AuthState } from '../../core/auth/auth-state';
 @Component({
   selector: 'app-shell',
-  imports: [NgOptimizedImage, RouterLink, RouterLinkActive, RouterOutlet, IonIcon],
+  imports: [NgOptimizedImage, RouterLink, RouterLinkActive, RouterOutlet, IonButton, IonIcon],
   template: `@if (auth.authenticated() && !lock.locked()) {
       <a class="skip-link" href="#workspace">Skip to content</a>
       <div class="workspace-shell">
@@ -40,6 +40,9 @@ import { AuthState } from '../../core/auth/auth-state';
           </nav>
           <div class="sidebar-note">A little clarity. Every day.</div>
         </aside>
+        <a class="mobile-topbar brand-row" routerLink="/app/dashboard"
+          ><img ngSrc="assets/office-orbit.png" width="28" height="28" alt="" /><span>Office Orbit</span></a
+        >
         <div id="workspace" class="workspace-content" tabindex="-1"><router-outlet /></div>
         <nav class="bottom-nav" aria-label="Mobile navigation">
           @for (item of mobile; track item.path) {
@@ -51,8 +54,9 @@ import { AuthState } from '../../core/auth/auth-state';
       </div>
     } @else {
       <div class="session-shield" role="status">
-        {{ lock.locked() ? 'Office Orbit is locked.' : 'Your session has ended.'
-        }}<a [routerLink]="auth.authenticated() ? '/unlock' : '/login'">Continue</a>
+        <img ngSrc="assets/office-orbit.png" width="72" height="72" priority alt="" />
+        <p>{{ lock.locked() ? 'Office Orbit is locked.' : 'Your session has ended.' }}</p>
+        <ion-button shape="round" [routerLink]="auth.authenticated() ? '/unlock' : '/login'">Continue</ion-button>
       </div>
     }`,
 })

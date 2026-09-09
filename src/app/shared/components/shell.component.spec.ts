@@ -21,5 +21,6 @@ describe('ShellComponent', () => {
     const mobileLabels = [...element.querySelectorAll('.bottom-nav a')].map(link => link.textContent?.trim());
     expect(mobileLabels).toEqual(['Dashboard', 'Work Log', 'JIRAs', 'Sprints', 'More']);
     expect(element.querySelector('.sidebar')).toBeTruthy();
+    expect(element.querySelector('.mobile-topbar')).toBeTruthy();
   });
 });

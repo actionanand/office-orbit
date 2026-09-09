@@ -230,7 +230,7 @@ describe('SettingsPage', () => {
     const page = fixture.componentInstance;
     const lock = TestBed.inject(AppLockService);
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Lock automatically after inactivity.');
+    expect(fixture.nativeElement.querySelector('ion-select')).toBeTruthy();
     expect(text).toContain('Lock now');
     page.lockNow();
     expect(lock.lock).toHaveBeenCalledOnce();

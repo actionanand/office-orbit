@@ -180,6 +180,9 @@ ion-app > router-outlet + * {
 .bottom-nav {
   display: none;
 }
+.mobile-topbar {
+  display: none;
+}
 .page-wrap {
   max-width: 1250px;
   margin: auto;
@@ -363,6 +366,31 @@ ion-app > router-outlet + * {
   border: 2px solid var(--accent);
   color: var(--accent);
 }
+.session-preferences {
+  display: grid;
+  gap: 2px;
+  margin: 18px 0;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.setting-row:last-child {
+  border-bottom: none;
+}
+.setting-row label {
+  font-size: 0.88rem;
+}
+.lock-timeout {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  max-width: 340px;
+}
 .button-row {
   display: flex;
   flex-wrap: wrap;
@@ -515,8 +543,22 @@ details > summary {
   .sidebar {
     display: none;
   }
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: calc(52px + env(safe-area-inset-top, 0px));
+    padding: 0 18px;
+    padding-top: env(safe-area-inset-top, 0px);
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    font-size: 0.95rem;
+  }
+  .mobile-topbar img {
+    object-fit: contain;
+  }
   .workspace-content {
-    height: calc(100% - 68px - env(safe-area-inset-bottom, 0px));
+    height: calc(100% - 52px - 68px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   }
   .bottom-nav {
     display: flex;
