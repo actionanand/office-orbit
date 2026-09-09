@@ -115,14 +115,21 @@ import { appVersion } from '../../core/version/app-version';
               </div>
             </form>
           } @else if (lock.enabled() && securityAction() === null) {
-            <div class="security-actions" role="group" aria-label="PIN and biometric settings">
+            <div class="security-actions" role="group" aria-label="PIN settings">
               <ion-button type="button" fill="outline" (click)="chooseSecurityAction('change')">Change PIN</ion-button>
-              @if (platform.android && (biometric.available() || lock.biometricEnabled())) {
-                <ion-button type="button" fill="outline" (click)="chooseSecurityAction('biometric')">{{
-                  lock.biometricEnabled() ? 'Turn off biometric unlock' : 'Set up biometric unlock'
-                }}</ion-button>
-              }
             </div>
+            @if (platform.android && (biometric.available() || lock.biometricEnabled())) {
+              <div class="setting-row">
+                <label for="biometric-toggle">{{
+                  lock.biometricEnabled() ? 'Disable Biometric unlock' : 'Enable Biometric unlock'
+                }}</label>
+                <ion-toggle
+                  id="biometric-toggle"
+                  color="primary"
+                  [checked]="biometricChecked()"
+                  (ionChange)="onBiometricToggle($event.detail.checked)" />
+              </div>
+            }
             <div class="lock-timeout">
               <ion-select
                 label="Lock automatically after inactivity"
@@ -271,6 +278,11 @@ export class SettingsPage {
   // (cancel or a wrong PIN) is a real value change the toggle re-renders from,
   // instead of silently no-opping because lock.enabled() alone never changed.
   readonly pinProtectionChecked = computed(() => this.lock.enabled() && this.securityAction() !== 'disable');
+  // Shows the optimistic target state while the confirm-PIN flow is open, and
+  // the real state once it ends (cancel, failure, or success all resolve it).
+  readonly biometricChecked = computed(() =>
+    this.securityAction() === 'biometric' ? !this.lock.biometricEnabled() : this.lock.biometricEnabled(),
+  );
   readonly timeFormat = signal<'12' | '24'>(this.loadTimeFormat());
   readonly showRemainingTime = signal(this.loadShowRemainingTime());
   // Advances the remaining-time display without depending on Date.now() directly.
@@ -388,6 +400,9 @@ export class SettingsPage {
     if (checked && !this.lock.enabled()) this.chooseSecurityAction('enable');
     else if (!checked && this.lock.enabled()) this.chooseSecurityAction('disable');
   }
+  onBiometricToggle(checked: boolean): void {
+    if (checked !== this.lock.biometricEnabled()) this.chooseSecurityAction('biometric');
+  }
   cancelSecurityAction(): void {
     this.form.reset();
     this.message.set('');
@@ -400,10 +415,25 @@ export class SettingsPage {
     );
   }
   async toggleBiometric() {
-    await this.perform(
-      () => this.lock.setBiometric(!this.lock.biometricEnabled(), this.form.controls.current.value),
-      'Biometric preference updated.',
-    );
+    if (this.busy()) return;
+    this.busy.set(true);
+    try {
+      await this.lock.setBiometric(!this.lock.biometricEnabled(), this.form.controls.current.value);
+      this.form.reset();
+      this.securityAction.set(null);
+      this.message.set('Biometric preference updated.');
+    } catch (error) {
+      const text = error instanceof Error ? error.message : 'Unable to update security settings.';
+      this.message.set(text);
+      // A failed/cancelled biometric prompt can't be fixed by retrying the PIN
+      // alone, so abandon the attempt and let the toggle revert to off.
+      if (text.toLowerCase().includes('biometric')) {
+        this.form.reset();
+        this.securityAction.set(null);
+      }
+    } finally {
+      this.busy.set(false);
+    }
   }
   async submitSecurityAction(): Promise<void> {
     switch (this.securityAction()) {
