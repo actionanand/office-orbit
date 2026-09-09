@@ -6,10 +6,11 @@ import { NgOptimizedImage } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { IonButton, IonContent, IonIcon, IonInput, IonSpinner } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { eyeOffOutline, eyeOutline, lockClosedOutline } from 'ionicons/icons';
+import { eyeOffOutline, eyeOutline, keyOutline, lockClosedOutline } from 'ionicons/icons';
 import { apiError } from '../../core/api/api-error';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppLockService } from '../../core/app-lock/app-lock.service';
+import { CredentialManagerService } from '../../core/platform/credential-manager.service';
 import { PlatformService } from '../../core/platform/platform.service';
 import { StartupService } from '../../core/startup.service';
 
@@ -97,13 +98,34 @@ import { StartupService } from '../../core/startup.service';
             @if (auth.state.notice()) {
               <div class="message" role="status">{{ auth.state.notice() }}</div>
             }
-            <ion-button expand="block" type="submit" [disabled]="busy() || formStatus() !== 'VALID'">
+            @if (credentialMessage()) {
+              <div class="message" role="status">{{ credentialMessage() }}</div>
+            }
+            <ion-button
+              expand="block"
+              type="submit"
+              [disabled]="busy() || credentialBusy() || formStatus() !== 'VALID'">
               @if (busy()) {
                 <ion-spinner name="crescent" />
               } @else {
                 Sign in
               }
             </ion-button>
+            @if (platform.android) {
+              <ion-button
+                expand="block"
+                fill="clear"
+                type="button"
+                [disabled]="busy() || credentialBusy()"
+                (click)="useSavedPassword()">
+                @if (credentialBusy()) {
+                  <ion-spinner name="crescent" />
+                } @else {
+                  <ion-icon name="key-outline" slot="start" aria-hidden="true" />
+                  Use saved password
+                }
+              </ion-button>
+            }
           </form>
         }
       </section>
@@ -115,6 +137,7 @@ export class LoginPage {
   readonly startup = inject(StartupService);
   readonly platform = inject(PlatformService);
   private readonly lock = inject(AppLockService);
+  private readonly credentials = inject(CredentialManagerService);
   private readonly router = inject(Router);
   readonly form = new FormGroup({
     username: new FormControl('', {
@@ -126,10 +149,12 @@ export class LoginPage {
   readonly formStatus = toSignal(this.form.statusChanges, { initialValue: this.form.status });
   readonly visible = signal(false);
   readonly busy = signal(false);
+  readonly credentialBusy = signal(false);
   readonly message = signal('');
+  readonly credentialMessage = signal('');
   readonly securityChoice = signal(false);
   constructor() {
-    addIcons({ eyeOffOutline, eyeOutline, lockClosedOutline });
+    addIcons({ eyeOffOutline, eyeOutline, keyOutline, lockClosedOutline });
   }
   togglePassword(): void {
     this.visible.update(value => !value);
@@ -150,17 +175,15 @@ export class LoginPage {
     }
     this.busy.set(true);
     this.message.set('');
+    this.credentialMessage.set('');
     try {
       const { username, password } = this.form.getRawValue();
       await this.auth.login(password);
-      await this.offerToSavePassword(username, password);
+      await this.credentials.savePassword(username, password);
       if (this.lock.enabled()) {
         this.securityChoice.set(true);
       } else {
         this.lock.unlockAfterSignIn();
-        // Give Android's WebView autofill a moment to observe the submitted
-        // credentials before this form is torn down by navigation.
-        await new Promise(resolve => setTimeout(resolve, 400));
         await this.router.navigateByUrl('/app/dashboard', { replaceUrl: true });
       }
     } catch (error) {
@@ -176,19 +199,27 @@ export class LoginPage {
       this.busy.set(false);
     }
   }
-  // Explicitly asks Chrome/WebView to offer saving this password, since Android's
-  // WebView autofill heuristics do not reliably detect a successful SPA login.
-  private async offerToSavePassword(username: string, password: string): Promise<void> {
-    const PasswordCredentialCtor = (
-      window as unknown as { PasswordCredential?: new (data: Record<string, string>) => Credential }
-    ).PasswordCredential;
-    const container = navigator.credentials as
-      (CredentialsContainer & { store?: (credential: Credential) => Promise<void> }) | undefined;
-    if (!PasswordCredentialCtor || !container?.store) return;
+
+  async useSavedPassword(): Promise<void> {
+    if (!this.platform.android || this.busy() || this.credentialBusy()) return;
+    this.credentialBusy.set(true);
+    this.message.set('');
+    this.credentialMessage.set('');
     try {
-      await container.store(new PasswordCredentialCtor({ id: username, password, name: username }));
-    } catch {
-      /* The Credential Management API is optional; a failure here must not block sign-in. */
+      const result = await this.credentials.getPassword();
+      if (result.status === 'success') {
+        this.form.patchValue({ username: result.username.slice(0, 12), password: result.password });
+        this.visible.set(false);
+        this.credentialMessage.set('Saved password filled. Press Sign in to continue.');
+      } else if (result.status === 'not-found') {
+        this.credentialMessage.set('No saved Office Orbit password was found.');
+      } else if (result.status === 'unavailable') {
+        this.credentialMessage.set('Saved passwords are unavailable on this device.');
+      } else if (result.status === 'error') {
+        this.credentialMessage.set('Unable to retrieve a saved password. Please try again.');
+      }
+    } finally {
+      this.credentialBusy.set(false);
     }
   }
   async keepDeviceProtection(): Promise<void> {
