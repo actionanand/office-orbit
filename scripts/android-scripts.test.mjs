@@ -85,9 +85,14 @@ test('Android patch is idempotent and restricts permissions and backup', () =>
     assert.match(activity, /IMPORTANT_FOR_AUTOFILL_YES/);
     assert.match(activity, /package com.example.officeorbit;/);
     assert.match(activity, /registerPlugin\(OfficeOrbitExportPlugin.class\)/);
+    assert.match(activity, /registerPlugin\(OfficeOrbitCredentialsPlugin.class\)/);
+    assert.equal(activity.match(/registerPlugin\(OfficeOrbitExportPlugin.class\)/g)?.length, 1);
+    assert.equal(activity.match(/registerPlugin\(OfficeOrbitCredentialsPlugin.class\)/g)?.length, 1);
     assert.equal(manifest.match(/\.fileprovider/g)?.length, 1);
     const gradle = readFileSync(path.join(root, 'android/app/build.gradle'), 'utf8');
     assert.match(gradle, /^apply plugin: 'com\.android\.application'\n\nandroid \{/);
+    assert.equal(gradle.match(/androidx\.credentials:credentials:1\.6\.0/g)?.length, 1);
+    assert.equal(gradle.match(/androidx\.credentials:credentials-play-services-auth:1\.6\.0/g)?.length, 1);
     const lightStyles = readFileSync(path.join(root, 'android/app/src/main/res/values/styles.xml'), 'utf8');
     const darkStyles = readFileSync(path.join(root, 'android/app/src/main/res/values-night/styles.xml'), 'utf8');
     assert.match(lightStyles, /android:windowLightStatusBar">true/);
@@ -100,6 +105,15 @@ test('Android patch is idempotent and restricts permissions and backup', () =>
     assert.match(exporter, /FLAG_GRANT_READ_URI_PERMISSION/);
     assert.match(exporter, /getPackageName\(\) \+ "\.fileprovider"/);
     assert.match(exporter, /application\/pdf/);
+    const credentials = readFileSync(
+      path.join(root, 'android/app/src/main/java/com/example/officeorbit/OfficeOrbitCredentialsPlugin.java'),
+      'utf8',
+    );
+    assert.match(credentials, /@CapacitorPlugin\(name = "OfficeOrbitCredentials"\)/);
+    assert.match(credentials, /new CreatePasswordRequest\(username, password/);
+    assert.match(credentials, /new GetPasswordOption\(/);
+    assert.match(credentials, /PasswordCredential/);
+    assert.doesNotMatch(credentials, /SharedPreferences|localStorage|Log\./);
     assert.doesNotMatch(manifest, /WRITE_EXTERNAL_STORAGE|MANAGE_EXTERNAL_STORAGE/);
   }));
 
