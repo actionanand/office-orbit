@@ -549,8 +549,8 @@ details > summary {
   }
   #workspace ion-title.title-default {
     background: url('assets/office-orbit.png') no-repeat left center;
-    background-size: 22px 22px;
-    padding-inline-start: 40px !important;
+    background-size: 32px 32px;
+    padding-inline-start: 50px !important;
   }
   .workspace-content {
     height: calc(100% - 68px - env(safe-area-inset-bottom, 0px));

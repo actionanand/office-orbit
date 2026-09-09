@@ -79,7 +79,7 @@ import { appVersion } from '../../core/version/app-version';
           <p class="muted">Your PIN protects this device. It does not extend your signed-in session.</p>
           <div class="setting-row">
             <label for="pin-protection-toggle">{{
-              lock.enabled() ? 'Disable PIN protection' : 'PIN protection'
+              lock.enabled() ? 'PIN protection Enabled' : 'PIN protection Disabled'
             }}</label>
             <ion-toggle
               id="pin-protection-toggle"
