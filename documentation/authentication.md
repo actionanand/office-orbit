@@ -8,7 +8,7 @@ The password exists only in the form and in-flight request; failed attempts clea
 
 ## Session storage
 
-Android: native encrypted storage backed by Android Keystore through @aparajita/capacitor-secure-storage. Native operations have an eight-second deadline so two sequential startup reads and the biometric probe stay within the twenty-second startup budget and a slow Keystore cannot stall the app. A failed durable save fails the login operation instead of silently creating a memory-only session that disappears when the app closes. A transient read failure keeps a locally unexpired session; a persistent failure still lets the user reach the Worker login screen rather than trapping the app. Tokens are never written to browser storage on Android.
+Android: native encrypted storage backed by Android Keystore through @aparajita/capacitor-secure-storage. Native operations have a four-second deadline, retried once after a short backoff to absorb a Keystore that is briefly unavailable right after process start, so two sequential startup reads and the biometric probe stay within the twenty-second startup budget and a slow Keystore cannot stall the app. A failed durable save fails the login operation with a clear, safe message instead of silently creating a memory-only session that disappears when the app closes. A transient read failure keeps a locally unexpired session; a persistent failure still lets the user reach the Worker login screen rather than trapping the app. Tokens are never written to browser storage on Android.
 
 Web: sessionStorage, so reloads in the same tab retain the session, subject to browser session-restoration behavior. The native plugin's web localStorage implementation is never used. Application code never writes a token to localStorage.
 
@@ -41,6 +41,10 @@ A local app lock protects access while a valid Worker session exists. It never c
 PIN verifier storage is platform-specific and selected explicitly, without probing native storage on the web first. Android stores the salted PIN verifier in Keystore-backed secure storage (with the app-private IndexedDB security store as a fallback). Web stores the verifier directly in the same IndexedDB security store. Neither path stores a plaintext PIN.
 
 Startup verifies the Worker before protected content is shown. The local lock remains active when needed; renewal is blocked while the local lock is active and is re-evaluated after successful unlock. An expiry timer signs out; guards and unlock methods independently check expiry. A local unlock cannot override a revoked session after a Worker 401.
+
+On Android, resuming the app only signs out a session that actually existed; resuming while still on the login screen (no session was ever established) is a no-op and does not attempt to clear storage.
+
+A PIN-enabled device (Web or Android) may also lock automatically after a configurable period of inactivity (off, 1, 5, or 10 minutes), on top of the existing cold-launch and Android background/resume locks. Settings also offers an explicit "Lock now" action. Both preferences are non-secret device settings and do not affect the backend session.
 
 ### Startup routing and recovery
 

@@ -260,7 +260,14 @@ export class AuthService {
     )
       throw new Error('Invalid session response');
     const session = this.sessionFromResponse(result, null);
-    await this.storage.save(session);
+    try {
+      await this.storage.save(session);
+    } catch {
+      // A failed durable save must not leave a memory-only session behind.
+      throw new Error(
+        "We couldn't securely save your sign-in on this device. Please restart Office Orbit and try again.",
+      );
+    }
     this.state.lastActivityAt.set(Date.now());
     this.setSession(session);
   }

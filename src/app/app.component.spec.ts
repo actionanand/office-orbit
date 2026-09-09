@@ -5,9 +5,15 @@ import { AppComponent } from './app.component';
 import { StartupService } from './core/startup.service';
 import { AuthService } from './core/auth/auth.service';
 describe('AppComponent', () => {
-  const startup = { phase: signal<'loading' | 'ready' | 'error'>('loading'), start: vi.fn(), retry: vi.fn() };
+  const startup = {
+    phase: signal<'loading' | 'ready' | 'error'>('loading'),
+    reason: signal<'network' | 'local' | null>(null),
+    start: vi.fn(),
+    retry: vi.fn(),
+  };
   beforeEach(() => {
     startup.phase.set('loading');
+    startup.reason.set(null);
     startup.start.mockResolvedValue(undefined);
     startup.retry.mockResolvedValue(undefined);
   });

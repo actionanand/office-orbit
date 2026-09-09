@@ -49,8 +49,10 @@ export class StartupService {
               if (this.biometric.prompting()) return;
               if (isActive) {
                 this.auth.setForeground(true);
+                // Only a previously established session is worth signing out of; a
+                // resume while still on the login screen has nothing to clear.
                 if (!this.auth.state.valid()) {
-                  void this.auth.signOut();
+                  if (this.auth.state.session()) void this.auth.signOut();
                   return;
                 }
                 if (this.lock.locked()) {
