@@ -40,9 +40,6 @@ import { AuthState } from '../../core/auth/auth-state';
           </nav>
           <div class="sidebar-note">A little clarity. Every day.</div>
         </aside>
-        <a class="mobile-topbar brand-row" routerLink="/app/dashboard"
-          ><img ngSrc="assets/office-orbit.png" width="28" height="28" alt="" /><span>Office Orbit</span></a
-        >
         <div id="workspace" class="workspace-content" tabindex="-1"><router-outlet /></div>
         <nav class="bottom-nav" aria-label="Mobile navigation">
           @for (item of mobile; track item.path) {

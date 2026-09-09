@@ -7,6 +7,7 @@ import {
   IonButton,
   IonContent,
   IonHeader,
+  IonIcon,
   IonInput,
   IonSelect,
   IonSelectOption,
@@ -14,6 +15,8 @@ import {
   IonToggle,
   IonToolbar,
 } from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { contrastOutline, lockClosedOutline, logOutOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
 import { ThemeService, ThemeMode } from '../../core/theme/theme.service';
 import { PlatformService } from '../../core/platform/platform.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -28,6 +31,7 @@ import { appVersion } from '../../core/version/app-version';
     IonButton,
     IonContent,
     IonHeader,
+    IonIcon,
     IonInput,
     IonSelect,
     IonSelectOption,
@@ -52,8 +56,11 @@ import { appVersion } from '../../core/version/app-version';
               <button
                 [class.selected]="theme.mode() === option.value"
                 [attr.aria-pressed]="theme.mode() === option.value"
+                [attr.aria-label]="option.label"
                 (click)="theme.set(option.value)">
-                {{ option.label }}
+                <ion-icon [name]="option.icon" aria-hidden="true" /><span class="theme-option-label">{{
+                  option.label
+                }}</span>
               </button>
             }
           </div>
@@ -70,7 +77,17 @@ import { appVersion } from '../../core/version/app-version';
             }}
           </p>
           <p class="muted">Your PIN protects this device. It does not extend your signed-in session.</p>
-          @if (!lock.enabled()) {
+          <div class="setting-row">
+            <label for="pin-protection-toggle">{{
+              lock.enabled() ? 'Disable PIN protection' : 'PIN protection'
+            }}</label>
+            <ion-toggle
+              id="pin-protection-toggle"
+              color="primary"
+              [checked]="pinProtectionChecked()"
+              (ionChange)="onPinProtectionToggle($event.detail.checked)" />
+          </div>
+          @if (securityAction() === 'enable') {
             <form [formGroup]="form" (ngSubmit)="savePin()">
               <ion-input
                 label="PIN (4–6 digits)"
@@ -90,9 +107,14 @@ import { appVersion } from '../../core/version/app-version';
                 maxlength="6"
                 autocomplete="off"
                 formControlName="confirm" />
-              <ion-button type="submit" [disabled]="busy()">Enable PIN</ion-button>
+              <div class="button-row">
+                <ion-button type="submit" [disabled]="busy()">Enable PIN</ion-button>
+                <ion-button type="button" fill="clear" [disabled]="busy()" (click)="cancelSecurityAction()"
+                  >Cancel</ion-button
+                >
+              </div>
             </form>
-          } @else if (securityAction() === null) {
+          } @else if (lock.enabled() && securityAction() === null) {
             <div class="security-actions" role="group" aria-label="PIN and biometric settings">
               <ion-button type="button" fill="outline" (click)="chooseSecurityAction('change')">Change PIN</ion-button>
               @if (platform.android && (biometric.available() || lock.biometricEnabled())) {
@@ -100,9 +122,6 @@ import { appVersion } from '../../core/version/app-version';
                   lock.biometricEnabled() ? 'Turn off biometric unlock' : 'Set up biometric unlock'
                 }}</ion-button>
               }
-              <ion-button type="button" fill="outline" color="danger" (click)="chooseSecurityAction('disable')"
-                >Turn off PIN protection</ion-button
-              >
             </div>
             <div class="lock-timeout">
               <ion-select
@@ -116,9 +135,13 @@ import { appVersion } from '../../core/version/app-version';
                   <ion-select-option [value]="option.value">{{ option.label }}</ion-select-option>
                 }
               </ion-select>
-              <ion-button type="button" fill="outline" (click)="lockNow()">Lock now</ion-button>
+              <ion-button type="button" fill="outline" (click)="lockNow()"
+                ><ion-icon slot="start" name="lock-closed-outline" aria-hidden="true" />Lock now</ion-button
+              >
             </div>
-          } @else {
+          } @else if (
+            securityAction() === 'change' || securityAction() === 'disable' || securityAction() === 'biometric'
+          ) {
             <form [formGroup]="form" (ngSubmit)="submitSecurityAction()">
               <h3>
                 @switch (securityAction()) {
@@ -209,7 +232,9 @@ import { appVersion } from '../../core/version/app-version';
                 (ionChange)="setShowRemainingTime($event.detail.checked)" />
             </div>
           </div>
-          <ion-button fill="outline" (click)="auth.signOut()">Sign out</ion-button>
+          <ion-button fill="outline" (click)="auth.signOut()"
+            ><ion-icon slot="start" name="log-out-outline" aria-hidden="true" />Sign out</ion-button
+          >
         </section>
         <section class="data-card">
           <div class="brand-row">
@@ -242,6 +267,10 @@ export class SettingsPage {
   readonly sessionKind = computed(() =>
     this.auth.state.session()?.sessionKind === 'extended' ? 'Extended session' : 'Fresh session',
   );
+  // Derives from securityAction() too so leaving the disable-confirmation flow
+  // (cancel or a wrong PIN) is a real value change the toggle re-renders from,
+  // instead of silently no-opping because lock.enabled() alone never changed.
+  readonly pinProtectionChecked = computed(() => this.lock.enabled() && this.securityAction() !== 'disable');
   readonly timeFormat = signal<'12' | '24'>(this.loadTimeFormat());
   readonly showRemainingTime = signal(this.loadShowRemainingTime());
   // Advances the remaining-time display without depending on Date.now() directly.
@@ -280,10 +309,10 @@ export class SettingsPage {
     if (!label) return '';
     return this.showRemainingTime() ? `${label} (${this.remainingTimeLabel()})` : label;
   });
-  readonly themes: { value: ThemeMode; label: string }[] = [
-    { value: 'light', label: 'Light' },
-    { value: 'dark', label: 'Dark' },
-    { value: 'system', label: 'Automatic' },
+  readonly themes: { value: ThemeMode; label: string; icon: string }[] = [
+    { value: 'light', label: 'Light', icon: 'sunny-outline' },
+    { value: 'dark', label: 'Dark', icon: 'moon-outline' },
+    { value: 'system', label: 'Automatic', icon: 'contrast-outline' },
   ];
   readonly lockTimeouts: { value: LockTimeoutMinutes; label: string }[] = [
     { value: 0, label: 'Off' },
@@ -293,13 +322,14 @@ export class SettingsPage {
   ];
   readonly busy = signal(false);
   readonly message = signal('');
-  readonly securityAction = signal<'change' | 'disable' | 'biometric' | null>(null);
+  readonly securityAction = signal<'enable' | 'change' | 'disable' | 'biometric' | null>(null);
   readonly form = new FormGroup({
     current: new FormControl('', { nonNullable: true }),
     pin: new FormControl('', { nonNullable: true }),
     confirm: new FormControl('', { nonNullable: true }),
   });
   constructor() {
+    addIcons({ contrastOutline, lockClosedOutline, logOutOutline, moonOutline, sunnyOutline });
     interval(30_000)
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.now.set(Date.now()));
@@ -347,10 +377,16 @@ export class SettingsPage {
     }
     await this.perform(() => this.lock.setPin(pin, current), 'PIN protection updated.');
   }
-  chooseSecurityAction(action: 'change' | 'disable' | 'biometric'): void {
+  chooseSecurityAction(action: 'enable' | 'change' | 'disable' | 'biometric'): void {
     this.form.reset();
     this.message.set('');
     this.securityAction.set(action);
+  }
+  // The switch reflects the confirmed state; toggling it only opens the enable
+  // or disable step, so it snaps back until that step actually succeeds.
+  onPinProtectionToggle(checked: boolean): void {
+    if (checked && !this.lock.enabled()) this.chooseSecurityAction('enable');
+    else if (!checked && this.lock.enabled()) this.chooseSecurityAction('disable');
   }
   cancelSecurityAction(): void {
     this.form.reset();
