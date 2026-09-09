@@ -1,0 +1,1 @@
+import {E as T}from'./main-4MAUNMUW.js';var t=T("Browser",{web:()=>import('./chunk-hKVbNhp3.js').then(e=>new e.BrowserWeb)});export{t as Browser};

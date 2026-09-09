@@ -1,0 +1,1 @@
+import {p as p$1}from'./chunk-C3FzjAEA.js';import {a}from'./chunk-BPkJmXyb.js';import'./chunk-wxDjgp4P.js';import'./chunk-JeBPywl2.js';import'./main-4MAUNMUW.js';var p=[{path:"",providers:[{provide:a,useClass:p$1}],loadComponent:()=>import('./chunk-CXfTiGGx.js').then(o=>o.ResourcePage)}];export{p as routes};
