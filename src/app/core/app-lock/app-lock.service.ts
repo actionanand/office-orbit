@@ -28,6 +28,9 @@ export class AppLockService {
   private inactivityTimer?: ReturnType<typeof setTimeout>;
   private checking = false;
   private lockRevision = 0;
+  // Kicked off before auth.restore() finishes so the PIN and session native reads
+  // run concurrently instead of stacking their worst-case latency sequentially.
+  private pinPrefetch?: Promise<{ raw: string | null; unreadable: boolean }>;
   constructor() {
     effect(() => {
       const minutes = this.lockAfterMinutes();
@@ -62,13 +65,9 @@ export class AppLockService {
   }
   async initialize(): Promise<void> {
     this.recovery.set(false);
-    let raw: string | null = null;
-    let unreadable = false;
-    try {
-      raw = await this.storage.get();
-    } catch {
-      unreadable = true;
-    }
+    const { raw, unreadable: readFailed } = this.pinPrefetch ? await this.pinPrefetch : await this.readPinRecord();
+    this.pinPrefetch = undefined;
+    let unreadable = readFailed;
     if (!unreadable && raw !== null) {
       try {
         this.record.set(parsePin(raw));
@@ -86,6 +85,18 @@ export class AppLockService {
     this.locked.set(shouldLock);
     this.auth.localLocked.set(shouldLock);
     if (this.enabled() && this.platform.android) void this.biometric.check();
+  }
+  // Starts the PIN native read without waiting on it, so a caller can run it
+  // alongside another independent read (e.g. the session token) and await both.
+  prefetch(): void {
+    this.pinPrefetch ??= this.readPinRecord();
+  }
+  private async readPinRecord(): Promise<{ raw: string | null; unreadable: boolean }> {
+    try {
+      return { raw: await this.storage.get(), unreadable: false };
+    } catch {
+      return { raw: null, unreadable: true };
+    }
   }
   // Discards a protection record that could not be read after the user has
   // re-authenticated, returning the app to a clean, unlocked state.

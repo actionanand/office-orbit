@@ -2,7 +2,9 @@
 
 ## Secure local state
 
-SecureStorage 8.0.0 encrypts Android session data using Keystore-backed keys. Native calls have a four-second deadline, retried once after a short backoff to absorb a Keystore that is briefly unavailable right after process start, so two sequential startup reads and the biometric probe stay within the twenty-second startup budget. If the plugin is unavailable, tokens remain memory-only and the salted PIN verifier falls back to the app-private IndexedDB security store; neither path stores plaintext credentials. Web bypasses the native plugin completely and stores the PIN verifier directly in IndexedDB.
+SecureStorage 8.0.0 encrypts Android session data using Keystore-backed keys. Native calls have a three-second deadline, retried once after a short backoff to absorb a Keystore that is briefly unavailable right after process start. The session and PIN reads run concurrently at startup instead of one after the other, so a slow or unresponsive Keystore only costs its own latency once. If the plugin is unavailable, tokens remain memory-only and the salted PIN verifier falls back to the app-private IndexedDB security store; neither path stores plaintext credentials. Web bypasses the native plugin completely and stores the PIN verifier directly in IndexedDB.
+
+A login that cannot be durably saved (e.g. the device's secure storage is persistently unavailable) is not blocked; it proceeds with a memory-only session for that launch and tells the user it will not survive closing the app, rather than leaving them unable to sign in at all.
 
 PIN protection is available on both Web and Android; biometric unlock is Android-only and always keeps the PIN as fallback. PIN verifier storage is chosen explicitly by platform, so the web app never probes native secure storage before falling back.
 

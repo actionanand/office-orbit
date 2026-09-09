@@ -41,6 +41,9 @@ export class StartupService {
             this.auth.installActivityTracking();
             this.activityTrackingInstalled = true;
           }
+          // Runs the PIN read concurrently with the session read below instead of
+          // after it, so a slow native storage layer only costs its own latency once.
+          this.lock.prefetch();
           await this.auth.restore();
           await this.lock.initialize();
           if (this.platform.android && !this.listening) {
