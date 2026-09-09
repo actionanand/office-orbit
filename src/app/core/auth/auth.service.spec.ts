@@ -75,6 +75,18 @@ describe('AuthService', () => {
     expect(service.state.authenticated()).toBe(false);
     expect(storage.save).not.toHaveBeenCalled();
   });
+  it('signs in with a memory-only session when the device cannot durably save it', async () => {
+    storage.save.mockRejectedValueOnce(new Error('Device storage failed'));
+    const pending = service.login('entered-for-test');
+    http.expectOne(environment.apiBaseUrl + '/api/auth/login').flush({
+      accessToken: 'test-token',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+    });
+    await pending;
+    expect(service.state.authenticated()).toBe(true);
+    expect(service.state.notice()).toContain("couldn't securely save");
+  });
   it('verifies a restored token with the Worker before authenticating', async () => {
     storage.read.mockResolvedValueOnce(session({ sessionKind: 'extended' }));
     const pending = service.restore();

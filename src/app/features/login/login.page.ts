@@ -156,6 +156,9 @@ export class LoginPage {
         this.securityChoice.set(true);
       } else {
         this.lock.unlockAfterSignIn();
+        // Give Android's WebView autofill a moment to observe the submitted
+        // credentials before this form is torn down by navigation.
+        await new Promise(resolve => setTimeout(resolve, 400));
         await this.router.navigateByUrl('/app/dashboard', { replaceUrl: true });
       }
     } catch (error) {

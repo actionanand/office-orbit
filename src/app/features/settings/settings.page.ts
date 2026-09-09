@@ -160,6 +160,9 @@ import { appVersion } from '../../core/version/app-version';
           <h2>Session</h2>
           <p><strong>Signed in</strong></p>
           <p>{{ sessionKind() }}</p>
+          @if (auth.state.notice()) {
+            <p class="message" role="status">{{ auth.state.notice() }}</p>
+          }
           @if (expiresAtLabel()) {
             <dl>
               <div>

@@ -36,9 +36,9 @@ export class NativeStorageService {
       return await Promise.race([
         operation(),
         new Promise<never>((_, reject) => {
-          // Two sequential startup reads, each retried once, must still fit inside
-          // the StartupService deadline so a slow Keystore cannot stall the app.
-          timer = setTimeout(() => reject(new Error('Secure storage did not respond.')), 4_000);
+          // The session and PIN reads now run concurrently at startup, retried once
+          // each; keep a single attempt short so a broken Keystore fails fast.
+          timer = setTimeout(() => reject(new Error('Secure storage did not respond.')), 3_000);
         }),
       ]);
     } finally {

@@ -260,16 +260,20 @@ export class AuthService {
     )
       throw new Error('Invalid session response');
     const session = this.sessionFromResponse(result, null);
+    let persisted = true;
     try {
       await this.storage.save(session);
     } catch {
-      // A failed durable save must not leave a memory-only session behind.
-      throw new Error(
-        "We couldn't securely save your sign-in on this device. Please restart Office Orbit and try again.",
-      );
+      // A device that cannot durably save the session must not block sign-in;
+      // it degrades to a memory-only session for this launch, same as web.
+      persisted = false;
     }
     this.state.lastActivityAt.set(Date.now());
     this.setSession(session);
+    if (!persisted)
+      this.state.notice.set(
+        "This device couldn't securely save your session. You'll need to sign in again if you close Office Orbit.",
+      );
   }
   async signOut(notice = ''): Promise<void> {
     clearTimeout(this.expiryTimer);
