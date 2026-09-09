@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { StoredToken, TokenStorageService } from './token-storage.service';
 import { NativeStorageService } from './native-storage.service';
 import { PlatformService } from '../platform/platform.service';
+import { IndexedDbStoreService } from './indexed-db-store';
 describe('TokenStorageService', () => {
   const session = (overrides: Partial<StoredToken> = {}): StoredToken => ({
     accessToken: 'test-access-token',
@@ -16,14 +17,23 @@ describe('TokenStorageService', () => {
     set: vi.fn().mockResolvedValue(undefined),
     remove: vi.fn().mockResolvedValue(undefined),
   };
+  const indexedDb = {
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue(undefined),
+    remove: vi.fn().mockResolvedValue(undefined),
+  };
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
     localStorage.clear();
+    indexedDb.get.mockResolvedValue(null);
+    indexedDb.set.mockResolvedValue(undefined);
+    indexedDb.remove.mockResolvedValue(undefined);
     TestBed.configureTestingModule({
       providers: [
         { provide: PlatformService, useValue: { android: false } },
         { provide: NativeStorageService, useValue: native },
+        { provide: IndexedDbStoreService, useValue: indexedDb },
       ],
     });
   });
@@ -55,28 +65,37 @@ describe('TokenStorageService', () => {
     await service.save(session({ accessToken: 'expired', expiresAt: 0 }));
     expect(await service.read()).toBeNull();
   });
-  it('keeps the current Android session in memory when native storage fails', async () => {
+  it('falls back to the app-private IndexedDB store when native storage fails', async () => {
     TestBed.overrideProvider(PlatformService, { useValue: { android: true } });
     const service = TestBed.inject(TokenStorageService);
     const token = session({ accessToken: 'test' });
+    native.set.mockRejectedValueOnce(new Error('Device storage failed'));
     await service.save(token);
-    expect(native.set).toHaveBeenCalled();
-    expect(sessionStorage.length).toBe(0);
+    expect(indexedDb.set).toHaveBeenCalledWith('session', JSON.stringify(token));
+    indexedDb.get.mockResolvedValueOnce(JSON.stringify(token));
     native.get.mockRejectedValueOnce(new Error('Device storage failed'));
     expect(await service.read()).toEqual(token);
     expect(sessionStorage.length).toBe(0);
   });
-  it('starts Android anonymously when native storage cannot restore a session', async () => {
+  it('starts Android anonymously when neither native storage nor IndexedDB can restore a session', async () => {
     TestBed.overrideProvider(PlatformService, { useValue: { android: true } });
     native.get.mockRejectedValueOnce(new Error('Stored session is unreadable'));
     const service = TestBed.inject(TokenStorageService);
     await expect(service.read()).resolves.toBeNull();
     expect(sessionStorage.length).toBe(0);
   });
-  it('does not report an Android login as durable when secure storage cannot save it', async () => {
+  it('durably saves an Android login through IndexedDB when secure storage cannot', async () => {
     TestBed.overrideProvider(PlatformService, { useValue: { android: true } });
     native.set.mockRejectedValueOnce(new Error('Device storage failed'));
     const service = TestBed.inject(TokenStorageService);
-    await expect(service.save(session())).rejects.toThrow('Device storage failed');
+    await expect(service.save(session())).resolves.toBeUndefined();
+    expect(indexedDb.set).toHaveBeenCalled();
+  });
+  it('reports a failed login only when native storage and IndexedDB both fail', async () => {
+    TestBed.overrideProvider(PlatformService, { useValue: { android: true } });
+    native.set.mockRejectedValueOnce(new Error('Device storage failed'));
+    indexedDb.set.mockRejectedValueOnce(new Error('IndexedDB unavailable'));
+    const service = TestBed.inject(TokenStorageService);
+    await expect(service.save(session())).rejects.toThrow('IndexedDB unavailable');
   });
 });
