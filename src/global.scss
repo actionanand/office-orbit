@@ -550,6 +550,9 @@ details > summary {
   #workspace ion-title.title-default {
     background: url('assets/office-orbit.png') no-repeat left center;
     background-size: 32px 32px;
+    // ion-title's own box height is content-driven (its line height), shorter
+    // than the icon, unless we explicitly grow it to fit the full image.
+    min-height: 36px;
     padding-inline-start: 50px !important;
   }
   .workspace-content {
