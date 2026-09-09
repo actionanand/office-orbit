@@ -21,6 +21,7 @@ describe('deterministic startup', () => {
   };
   const lock = {
     initialize: vi.fn().mockResolvedValue(undefined),
+    prefetch: vi.fn(),
     lock: vi.fn(),
     enabled: vi.fn(() => false),
     recovery: vi.fn(() => false),

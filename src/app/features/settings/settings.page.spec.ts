@@ -27,7 +27,7 @@ describe('SettingsPage', () => {
       providers: [
         { provide: ThemeService, useValue: { mode: signal('system'), set: vi.fn() } },
         { provide: PlatformService, useValue: { android: false, label: 'Web' } },
-        { provide: AuthService, useValue: { signOut: vi.fn(), state: { session } } },
+        { provide: AuthService, useValue: { signOut: vi.fn(), state: { session, notice: signal('') } } },
         {
           provide: AppLockService,
           useValue: {
@@ -55,7 +55,7 @@ describe('SettingsPage', () => {
       providers: [
         { provide: ThemeService, useValue: { mode: signal('system'), set: vi.fn() } },
         { provide: PlatformService, useValue: { android: false, label: 'Web' } },
-        { provide: AuthService, useValue: { signOut: vi.fn(), state: { session: signal(null) } } },
+        { provide: AuthService, useValue: { signOut: vi.fn(), state: { session: signal(null), notice: signal('') } } },
         {
           provide: AppLockService,
           useValue: {
@@ -136,7 +136,7 @@ describe('SettingsPage', () => {
         providers: [
           { provide: ThemeService, useValue: { mode: signal('system'), set: vi.fn() } },
           { provide: PlatformService, useValue: { android: false, label: 'Web' } },
-          { provide: AuthService, useValue: { signOut: vi.fn(), state: { session } } },
+          { provide: AuthService, useValue: { signOut: vi.fn(), state: { session, notice: signal('') } } },
           {
             provide: AppLockService,
             useValue: {
@@ -198,7 +198,7 @@ describe('SettingsPage', () => {
       providers: [
         { provide: ThemeService, useValue: { mode: signal('system'), set: vi.fn() } },
         { provide: PlatformService, useValue: { android: false, label: 'Web' } },
-        { provide: AuthService, useValue: { signOut: vi.fn(), state: { session } } },
+        { provide: AuthService, useValue: { signOut: vi.fn(), state: { session, notice: signal('') } } },
         {
           provide: AppLockService,
           useValue: {
