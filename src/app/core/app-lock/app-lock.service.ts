@@ -1,9 +1,13 @@
-import { computed, inject, Service, signal } from '@angular/core';
+import { computed, effect, inject, Service, signal } from '@angular/core';
 import { AuthState } from '../auth/auth-state';
 import { PinStorageService } from '../storage/pin-storage.service';
 import { PlatformService } from '../platform/platform.service';
 import { BiometricService } from '../platform/biometric.service';
 import { createPin, parsePin, PinRecord, verifyPin } from './pin';
+
+export type LockTimeoutMinutes = 0 | 1 | 5 | 10;
+const LOCK_TIMEOUT_KEY = 'office-orbit.lock-timeout';
+const LOCK_TIMEOUT_OPTIONS: LockTimeoutMinutes[] = [0, 1, 5, 10];
 
 @Service()
 export class AppLockService {
@@ -18,8 +22,44 @@ export class AppLockService {
   // Set when a stored protection record exists over a valid session but cannot be
   // read/parsed. Protected content must not render; a safe recovery is required.
   readonly recovery = signal(false);
+  // Automatic lock after inactivity, in minutes. 0 disables it. This is a non-secret
+  // device preference, so it is stored in plain localStorage like theme.
+  readonly lockAfterMinutes = signal<LockTimeoutMinutes>(this.loadLockTimeout());
+  private inactivityTimer?: ReturnType<typeof setTimeout>;
   private checking = false;
   private lockRevision = 0;
+  constructor() {
+    effect(() => {
+      const minutes = this.lockAfterMinutes();
+      const lastActivityAt = this.auth.lastActivityAt();
+      const active = this.enabled() && !this.locked() && minutes > 0;
+      clearTimeout(this.inactivityTimer);
+      if (!active) return;
+      const remaining = minutes * 60_000 - (Date.now() - lastActivityAt);
+      if (remaining <= 0) {
+        this.lock();
+        return;
+      }
+      this.inactivityTimer = setTimeout(() => this.lock(), remaining);
+    });
+  }
+  setLockAfterMinutes(minutes: LockTimeoutMinutes): void {
+    this.lockAfterMinutes.set(minutes);
+    try {
+      localStorage.setItem(LOCK_TIMEOUT_KEY, String(minutes));
+    } catch {
+      /* Preference still applies for this session. */
+    }
+  }
+  private loadLockTimeout(): LockTimeoutMinutes {
+    try {
+      const saved = Number(localStorage.getItem(LOCK_TIMEOUT_KEY));
+      if (LOCK_TIMEOUT_OPTIONS.includes(saved as LockTimeoutMinutes)) return saved as LockTimeoutMinutes;
+    } catch {
+      /* Default to no automatic lock when preferences are unavailable. */
+    }
+    return 0;
+  }
   async initialize(): Promise<void> {
     this.recovery.set(false);
     let raw: string | null = null;

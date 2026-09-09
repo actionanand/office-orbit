@@ -7,6 +7,8 @@ import { BiometricService } from './platform/biometric.service';
 import { ThemeService } from './theme/theme.service';
 import { Router } from '@angular/router';
 import { signal } from '@angular/core';
+import { App } from '@capacitor/app';
+vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn() } }));
 describe('deterministic startup', () => {
   const verified = signal(false);
   const auth = {
@@ -15,7 +17,7 @@ describe('deterministic startup', () => {
     setForeground: vi.fn(),
     evaluateRenewal: vi.fn().mockResolvedValue(undefined),
     signOut: vi.fn().mockResolvedValue(undefined),
-    state: { verified, valid: vi.fn(() => true) },
+    state: { verified, valid: vi.fn(() => true), session: vi.fn(() => null as unknown) },
   };
   const lock = {
     initialize: vi.fn().mockResolvedValue(undefined),
@@ -89,5 +91,29 @@ describe('deterministic startup', () => {
     expect(lock.clearUnreadable).toHaveBeenCalledOnce();
     expect(auth.signOut).toHaveBeenCalledOnce();
     expect(startup.phase()).toBe('ready');
+  });
+  describe('Android resume behavior', () => {
+    beforeEach(() => {
+      vi.mocked(App.addListener).mockResolvedValue({ remove: async () => undefined });
+      TestBed.overrideProvider(PlatformService, { useValue: { android: true } });
+    });
+    it('does not sign out on resume when there was never a session', async () => {
+      auth.state.valid.mockReturnValue(false);
+      auth.state.session.mockReturnValue(null);
+      const startup = TestBed.inject(StartupService);
+      await startup.start();
+      const onStateChange = vi.mocked(App.addListener).mock.calls[0][1] as (state: { isActive: boolean }) => void;
+      onStateChange({ isActive: true });
+      expect(auth.signOut).not.toHaveBeenCalled();
+    });
+    it('signs out on resume when a previously valid session has expired', async () => {
+      auth.state.valid.mockReturnValue(false);
+      auth.state.session.mockReturnValue({ accessToken: 'stale' });
+      const startup = TestBed.inject(StartupService);
+      await startup.start();
+      const onStateChange = vi.mocked(App.addListener).mock.calls[0][1] as (state: { isActive: boolean }) => void;
+      onStateChange({ isActive: true });
+      expect(auth.signOut).toHaveBeenCalledOnce();
+    });
   });
 });

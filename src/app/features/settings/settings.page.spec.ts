@@ -29,9 +29,12 @@ describe('SettingsPage', () => {
           useValue: {
             enabled: signal(false),
             biometricEnabled: signal(false),
+            lockAfterMinutes: signal(0),
             setPin: vi.fn(),
             disable: vi.fn(),
             setBiometric: vi.fn(),
+            setLockAfterMinutes: vi.fn(),
+            lock: vi.fn(),
           },
         },
         { provide: BiometricService, useValue: { available: signal(false) } },
@@ -40,6 +43,32 @@ describe('SettingsPage', () => {
     const fixture = TestBed.createComponent(SettingsPage);
     fixture.detectChanges();
     return (fixture.nativeElement as HTMLElement).textContent ?? '';
+  }
+
+  async function renderWithPin() {
+    await TestBed.configureTestingModule({
+      imports: [SettingsPage],
+      providers: [
+        { provide: ThemeService, useValue: { mode: signal('system'), set: vi.fn() } },
+        { provide: PlatformService, useValue: { android: false, label: 'Web' } },
+        { provide: AuthService, useValue: { signOut: vi.fn(), state: { session: signal(null) } } },
+        {
+          provide: AppLockService,
+          useValue: {
+            enabled: signal(true),
+            biometricEnabled: signal(false),
+            lockAfterMinutes: signal(0),
+            setPin: vi.fn(),
+            disable: vi.fn(),
+            setBiometric: vi.fn(),
+            setLockAfterMinutes: vi.fn(),
+            lock: vi.fn(),
+          },
+        },
+        { provide: BiometricService, useValue: { available: signal(false) } },
+      ],
+    }).compileComponents();
+    return TestBed.createComponent(SettingsPage);
   }
 
   it('shows a fresh session with the actual same-day token expiry and no ceiling explanation', async () => {
@@ -78,5 +107,17 @@ describe('SettingsPage', () => {
     }).format(expiresAt);
     expect(text).toContain('Extended session');
     expect(text).toContain(expected);
+  });
+
+  it('offers an automatic-lock timeout and an immediate lock action once a PIN is set', async () => {
+    const fixture = await renderWithPin();
+    fixture.detectChanges();
+    const page = fixture.componentInstance;
+    const lock = TestBed.inject(AppLockService);
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Lock automatically after inactivity.');
+    expect(text).toContain('Lock now');
+    page.lockNow();
+    expect(lock.lock).toHaveBeenCalledOnce();
   });
 });

@@ -5,7 +5,7 @@ import { IonButton, IonContent, IonHeader, IonInput, IonTitle, IonToolbar } from
 import { ThemeService, ThemeMode } from '../../core/theme/theme.service';
 import { PlatformService } from '../../core/platform/platform.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { AppLockService } from '../../core/app-lock/app-lock.service';
+import { AppLockService, LockTimeoutMinutes } from '../../core/app-lock/app-lock.service';
 import { BiometricService } from '../../core/platform/biometric.service';
 import { appVersion } from '../../core/version/app-version';
 @Component({
@@ -79,6 +79,20 @@ import { appVersion } from '../../core/version/app-version';
               <ion-button type="button" fill="outline" color="danger" (click)="chooseSecurityAction('disable')"
                 >Turn off PIN protection</ion-button
               >
+            </div>
+            <div class="lock-timeout">
+              <p>Lock automatically after inactivity.</p>
+              <div class="theme-options" role="group" aria-label="Automatic lock timeout">
+                @for (option of lockTimeouts; track option.value) {
+                  <button
+                    [class.selected]="lock.lockAfterMinutes() === option.value"
+                    [attr.aria-pressed]="lock.lockAfterMinutes() === option.value"
+                    (click)="lock.setLockAfterMinutes(option.value)">
+                    {{ option.label }}
+                  </button>
+                }
+              </div>
+              <ion-button type="button" fill="outline" (click)="lockNow()">Lock now</ion-button>
             </div>
           } @else {
             <form [formGroup]="form" (ngSubmit)="submitSecurityAction()">
@@ -206,6 +220,12 @@ export class SettingsPage {
     { value: 'dark', label: 'Dark' },
     { value: 'system', label: 'Automatic' },
   ];
+  readonly lockTimeouts: { value: LockTimeoutMinutes; label: string }[] = [
+    { value: 0, label: 'Off' },
+    { value: 1, label: '1 minute' },
+    { value: 5, label: '5 minutes' },
+    { value: 10, label: '10 minutes' },
+  ];
   readonly busy = signal(false);
   readonly message = signal('');
   readonly securityAction = signal<'change' | 'disable' | 'biometric' | null>(null);
@@ -214,6 +234,9 @@ export class SettingsPage {
     pin: new FormControl('', { nonNullable: true }),
     confirm: new FormControl('', { nonNullable: true }),
   });
+  lockNow(): void {
+    this.lock.lock();
+  }
   async savePin() {
     const { pin, confirm, current } = this.form.getRawValue();
     if (pin !== confirm) {

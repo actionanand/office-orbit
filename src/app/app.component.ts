@@ -1,15 +1,17 @@
 import { Component, DestroyRef, inject } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgOptimizedImage } from '@angular/common';
 import { IonApp, IonButton, IonSpinner } from '@ionic/angular';
 import { StartupService } from './core/startup.service';
 import { AuthService } from './core/auth/auth.service';
 @Component({
   selector: 'app-root',
-  imports: [IonApp, IonButton, RouterOutlet, IonSpinner],
+  imports: [IonApp, IonButton, NgOptimizedImage, RouterOutlet, IonSpinner],
   template: `<ion-app>
     @if (startup.phase() === 'loading') {
       <div class="session-shield" role="status">
+        <img ngSrc="assets/office-orbit.png" width="96" height="96" priority alt="" />
         <ion-spinner aria-label="Initializing Office Orbit" /><span>Office Orbit is getting ready…</span>
       </div>
     } @else if (startup.phase() === 'error') {

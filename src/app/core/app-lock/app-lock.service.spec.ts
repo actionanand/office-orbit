@@ -175,4 +175,50 @@ describe('local app lock', () => {
       expect(biometric.authenticate).not.toHaveBeenCalled();
     });
   });
+  describe('automatic lock after inactivity', () => {
+    afterEach(() => vi.useRealTimers());
+    it('locks after the configured inactivity timeout elapses', async () => {
+      vi.useFakeTimers();
+      saved = JSON.stringify(await createPin('4391'));
+      const lock = TestBed.inject(AppLockService);
+      await lock.initialize();
+      await lock.unlock('4391');
+      TestBed.inject(AuthState).lastActivityAt.set(Date.now());
+      lock.setLockAfterMinutes(1);
+      await Promise.resolve();
+      expect(lock.locked()).toBe(false);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(lock.locked()).toBe(true);
+    });
+    it('does not lock automatically when the timeout is off', async () => {
+      vi.useFakeTimers();
+      saved = JSON.stringify(await createPin('4391'));
+      const lock = TestBed.inject(AppLockService);
+      await lock.initialize();
+      await lock.unlock('4391');
+      TestBed.inject(AuthState).lastActivityAt.set(Date.now());
+      lock.setLockAfterMinutes(0);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(600_000);
+      expect(lock.locked()).toBe(false);
+    });
+    it('reschedules the timeout when activity resets it', async () => {
+      vi.useFakeTimers();
+      saved = JSON.stringify(await createPin('4391'));
+      const lock = TestBed.inject(AppLockService);
+      await lock.initialize();
+      await lock.unlock('4391');
+      const state = TestBed.inject(AuthState);
+      state.lastActivityAt.set(Date.now());
+      lock.setLockAfterMinutes(5);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(4 * 60_000);
+      state.lastActivityAt.set(Date.now());
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(4 * 60_000);
+      expect(lock.locked()).toBe(false);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(lock.locked()).toBe(true);
+    });
+  });
 });

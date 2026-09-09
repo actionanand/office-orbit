@@ -405,11 +405,14 @@ ion-app > router-outlet + * {
   top: 8px;
 }
 .session-shield {
-  display: grid;
-  place-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 20px;
-  position: absolute;
+  position: fixed;
   inset: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background: var(--ion-background-color);
   z-index: 100;
   text-align: center;

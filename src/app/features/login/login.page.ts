@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgOptimizedImage } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { IonButton, IonContent, IonIcon, IonInput, IonSpinner } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { eyeOffOutline, eyeOutline, lockClosedOutline } from 'ionicons/icons';
@@ -158,7 +159,13 @@ export class LoginPage {
         await this.router.navigateByUrl('/app/dashboard', { replaceUrl: true });
       }
     } catch (error) {
-      this.message.set(apiError(error, true));
+      this.message.set(
+        error instanceof HttpErrorResponse
+          ? apiError(error, true)
+          : error instanceof Error
+            ? error.message
+            : apiError(error, true),
+      );
       this.form.controls.password.reset();
     } finally {
       this.busy.set(false);
