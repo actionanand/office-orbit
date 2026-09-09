@@ -151,7 +151,9 @@ export class LoginPage {
     this.busy.set(true);
     this.message.set('');
     try {
-      await this.auth.login(this.form.controls.password.value);
+      const { username, password } = this.form.getRawValue();
+      await this.auth.login(password);
+      await this.offerToSavePassword(username, password);
       if (this.lock.enabled()) {
         this.securityChoice.set(true);
       } else {
@@ -172,6 +174,21 @@ export class LoginPage {
       this.form.controls.password.reset();
     } finally {
       this.busy.set(false);
+    }
+  }
+  // Explicitly asks Chrome/WebView to offer saving this password, since Android's
+  // WebView autofill heuristics do not reliably detect a successful SPA login.
+  private async offerToSavePassword(username: string, password: string): Promise<void> {
+    const PasswordCredentialCtor = (
+      window as unknown as { PasswordCredential?: new (data: Record<string, string>) => Credential }
+    ).PasswordCredential;
+    const container = navigator.credentials as
+      (CredentialsContainer & { store?: (credential: Credential) => Promise<void> }) | undefined;
+    if (!PasswordCredentialCtor || !container?.store) return;
+    try {
+      await container.store(new PasswordCredentialCtor({ id: username, password, name: username }));
+    } catch {
+      /* The Credential Management API is optional; a failure here must not block sign-in. */
     }
   }
   async keepDeviceProtection(): Promise<void> {

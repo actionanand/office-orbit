@@ -180,9 +180,6 @@ ion-app > router-outlet + * {
 .bottom-nav {
   display: none;
 }
-.mobile-topbar {
-  display: none;
-}
 .page-wrap {
   max-width: 1250px;
   margin: auto;
@@ -354,12 +351,19 @@ ion-app > router-outlet + * {
 .theme-options button {
   min-height: 48px;
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 12px 22px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
   color: var(--ion-text-color);
   cursor: pointer;
+}
+.theme-options button ion-icon {
+  font-size: 18px;
 }
 .theme-options button.selected {
   background: var(--surface-soft);
@@ -543,22 +547,13 @@ details > summary {
   .sidebar {
     display: none;
   }
-  .mobile-topbar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: calc(52px + env(safe-area-inset-top, 0px));
-    padding: 0 18px;
-    padding-top: env(safe-area-inset-top, 0px);
-    background: var(--surface);
-    border-bottom: 1px solid var(--line);
-    font-size: 0.95rem;
-  }
-  .mobile-topbar img {
-    object-fit: contain;
+  #workspace ion-title.title-default {
+    background: url('assets/office-orbit.png') no-repeat left center;
+    background-size: 32px 32px;
+    padding-inline-start: 50px !important;
   }
   .workspace-content {
-    height: calc(100% - 52px - 68px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    height: calc(100% - 68px - env(safe-area-inset-bottom, 0px));
   }
   .bottom-nav {
     display: flex;
@@ -637,6 +632,12 @@ details > summary {
   }
   .theme-options button {
     padding: 10px;
+  }
+  .theme-options button ion-icon {
+    font-size: 22px;
+  }
+  .theme-option-label {
+    display: none;
   }
   .settings .brand-row small {
     display: block;
@@ -739,6 +740,12 @@ details > summary {
   font-size: clamp(1.45rem, 3vw, 2rem);
 }
 .sprint-overview > p {
+  margin-bottom: 12px;
+}
+.today-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 650;
   margin-bottom: 12px;
 }
 .capacity-sentence {
@@ -1354,11 +1361,23 @@ details > summary {
   .capacity-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .hero-capacity > div,
+  .capacity-stats > span {
+    padding: 9px 8px;
+  }
+  .hero-capacity dd,
+  .capacity-stats strong {
+    font-size: 1rem;
+  }
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
   .metric-card {
-    padding: 15px;
+    padding: 13px 14px;
+  }
+  .metric-card strong {
+    font-size: 1.5rem;
   }
   .summary-grid,
   .detail-columns {

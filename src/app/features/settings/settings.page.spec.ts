@@ -235,4 +235,15 @@ describe('SettingsPage', () => {
     page.lockNow();
     expect(lock.lock).toHaveBeenCalledOnce();
   });
+
+  it('reverts the PIN protection toggle to on after cancelling a disable attempt', async () => {
+    const fixture = await renderWithPin();
+    fixture.detectChanges();
+    const page = fixture.componentInstance;
+    expect(page.pinProtectionChecked()).toBe(true);
+    page.onPinProtectionToggle(false);
+    expect(page.pinProtectionChecked()).toBe(false);
+    page.cancelSecurityAction();
+    expect(page.pinProtectionChecked()).toBe(true);
+  });
 });

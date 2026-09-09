@@ -10,7 +10,7 @@ import { LoadingSkeletonComponent } from '../../shared/components/loading-skelet
 import { StatePanelComponent } from '../../shared/components/state-panel.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { DashboardResponse, Jira, Sprint } from '../../shared/models/api.models';
-import { formatDate, formatRelativeTime, formatShortDate, truncate } from '../../shared/utils/format';
+import { formatDate, formatRelativeTime, formatShortDate, formatTodayLabel, truncate } from '../../shared/utils/format';
 import { spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from '../jiras/jira-link.component';
 import { DashboardService } from './dashboard.service';
@@ -77,6 +77,7 @@ interface AttentionItem {
                     }}{{ shortDate(sprint.endDate) }}
                   </p>
                 }
+                <p class="today-label">Today: {{ today }}</p>
                 <p class="capacity-sentence">
                   <strong>{{ sprint.allocatedDays }}</strong> of {{ sprint.availableDays }} days allocated
                   <span>·</span> <strong>{{ sprint.remainingDays }}</strong> days remaining
@@ -278,6 +279,7 @@ export class DashboardPage {
   readonly shortDate = formatShortDate;
   readonly short = truncate;
   readonly spilled = spilloverLabel;
+  readonly today = formatTodayLabel();
 
   constructor() {
     addIcons({ chevronForwardOutline, refreshOutline });

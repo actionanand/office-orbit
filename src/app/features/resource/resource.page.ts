@@ -33,7 +33,14 @@ import {
   WorkLink,
   WorkLog,
 } from '../../shared/models/api.models';
-import { formatDate, formatRelativeTime, jiraLabel, names, truncate } from '../../shared/utils/format';
+import {
+  formatDate,
+  formatRelativeTime,
+  formatTodayLabel,
+  jiraLabel,
+  names,
+  truncate,
+} from '../../shared/utils/format';
 import { spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from '../jiras/jira-link.component';
 
@@ -67,6 +74,9 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
     <ion-content>
       <main class="page-wrap resource-page">
         <app-page-header [title]="feature.heading" [description]="feature.description" />
+        @if (feature.kind === 'sprints') {
+          <p class="today-label">Today: {{ today }}</p>
+        }
 
         <ion-segment [value]="selected()" [scrollable]="true" (ionChange)="select($event.detail.value)">
           @for (view of feature.views; track view.path) {
@@ -488,6 +498,7 @@ export class ResourcePage {
   readonly names = names;
   readonly short = truncate;
   readonly relative = (timestamp: number) => formatRelativeTime(new Date(timestamp).toISOString());
+  readonly today = formatTodayLabel();
 
   constructor() {
     addIcons({ chevronDownOutline, chevronForwardOutline, closeOutline, openOutline, refreshOutline });
