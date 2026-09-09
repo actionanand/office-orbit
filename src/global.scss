@@ -742,6 +742,12 @@ details > summary {
 .sprint-overview > p {
   margin-bottom: 12px;
 }
+.today-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  margin-bottom: 12px;
+}
 .capacity-sentence {
   color: var(--ion-text-color);
   font-size: 0.88rem;
@@ -1355,11 +1361,23 @@ details > summary {
   .capacity-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .hero-capacity > div,
+  .capacity-stats > span {
+    padding: 9px 8px;
+  }
+  .hero-capacity dd,
+  .capacity-stats strong {
+    font-size: 1rem;
+  }
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
   .metric-card {
-    padding: 15px;
+    padding: 13px 14px;
+  }
+  .metric-card strong {
+    font-size: 1.5rem;
   }
   .summary-grid,
   .detail-columns {
