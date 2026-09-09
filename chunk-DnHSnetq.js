@@ -1,0 +1,1 @@
+import {aB as T}from'./main-G5BMXBHD.js';var t=T("Browser",{web:()=>import('./chunk-BxkifaAs.js').then(e=>new e.BrowserWeb)});export{t as Browser};
