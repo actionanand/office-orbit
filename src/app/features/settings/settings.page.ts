@@ -1,6 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { NgOptimizedImage } from '@angular/common';
+import { interval } from 'rxjs';
 import { IonButton, IonContent, IonHeader, IonInput, IonTitle, IonToolbar } from '@ionic/angular';
 import { ThemeService, ThemeMode } from '../../core/theme/theme.service';
 import { PlatformService } from '../../core/platform/platform.service';
@@ -158,14 +160,38 @@ import { appVersion } from '../../core/version/app-version';
           <h2>Session</h2>
           <p><strong>Signed in</strong></p>
           <p>{{ sessionKind() }}</p>
-          @if (expiresAt()) {
+          @if (expiresAtLabel()) {
             <dl>
               <div>
                 <dt>Expires at</dt>
-                <dd>{{ expiresAt() }}</dd>
+                <dd>{{ expiresAtDisplay() }}</dd>
               </div>
             </dl>
           }
+          <div class="session-preferences">
+            <p class="muted">Time format</p>
+            <div class="theme-options" role="group" aria-label="Time format">
+              @for (option of timeFormats; track option.value) {
+                <button
+                  [class.selected]="timeFormat() === option.value"
+                  [attr.aria-pressed]="timeFormat() === option.value"
+                  (click)="setTimeFormat(option.value)">
+                  {{ option.label }}
+                </button>
+              }
+            </div>
+            <p class="muted">Show remaining time until sign-out</p>
+            <div class="theme-options" role="group" aria-label="Remaining time display">
+              @for (option of remainingTimeOptions; track option.label) {
+                <button
+                  [class.selected]="showRemainingTime() === option.value"
+                  [attr.aria-pressed]="showRemainingTime() === option.value"
+                  (click)="setShowRemainingTime(option.value)">
+                  {{ option.label }}
+                </button>
+              }
+            </div>
+          </div>
           <ion-button fill="outline" (click)="auth.signOut()">Sign out</ion-button>
         </section>
         <section class="data-card">
@@ -199,7 +225,11 @@ export class SettingsPage {
   readonly sessionKind = computed(() =>
     this.auth.state.session()?.sessionKind === 'extended' ? 'Extended session' : 'Fresh session',
   );
-  readonly expiresAt = computed(() => {
+  readonly timeFormat = signal<'12' | '24'>(this.loadTimeFormat());
+  readonly showRemainingTime = signal(this.loadShowRemainingTime());
+  // Advances the remaining-time display without depending on Date.now() directly.
+  private readonly now = signal(Date.now());
+  readonly expiresAtLabel = computed(() => {
     const value = this.auth.state.session()?.expiresAt;
     if (!value) return '';
     const expiry = new Date(value);
@@ -208,12 +238,30 @@ export class SettingsPage {
       expiry.getFullYear() === now.getFullYear() &&
       expiry.getMonth() === now.getMonth() &&
       expiry.getDate() === now.getDate();
-    return new Intl.DateTimeFormat(
-      undefined,
-      sameDay
-        ? { hour: 'numeric', minute: '2-digit' }
-        : { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' },
-    ).format(expiry);
+    return new Intl.DateTimeFormat(undefined, {
+      ...(sameDay ? {} : { month: 'short' as const, day: 'numeric' as const }),
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: this.timeFormat() === '12',
+    }).format(expiry);
+  });
+  readonly remainingTimeLabel = computed(() => {
+    const value = this.auth.state.session()?.expiresAt;
+    if (!value) return '';
+    this.now();
+    const diff = value - Date.now();
+    if (diff <= 0) return 'less than a minute left';
+    const hours = Math.floor(diff / 3_600_000);
+    const minutes = Math.floor((diff % 3_600_000) / 60_000);
+    const parts: string[] = [];
+    if (hours > 0) parts.push(`${hours} hour${hours === 1 ? '' : 's'}`);
+    if (minutes > 0 || hours === 0) parts.push(`${minutes} minute${minutes === 1 ? '' : 's'}`);
+    return `${parts.join(' ')} left`;
+  });
+  readonly expiresAtDisplay = computed(() => {
+    const label = this.expiresAtLabel();
+    if (!label) return '';
+    return this.showRemainingTime() ? `${label} (${this.remainingTimeLabel()})` : label;
   });
   readonly themes: { value: ThemeMode; label: string }[] = [
     { value: 'light', label: 'Light' },
@@ -226,6 +274,14 @@ export class SettingsPage {
     { value: 5, label: '5 minutes' },
     { value: 10, label: '10 minutes' },
   ];
+  readonly timeFormats: { value: '12' | '24'; label: string }[] = [
+    { value: '12', label: '12-hour (AM/PM)' },
+    { value: '24', label: '24-hour' },
+  ];
+  readonly remainingTimeOptions: { value: boolean; label: string }[] = [
+    { value: false, label: 'Off' },
+    { value: true, label: 'On' },
+  ];
   readonly busy = signal(false);
   readonly message = signal('');
   readonly securityAction = signal<'change' | 'disable' | 'biometric' | null>(null);
@@ -234,6 +290,43 @@ export class SettingsPage {
     pin: new FormControl('', { nonNullable: true }),
     confirm: new FormControl('', { nonNullable: true }),
   });
+  constructor() {
+    interval(30_000)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.now.set(Date.now()));
+  }
+  setTimeFormat(format: '12' | '24'): void {
+    this.timeFormat.set(format);
+    try {
+      localStorage.setItem('office-orbit.time-format', format);
+    } catch {
+      /* Preference still applies for this session. */
+    }
+  }
+  setShowRemainingTime(value: boolean): void {
+    this.showRemainingTime.set(value);
+    try {
+      localStorage.setItem('office-orbit.show-remaining-time', String(value));
+    } catch {
+      /* Preference still applies for this session. */
+    }
+  }
+  private loadTimeFormat(): '12' | '24' {
+    try {
+      const saved = localStorage.getItem('office-orbit.time-format');
+      if (saved === '12' || saved === '24') return saved;
+    } catch {
+      /* Default to 12-hour when preferences are unavailable. */
+    }
+    return '12';
+  }
+  private loadShowRemainingTime(): boolean {
+    try {
+      return localStorage.getItem('office-orbit.show-remaining-time') === 'true';
+    } catch {
+      return false;
+    }
+  }
   lockNow(): void {
     this.lock.lock();
   }

@@ -102,7 +102,9 @@ describe('deterministic startup', () => {
       auth.state.session.mockReturnValue(null);
       const startup = TestBed.inject(StartupService);
       await startup.start();
-      const onStateChange = vi.mocked(App.addListener).mock.calls[0][1] as (state: { isActive: boolean }) => void;
+      const onStateChange = vi.mocked(App.addListener).mock.calls[0][1] as unknown as (state: {
+        isActive: boolean;
+      }) => void;
       onStateChange({ isActive: true });
       expect(auth.signOut).not.toHaveBeenCalled();
     });
@@ -111,7 +113,9 @@ describe('deterministic startup', () => {
       auth.state.session.mockReturnValue({ accessToken: 'stale' });
       const startup = TestBed.inject(StartupService);
       await startup.start();
-      const onStateChange = vi.mocked(App.addListener).mock.calls[0][1] as (state: { isActive: boolean }) => void;
+      const onStateChange = vi.mocked(App.addListener).mock.calls[0][1] as unknown as (state: {
+        isActive: boolean;
+      }) => void;
       onStateChange({ isActive: true });
       expect(auth.signOut).toHaveBeenCalledOnce();
     });
