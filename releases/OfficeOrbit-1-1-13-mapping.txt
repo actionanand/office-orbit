@@ -3,8 +3,8 @@
 # min_api: 24
 # common_typos_disable
 # {"id":"com.android.tools.r8.mapping","version":"2.2"}
-# pg_map_id: ba6b62976982b32b46d57a92580fc6c51458c298705455c6ffc66dacc746fe51
-# pg_map_hash: SHA-256 ba6b62976982b32b46d57a92580fc6c51458c298705455c6ffc66dacc746fe51
+# pg_map_id: b4ffbe4c0783a9932b73b26f0aaedc5061eca43f2a2a05d128c9b449c518c8d1
+# pg_map_hash: SHA-256 b4ffbe4c0783a9932b73b26f0aaedc5061eca43f2a2a05d128c9b449c518c8d1
 android.app.AppComponentFactory -> android.app.AppComponentFactory:
 # {"id":"com.android.tools.r8.synthesized"}
     void <clinit>() -> <clinit>
@@ -69175,6 +69175,64 @@ com.capacitorjs.plugins.browser.EventGroup -> com.capacitorjs.plugins.browser.f:
 com.capacitorjs.plugins.browser.EventGroup$EventGroupCompletion -> com.capacitorjs.plugins.browser.f$a:
 # {"id":"sourceFile","fileName":"EventGroup.java"}
     void onGroupCompletion() -> a
+com.capacitorjs.plugins.device.Device -> com.capacitorjs.plugins.device.a:
+# {"id":"sourceFile","fileName":"Device.java"}
+    android.content.Context context -> a
+    1:3:void <init>(android.content.Context):17:17 -> <init>
+    4:6:void <init>(android.content.Context):18:18 -> <init>
+    1:7:float getBatteryLevel():36:36 -> a
+    8:17:float getBatteryLevel():37:37 -> a
+    18:23:float getBatteryLevel():43:43 -> a
+    24:37:float getBatteryLevel():44:44 -> a
+    1:4:long getMemUsed():22:22 -> b
+    5:14:long getMemUsed():23:23 -> b
+    1:6:java.lang.String getName():66:66 -> c
+    7:21:java.lang.String getName():67:67 -> c
+    1:3:java.lang.String getPlatform():28:28 -> d
+    1:13:java.lang.String getUuid():32:32 -> e
+    1:6:java.lang.String getWebViewVersion():75:75 -> f
+    7:11:java.lang.String getWebViewVersion():76:76 -> f
+    12:17:java.lang.String getWebViewVersion():79:79 -> f
+    18:23:java.lang.String getWebViewVersion():81:81 -> f
+    24:26:java.lang.String getWebViewVersion():85:85 -> f
+    27:29:java.lang.String getWebViewVersion():88:88 -> f
+    1:6:android.content.pm.PackageInfo getWebViewVersionSubAndroid26():92:92 -> g
+    7:14:android.content.pm.PackageInfo getWebViewVersionSubAndroid26():93:93 -> g
+    1:7:boolean isCharging():51:51 -> h
+    8:17:boolean isCharging():52:52 -> h
+    18:35:boolean isCharging():55:55 -> h
+    1:25:boolean isVirtual():62:62 -> i
+com.capacitorjs.plugins.device.DevicePlugin -> com.capacitorjs.plugins.device.DevicePlugin:
+# {"id":"sourceFile","fileName":"DevicePlugin.java"}
+    com.capacitorjs.plugins.device.Device implementation -> implementation
+      # {"id":"com.android.tools.r8.residualsignature","signature":"Lcom/capacitorjs/plugins/device/a;"}
+    1:4:void <init>():12:12 -> <init>
+    1:5:void getBatteryInfo(com.getcapacitor.PluginCall):50:50 -> getBatteryInfo
+    6:17:void getBatteryInfo(com.getcapacitor.PluginCall):52:52 -> getBatteryInfo
+    18:28:void getBatteryInfo(com.getcapacitor.PluginCall):53:53 -> getBatteryInfo
+    29:32:void getBatteryInfo(com.getcapacitor.PluginCall):55:55 -> getBatteryInfo
+    1:5:void getId(com.getcapacitor.PluginCall):23:23 -> getId
+    6:16:void getId(com.getcapacitor.PluginCall):25:25 -> getId
+    17:20:void getId(com.getcapacitor.PluginCall):27:27 -> getId
+    1:5:void getInfo(com.getcapacitor.PluginCall):32:32 -> getInfo
+    6:16:void getInfo(com.getcapacitor.PluginCall):34:34 -> getInfo
+    17:23:void getInfo(com.getcapacitor.PluginCall):35:35 -> getInfo
+    24:30:void getInfo(com.getcapacitor.PluginCall):36:36 -> getInfo
+    31:37:void getInfo(com.getcapacitor.PluginCall):37:37 -> getInfo
+    38:44:void getInfo(com.getcapacitor.PluginCall):38:38 -> getInfo
+    45:55:void getInfo(com.getcapacitor.PluginCall):39:39 -> getInfo
+    56:62:void getInfo(com.getcapacitor.PluginCall):40:40 -> getInfo
+    63:73:void getInfo(com.getcapacitor.PluginCall):41:41 -> getInfo
+    74:84:void getInfo(com.getcapacitor.PluginCall):42:42 -> getInfo
+    85:95:void getInfo(com.getcapacitor.PluginCall):43:43 -> getInfo
+    96:99:void getInfo(com.getcapacitor.PluginCall):45:45 -> getInfo
+    1:5:void getLanguageCode(com.getcapacitor.PluginCall):60:60 -> getLanguageCode
+    6:18:void getLanguageCode(com.getcapacitor.PluginCall):61:61 -> getLanguageCode
+    19:22:void getLanguageCode(com.getcapacitor.PluginCall):62:62 -> getLanguageCode
+    1:5:void getLanguageTag(com.getcapacitor.PluginCall):67:67 -> getLanguageTag
+    6:18:void getLanguageTag(com.getcapacitor.PluginCall):68:68 -> getLanguageTag
+    19:22:void getLanguageTag(com.getcapacitor.PluginCall):69:69 -> getLanguageTag
+    1:12:void load():18:18 -> load
 com.capacitorjs.plugins.haptics.Haptics -> com.capacitorjs.plugins.haptics.a:
 # {"id":"sourceFile","fileName":"Haptics.java"}
     boolean selectionStarted -> a
