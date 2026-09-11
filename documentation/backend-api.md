@@ -28,7 +28,7 @@ The active-session list is never requested by startup, login, status validation,
 | DashboardService | /api/dashboard                                                                                      |
 | JiraService      | /api/jiras, /active, /blocked, /spillovers, /appraisal, /demo-pending, /demoed; /api/jiras/:jiraKey |
 | WorkLogService   | /api/work-logs, /appraisal                                                                          |
-| SprintService    | /api/sprints, /active, /history; /api/sprint-allocations, /current                                  |
+| SprintService    | /api/sprints, /active, /history, /api/sprints/:sprintId; /api/sprint-allocations, /current          |
 | ReleaseService   | /api/releases, /pending, /confirmed, /not-announced                                                 |
 | FeedbackService  | /api/feedback, /appraisal, /improvement-follow-up, /negative                                        |
 | WorkLinksService | /api/work-links, /active                                                                            |
@@ -53,6 +53,10 @@ interface ListResponse<T> {
 ResourceService checks the envelope and tolerates bare arrays and single record responses. Authentication has separate typed models. Dashboard consumes only `/api/dashboard`, renders four summary metrics, deduplicates its attention preview, and limits recent Work Logs to five visible items. It does not fetch full feature collections.
 
 The Worker's local source and knowledge-base contracts confirm `include=relations` support for JIRAs, Work Logs, Sprints, Releases, Feedback, and Work Links. Office Orbit sends that option for supported collection and JIRA detail requests, then renders only human-readable relation names and keys.
+
+JIRA detail uses `sprintHistory`, server-numbered `spillEvents`, and nullable `latestSpill`. Each history entry carries nullable Planned Days plus `allocationConflict` and `allocationCount`; conflicts are displayed as data-quality warnings without inventing a Planned Days value. The active Sprint is selected only from `Sprint.active === true`, never relation order. Sprint history links internally to `/app/sprints/:sprintId`.
+
+`GET /api/sprints/:sprintId` returns one Sprint with every assigned JIRA, including Done, Cancelled, and future status values. Sprint detail does not filter this server-authoritative membership. JIRA statuses remain open strings: known statuses receive explicit presentation tones, while an unknown future status remains visible and uses the success tone.
 
 The Worker accepts `pageSize` (default 25, maximum 100) and opaque `cursor`. CursorService retains appended pages by filter context; Refresh resets only the active chain. Calendar and exports follow all cursors within explicitly bounded date ranges.
 

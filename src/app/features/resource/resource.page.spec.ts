@@ -3,7 +3,7 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of } from 'rxjs';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
 import { LinksService } from '../../core/platform/links.service';
-import { Jira, WorkLog, ReleaseItem } from '../../shared/models/api.models';
+import { Jira, ReleaseItem, Sprint, SprintAllocation, SprintDetailJira, WorkLog } from '../../shared/models/api.models';
 import { ResourcePage } from './resource.page';
 
 const route = { snapshot: { queryParamMap: convertToParamMap({}) } };
@@ -135,7 +135,10 @@ describe('ResourcePage presentation', () => {
       projectIds: [],
       blockedByIds: [],
       releaseItemIds: [],
-      sprints: [{ id: 'hidden-sprint-id', name: 'Sprint 25.17' }],
+      sprints: [
+        { id: 'current-sprint-id', name: 'Sprint 25.17', active: true, startDate: null, endDate: null },
+        { id: 'hidden-sprint-id', name: 'Sprint history', active: false, startDate: null, endDate: null },
+      ],
     } satisfies Jira;
     await TestBed.configureTestingModule({
       imports: [ResourcePage],
@@ -161,7 +164,83 @@ describe('ResourcePage presentation', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('CRI-1234');
     expect(text).toContain('Sprint 25.17');
+    expect(text).not.toContain('Sprint history');
     expect(text).not.toContain('hidden-sprint-id');
     expect(fixture.nativeElement.querySelectorAll('.status-badge').length).toBeGreaterThan(1);
+  });
+
+  it('links Sprint cards and enriches allocation rows with compact JIRA details', async () => {
+    const sprint: Sprint = {
+      id: 'sprint/id',
+      sprint: 'Sprint 6',
+      active: true,
+      startDate: null,
+      endDate: null,
+      weekOff1: null,
+      weekOff2: null,
+      plannedLeaveDays: 0,
+      holidayDays: 0,
+      capacityDays: 10,
+      availableDays: 10,
+      allocatedDays: 4,
+      remainingDays: 6,
+      projectIds: [],
+      allocationIds: [],
+    };
+    const allocation: SprintAllocation = {
+      id: 'allocation-id',
+      allocation: 'CRI-1 allocation',
+      plannedDays: 4,
+      notes: '',
+      sprintIds: [sprint.id],
+      jiraIds: ['jira-id'],
+      sprintActive: true,
+    };
+    const allocationJira: SprintDetailJira = {
+      id: 'jira-id',
+      jiraKey: 'LSC-85120',
+      summary: 'GRC alert migration to first-party services',
+      status: 'In progress',
+      tags: ['Migration'],
+      spillover: true,
+      spilloverCount: 1,
+      plannedDays: 4,
+      allocationId: allocation.id,
+      allocationNotes: '',
+      allocationConflict: false,
+      allocationCount: 1,
+    };
+    await TestBed.configureTestingModule({
+      imports: [ResourcePage],
+      providers: [
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: route },
+        { provide: LinksService, useValue: { open: vi.fn() } },
+        {
+          provide: ReadFeatureService,
+          useValue: {
+            heading: 'Sprints',
+            description: '',
+            kind: 'sprints',
+            views: [{ label: 'All', path: '/api/sprints' }],
+            list: () => of({ data: [sprint, allocation], count: 2, hasMore: false, nextCursor: null }),
+            allocationJiras: () => of({ [allocation.id]: [allocationJira] }),
+            updatedAt: () => Date.now(),
+          },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ResourcePage);
+    fixture.detectChanges();
+    const sprintLink = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('.sprint-card');
+    expect(sprintLink?.href).toContain('/app/sprints/sprint%2Fid');
+    expect(fixture.nativeElement.querySelector('.allocation-row')?.tagName).toBe('ARTICLE');
+    const allocationLink = fixture.nativeElement.querySelector<HTMLAnchorElement>('.allocation-jira-link');
+    expect(allocationLink?.href).toContain('/app/jiras/LSC-85120');
+    expect(allocationLink?.textContent).toContain('GRC alert migration to first-party services');
+    expect(allocationLink?.textContent).toContain('In progress');
+    expect(allocationLink?.textContent).toContain('Spilled once');
+    const allocationArrow = fixture.nativeElement.querySelector('.allocation-row > .allocation-arrow');
+    expect(allocationArrow).toBeTruthy();
   });
 });

@@ -30,7 +30,7 @@ export class ResourceService {
       refresh,
     );
   }
-  detail<T extends DomainItem>(path: string, filters: Record<string, string> = {}, refresh = false): Observable<T> {
+  detail<T>(path: string, filters: Record<string, string> = {}, refresh = false): Observable<T> {
     const params = Object.entries(filters).reduce(
       (value, [key, entry]) => (entry ? value.set(key, entry) : value),
       new HttpParams(),
@@ -77,7 +77,7 @@ export class ResourceService {
   private seedJiraDetails(path: string, items: DomainItem[]): void {
     if (!path.startsWith('/api/jiras')) return;
     for (const item of items) {
-      if ('jiraKey' in item && item.jiraKey)
+      if ('jiraKey' in item && item.jiraKey && 'sprintHistory' in item)
         this.cache.set(cacheKey(`/api/jiras/${encodeURIComponent(item.jiraKey)}`, { include: 'relations' }), item);
     }
   }

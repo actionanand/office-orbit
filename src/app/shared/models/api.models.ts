@@ -21,6 +21,28 @@ export interface JiraRef {
   summary: string;
 }
 
+export interface SprintRef extends NamedRef {
+  active: boolean;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface SprintHistoryItem {
+  sprint: SprintRef;
+  allocationId: string | null;
+  plannedDays: number | null;
+  allocationNotes: string;
+  allocationConflict: boolean;
+  allocationCount: number;
+}
+
+export interface SpillEvent {
+  number: number;
+  fromSprint: SprintRef;
+  toSprint: SprintRef;
+  reason: string | null;
+}
+
 export interface Jira {
   id: string;
   createdTime: string;
@@ -42,8 +64,14 @@ export interface Jira {
   blockedByIds: string[];
   releaseItemIds: string[];
   projects?: NamedRef[];
-  sprints?: NamedRef[];
+  sprints?: SprintRef[];
   blockedBy?: JiraRef[];
+}
+
+export interface JiraDetail extends Jira {
+  sprintHistory: SprintHistoryItem[];
+  spillEvents: SpillEvent[];
+  latestSpill: SpillEvent | null;
 }
 
 export interface WorkLog {
@@ -99,6 +127,27 @@ export interface SprintAllocation {
   sprintIds: string[];
   jiraIds: string[];
   sprintActive: boolean;
+}
+
+export interface SprintDetailJira {
+  id: string;
+  jiraKey: string;
+  summary: string;
+  status: string | null;
+  tags: string[];
+  spillover: boolean;
+  spilloverCount: number;
+  plannedDays: number | null;
+  allocationId: string | null;
+  allocationNotes: string;
+  allocationConflict: boolean;
+  allocationCount: number;
+}
+
+export interface SprintDetailResponse {
+  sprint: Sprint;
+  jiras: SprintDetailJira[];
+  count: number;
 }
 
 export interface ReleaseItem {

@@ -22,7 +22,7 @@ Each collection has a feature-specific service and view allowlist. ReadFeatureSe
 
 The client models the Worker's documented domain contracts for JIRAs, Work Logs, Sprints, Sprint Allocations, Releases, Feedback, Work Links, and Dashboard. Production views render explicit domain fields. There is no generic object renderer or expandable property dump. Internal IDs and raw API timestamps remain available only to TypeScript for routing, filtering, and relation matching.
 
-Supported collection endpoints request `include=relations`, allowing the UI to show Project, Company, Team, Sprint, and JIRA names without displaying Notion page IDs. Sprint Allocation endpoints do not support enrichment, so their existing human-readable allocation title is shown without exposing relation IDs.
+Supported collection endpoints request `include=relations`, allowing the UI to show Project, Company, Team, Sprint, and JIRA names without displaying Notion page IDs. Sprint Allocation endpoints return relation IDs; the Sprints page resolves their JIRA summary, status, and spillover metadata through the cache-aware Sprint detail endpoint while retaining the allocation's Planned Days.
 
 Collection requests cancel when a user changes views or leaves the page, preventing stale responses from replacing a newer view. Lists use compact, domain-specific rows with layout-matched skeletons and contextual empty states. Work Logs remain bounded to the first server page. Search explicitly covers the loaded page only because the Worker returns `nextCursor` but does not accept a continuation cursor.
 
