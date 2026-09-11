@@ -1,10 +1,13 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { AlertController } from '@ionic/angular';
+import { of } from 'rxjs';
 import { AppLockService } from '../../core/app-lock/app-lock.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { BiometricService } from '../../core/platform/biometric.service';
 import { PlatformService } from '../../core/platform/platform.service';
 import { ThemeService } from '../../core/theme/theme.service';
+import { SessionManagementService } from '../../core/auth/session-management.service';
 import { SettingsPage } from './settings.page';
 
 describe('SettingsPage', () => {
@@ -245,5 +248,53 @@ describe('SettingsPage', () => {
     expect(page.pinProtectionChecked()).toBe(false);
     page.cancelSecurityAction();
     expect(page.pinProtectionChecked()).toBe(true);
+  });
+
+  it('does not request active sessions until the user explicitly opens the modal', async () => {
+    const listActiveSessions = vi.fn(() => of({ sessions: [] }));
+    const signOutCurrentSession = vi.fn().mockResolvedValue(undefined);
+    await TestBed.configureTestingModule({
+      imports: [SettingsPage],
+      providers: [
+        { provide: ThemeService, useValue: { mode: signal('system'), set: vi.fn() } },
+        { provide: PlatformService, useValue: { android: false, label: 'Web' } },
+        {
+          provide: AuthService,
+          useValue: { signOutCurrentSession, signOut: vi.fn(), state: { session: signal(null), notice: signal('') } },
+        },
+        {
+          provide: AppLockService,
+          useValue: {
+            enabled: signal(false),
+            biometricEnabled: signal(false),
+            lockAfterMinutes: signal(0),
+            setPin: vi.fn(),
+            disable: vi.fn(),
+            setBiometric: vi.fn(),
+            setLockAfterMinutes: vi.fn(),
+            lock: vi.fn(),
+          },
+        },
+        { provide: BiometricService, useValue: { available: signal(false) } },
+        {
+          provide: SessionManagementService,
+          useValue: { listActiveSessions, revokeSession: vi.fn(), revokeOtherSessions: vi.fn() },
+        },
+        {
+          provide: AlertController,
+          useValue: { create: vi.fn() },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(SettingsPage);
+    fixture.detectChanges();
+    expect(listActiveSessions).not.toHaveBeenCalled();
+
+    fixture.componentInstance.sessionsOpen.set(true);
+    fixture.detectChanges();
+    expect(listActiveSessions).toHaveBeenCalledOnce();
+
+    await fixture.componentInstance.signOut();
+    expect(signOutCurrentSession).toHaveBeenCalledOnce();
   });
 });

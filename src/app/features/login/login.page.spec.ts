@@ -121,11 +121,11 @@ describe('LoginPage credentials and device protection', () => {
     expect(androidRoot.querySelector('form')?.getAttribute('autocomplete')).toBe('on');
     expect(androidRoot.querySelector('[name="username"]')?.getAttribute('autocomplete')).toBe('username');
     expect(androidRoot.querySelector('[name="password"]')?.getAttribute('autocomplete')).toBe('current-password');
-    expect(androidRoot.textContent).toContain('Use saved password');
+    expect(androidRoot.textContent).toContain('Use saved credentials');
 
     TestBed.resetTestingModule();
     const webFixture = await create(false);
     webFixture.detectChanges();
-    expect((webFixture.nativeElement as HTMLElement).textContent).not.toContain('Use saved password');
+    expect((webFixture.nativeElement as HTMLElement).textContent).not.toContain('Use saved credentials');
   });
 });

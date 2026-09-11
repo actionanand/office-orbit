@@ -8,6 +8,7 @@ import { StoredToken, TokenStorageService } from '../storage/token-storage.servi
 import { environment } from '../../../environments/environment';
 import { apiError } from '../api/api-error';
 import { DataCacheService } from '../cache/data-cache.service';
+import { DeviceMetadataService, LoginDeviceMetadata } from '../platform/device-metadata.service';
 describe('AuthService', () => {
   let service: AuthService, http: HttpTestingController;
   const session = (overrides: Partial<StoredToken> = {}): StoredToken => ({
@@ -23,6 +24,14 @@ describe('AuthService', () => {
     save: vi.fn().mockResolvedValue(undefined),
     clear: vi.fn().mockResolvedValue(undefined),
   };
+  const device: LoginDeviceMetadata = {
+    deviceId: 'stable-installation-id',
+    name: 'Chrome on Windows',
+    platform: 'web',
+    model: null,
+    appVersion: '1.1.12',
+  };
+  const deviceMetadata = { getLoginMetadata: vi.fn().mockResolvedValue(device) };
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
@@ -32,6 +41,7 @@ describe('AuthService', () => {
         provideHttpClientTesting(),
         provideRouter([{ path: 'login', children: [] }]),
         { provide: TokenStorageService, useValue: storage },
+        { provide: DeviceMetadataService, useValue: deviceMetadata },
       ],
     });
     service = TestBed.inject(AuthService);
@@ -45,7 +55,7 @@ describe('AuthService', () => {
   it('stores Worker timing metadata on password login', async () => {
     const pending = service.login('entered-for-test');
     const request = http.expectOne(environment.apiBaseUrl + '/api/auth/login');
-    expect(request.request.body).toEqual({ password: 'entered-for-test' });
+    expect(request.request.body).toEqual({ password: 'entered-for-test', device });
     request.flush({
       accessToken: 'test-token',
       tokenType: 'Bearer',
@@ -134,6 +144,30 @@ describe('AuthService', () => {
     cache.set('dashboard:all', { private: true });
     await service.signOut();
     expect(cache.size()).toBe(0);
+    http.expectNone(environment.apiBaseUrl + '/api/auth/logout');
+  });
+
+  it('revokes the server session before a user-initiated sign out', async () => {
+    service.state.session.set(session());
+    service.state.verified.set(true);
+    const pending = service.signOutCurrentSession();
+    const request = http.expectOne(environment.apiBaseUrl + '/api/auth/logout');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toBeNull();
+    request.flush({ success: true });
+    await pending;
+    expect(service.state.session()).toBeNull();
+    expect(storage.clear).toHaveBeenCalled();
+  });
+
+  it('still signs out locally when server logout cannot be reached', async () => {
+    service.state.session.set(session());
+    service.state.verified.set(true);
+    const pending = service.signOutCurrentSession();
+    http.expectOne(environment.apiBaseUrl + '/api/auth/logout').error(new ProgressEvent('network'));
+    await pending;
+    expect(service.state.session()).toBeNull();
+    expect(service.state.notice()).toContain('server session may remain active');
   });
   it('does not renew before renewAfter', async () => {
     const current = session({ renewAfter: Date.now() + 60000 });

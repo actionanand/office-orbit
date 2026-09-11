@@ -122,7 +122,7 @@ import { StartupService } from '../../core/startup.service';
                   <ion-spinner name="crescent" />
                 } @else {
                   <ion-icon name="key-outline" slot="start" aria-hidden="true" />
-                  Use saved password
+                  Use saved credentials
                 }
               </ion-button>
             }

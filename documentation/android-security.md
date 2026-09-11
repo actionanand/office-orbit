@@ -38,7 +38,7 @@ The maintained plugins selected for Capacitor 8 are [SecureStorage](https://gith
 
 ## Android password provider
 
-Android uses AndroidX Credential Manager 1.6.0 with the Play Services provider as its primary password-manager integration. The generated `OfficeOrbitCredentials` Capacitor plugin owns the small native boundary: it creates a password only after successful Worker authentication and retrieves only `PasswordCredential` values after the user selects **Use saved password**. Provider cancellation or failure never signs a user in and never exposes native exception details. The app has no custom password store; Google Password Manager or another configured credential provider owns any saved password. Existing WebView autocomplete metadata and `IMPORTANT_FOR_AUTOFILL_YES` remain available as platform hints.
+Android uses AndroidX Credential Manager 1.6.0 with the Play Services provider as its primary password-manager integration. The generated `OfficeOrbitCredentials` Capacitor plugin owns the small native boundary: it creates a password only after successful Worker authentication and retrieves only `PasswordCredential` values after the user selects **Use saved credentials**. Provider cancellation or failure never signs a user in and never exposes native exception details. The app has no custom password store; Google Password Manager or another configured credential provider owns any saved password. Existing WebView autocomplete metadata and `IMPORTANT_FOR_AUTOFILL_YES` remain available as platform hints.
 
 `environment.deployUrl` is the canonical public site, `https://actionanand.github.io/office-orbit/`. The Capacitor Android WebView origin remains `https://localhost`; changing the deployment metadata does not change that runtime origin or its Worker CORS requirement.
 
@@ -69,6 +69,6 @@ After installing dependencies and generating Android:
 9. Check launcher masks, light/dark splash surfaces, 168dp image scale, status/navigation bars, keyboard resize, and safe-area spacing on Android 12+ and a minimum-supported device.
 10. Check 320px-wide web/phone, tablet and desktop layouts, 200% zoom, keyboard-only navigation and screen-reader labels. Run AXE on Login, Unlock, each list/detail, and Settings in both themes.
 11. Verify APK installation, AAB acceptance, matching version metadata, signed-artifact labels and R8 mapping availability in CI.
-12. Accept and decline the Credential Manager save UI after a successful Worker login. Relaunch after the backend session expires, select **Use saved password**, verify the provider picker fills both fields without submitting, then press **Sign in**. Also test no saved credential and a device with no enabled provider.
+12. Accept and decline the Credential Manager save UI after a successful Worker login. Relaunch after the backend session expires, select **Use saved credentials**, verify the provider picker fills both fields without submitting, then press **Sign in**. Also test no saved credential and a device with no enabled provider.
 
 These device and accessibility checks were not performed during implementation. The Windows environment cannot execute the WSL-managed Vitest/Rollup binary, and npm was unavailable in the noninteractive WSL shell. Dependencies were subsequently observed installed; Angular template and test-source type checks passed.
