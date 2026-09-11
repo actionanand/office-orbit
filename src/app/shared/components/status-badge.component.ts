@@ -8,6 +8,22 @@ export class StatusBadgeComponent {
   readonly label = input.required<string>();
   readonly kind = input('neutral');
   readonly tone = computed(() => {
+    if (this.kind() === 'jira-status') {
+      switch (this.label().trim().toLowerCase()) {
+        case 'not started':
+          return 'neutral';
+        case 'cancelled':
+        case 'canceled':
+          return 'warning';
+        case 'blocked':
+          return 'danger';
+        case 'in progress':
+          return 'info';
+        case 'done':
+        default:
+          return 'success';
+      }
+    }
     const value = `${this.kind()} ${this.label()}`.toLowerCase();
     if (value.includes('blocked') || value.includes('negative')) return 'danger';
     if (

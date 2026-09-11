@@ -1,6 +1,5 @@
 const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-const todayFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', weekday: 'long' });
 const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
@@ -25,12 +24,18 @@ export function formatShortDate(value: string | null | undefined): string {
   return date ? shortDateFormatter.format(date) : '';
 }
 
-// Reassembled from parts so the order ("Sep 9, Wednesday") stays fixed
-// regardless of how a locale would otherwise order a combined format.
+export function formatDateRange(start: string | null | undefined, end: string | null | undefined): string {
+  const startDate = validDate(start);
+  const endDate = validDate(end);
+  if (!startDate) return endDate ? dateFormatter.format(endDate) : '';
+  if (!endDate) return dateFormatter.format(startDate);
+  if (startDate.getFullYear() !== endDate.getFullYear())
+    return `${dateFormatter.format(startDate)} – ${dateFormatter.format(endDate)}`;
+  return `${shortDateFormatter.format(startDate)} – ${dateFormatter.format(endDate)}`;
+}
+
 export function formatTodayLabel(now = new Date()): string {
-  const parts = todayFormatter.formatToParts(now);
-  const part = (type: string) => parts.find(entry => entry.type === type)?.value ?? '';
-  return `${part('month')} ${part('day')}, ${part('weekday')}`;
+  return dateFormatter.format(now);
 }
 
 export function formatDateTime(value: string | null | undefined): string {

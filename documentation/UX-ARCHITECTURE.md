@@ -20,7 +20,7 @@ Work Logs offer persistent List and Calendar modes. List mode groups compact act
 
 Web printing uses the current Work Log view and filters with a dedicated print layout. Navigation, filters, buttons, internal IDs, and application implementation details are excluded. Native Android printing remains unavailable until a maintained Capacitor-compatible solution is selected.
 
-JIRAs use compact rows and a dedicated detail route. Sprints use capacity cards and proportional progress. Releases use a table/list hybrid with inline disclosure. Feedback uses content-led rows with text status badges. Work Links use shortcut cards and safe external link handling.
+JIRAs use compact rows and a dedicated detail route. JIRA detail presents chronological Sprint allocation history, Planned Days, allocation conflicts, and Worker-derived spill transitions. Every related Sprint links to its internal detail route. Sprints use navigable capacity cards and proportional progress; Sprint detail shows overview capacity and every JIRA returned by the Worker, regardless of status. Releases use a table/list hybrid with inline disclosure. Feedback uses content-led rows with text status badges. Work Links use shortcut cards and safe external link handling.
 
 ## Data volume
 
@@ -28,17 +28,17 @@ Local search is labelled as covering the loaded page. The client stops at the pa
 
 ## Cache-first navigation
 
-`DataCacheService` memoizes successful responses in memory by endpoint and sorted filter query. Feature pages reuse cached results during the authenticated session. Refresh replaces only the active key. JIRA list and Dashboard responses seed detail records, so opening a JIRA can render from cache without another request. Work Link caching also allows all JIRA actions to share the resolved external base URL.
+`DataCacheService` memoizes successful responses in memory by endpoint and sorted filter query. Feature pages reuse cached results during the authenticated session. Refresh replaces only the active key. Partial JIRA list and Dashboard records do not seed the richer JIRA detail cache, ensuring Sprint history and spill events are fetched from the detail endpoint. Work Link caching allows all JIRA actions to share the resolved external base URL.
 
 Cache entries expose update timestamps and can be checked as stale after 15 minutes without triggering a request. Sign-out and authenticated 401 handling clear data and navigation state; credentials and tokens never enter the data cache.
 
 ## JIRA navigation
 
-JIRA keys use `/app/jiras/:jiraKey` for internal navigation. Where space permits, an external action is derived from the active `JIRA Base URL` Work Link and opened through the existing platform-safe browser service. Missing configuration hides only the external action.
+JIRA keys use `/app/jiras/:jiraKey` for internal navigation. Sprint references use `/app/sprints/:sprintId`; the active Sprint is determined only by its API `active` flag. Where space permits, an external action is derived from the active `JIRA Base URL` Work Link and opened through the existing platform-safe browser service. Missing configuration hides only the external action.
 
 ## Analytics
 
-Analytics is a top-level desktop feature and appears under More on Android. It defines Sprint Health, Blockers, Delivery, Work Activity, Appraisal, and Releases sections without fabricated charts. Efficient trend charts require a backend aggregate endpoint rather than downloading full historical collections.
+Analytics is a top-level desktop feature and appears under More on Android. Current Sprint Health distinguishes total Capacity, non-zero Planned Leave and Holidays, Available capacity, Allocated days, and Remaining days. Efficient historical trend charts still require a backend aggregate endpoint rather than downloading full historical collections.
 
 ## Responsive shell
 

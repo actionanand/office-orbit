@@ -25,7 +25,7 @@ const jira: Jira = {
   projectIds: [],
   blockedByIds: [],
   releaseItemIds: [],
-  sprints: [{ id: 'hidden-sprint-id', name: 'Sprint 25.17' }],
+  sprints: [{ id: 'hidden-sprint-id', name: 'Sprint 25.17', active: true, startDate: null, endDate: null }],
 };
 
 const response: DashboardResponse = {

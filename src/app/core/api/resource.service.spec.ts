@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Jira } from '../../shared/models/api.models';
+import { Jira, JiraDetail } from '../../shared/models/api.models';
 import { ResourceService } from './resource.service';
 
 const jira: Jira = {
@@ -32,7 +32,7 @@ const jira: Jira = {
 };
 
 describe('ResourceService caching', () => {
-  it('reuses JIRA list data for detail without another HTTP request', async () => {
+  it('does not let partial JIRA list data mask the richer detail response', async () => {
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     const service = TestBed.inject(ResourceService);
     const http = TestBed.inject(HttpTestingController);
@@ -41,8 +41,16 @@ describe('ResourceService caching', () => {
       .expectOne(request => request.url.endsWith('/api/jiras/active'))
       .flush({ data: [jira], count: 1, hasMore: false, nextCursor: null });
     await list;
-    expect(await firstValueFrom(service.detail<Jira>('/api/jiras/CRI-1234', { include: 'relations' }))).toEqual(jira);
-    http.expectNone(request => request.url.endsWith('/api/jiras/CRI-1234'));
+    const detail = firstValueFrom(service.detail<JiraDetail>('/api/jiras/CRI-1234', { include: 'relations' }));
+    http
+      .expectOne(request => request.url.endsWith('/api/jiras/CRI-1234'))
+      .flush({
+        ...jira,
+        sprintHistory: [],
+        spillEvents: [],
+        latestSpill: null,
+      });
+    expect((await detail).sprintHistory).toEqual([]);
     http.verify();
   });
 

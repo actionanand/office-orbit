@@ -156,7 +156,7 @@ interface AttentionItem {
                         }
                         <span class="badge-line">
                           @if (entry.blocked) {
-                            <app-status-badge label="Blocked" />
+                            <app-status-badge label="Blocked" kind="jira-status" />
                           }
                           @if (entry.spillover) {
                             <app-status-badge [label]="spilled(entry.jira.spilloverCount)" />

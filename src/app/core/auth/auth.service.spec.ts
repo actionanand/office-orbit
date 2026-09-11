@@ -54,6 +54,7 @@ describe('AuthService', () => {
   });
   it('stores Worker timing metadata on password login', async () => {
     const pending = service.login('entered-for-test');
+    await Promise.resolve();
     const request = http.expectOne(environment.apiBaseUrl + '/api/auth/login');
     expect(request.request.body).toEqual({ password: 'entered-for-test', device });
     request.flush({
@@ -77,6 +78,7 @@ describe('AuthService', () => {
   });
   it('keeps failed login unauthenticated and explains 429', async () => {
     const pending = service.login('entered-for-test').catch(error => error);
+    await Promise.resolve();
     http
       .expectOne(environment.apiBaseUrl + '/api/auth/login')
       .flush({}, { status: 429, statusText: 'Too Many Requests' });
@@ -88,6 +90,7 @@ describe('AuthService', () => {
   it('signs in with a memory-only session when the device cannot durably save it', async () => {
     storage.save.mockRejectedValueOnce(new Error('Device storage failed'));
     const pending = service.login('entered-for-test');
+    await Promise.resolve();
     http.expectOne(environment.apiBaseUrl + '/api/auth/login').flush({
       accessToken: 'test-token',
       tokenType: 'Bearer',

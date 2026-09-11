@@ -32,7 +32,7 @@ export class DashboardService {
       ...response.demoPendingJiras,
     ];
     for (const jira of jiras)
-      if (jira.jiraKey)
+      if (jira.jiraKey && 'sprintHistory' in jira)
         this.cache.set(cacheKey(`/api/jiras/${encodeURIComponent(jira.jiraKey)}`, { include: 'relations' }), jira);
     this.cache.set(cacheKey('/api/work-links/active', { include: 'relations' }), {
       data: response.activeWorkLinks,

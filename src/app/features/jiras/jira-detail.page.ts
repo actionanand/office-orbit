@@ -4,14 +4,14 @@ import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { IonButton, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline, refreshOutline } from 'ionicons/icons';
+import { arrowBackOutline, arrowForwardOutline, chevronForwardOutline, refreshOutline } from 'ionicons/icons';
 import { apiError } from '../../core/api/api-error';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { StatePanelComponent } from '../../shared/components/state-panel.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
-import { Jira } from '../../shared/models/api.models';
-import { formatDate, names } from '../../shared/utils/format';
-import { spilloverLabel } from '../../shared/utils/jira';
+import { JiraDetail, SpillEvent, SprintHistoryItem } from '../../shared/models/api.models';
+import { formatDate, formatDateRange, names } from '../../shared/utils/format';
+import { activeSprint, spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from './jira-link.component';
 import { JiraService } from './jiras.service';
 
@@ -54,7 +54,7 @@ import { JiraService } from './jiras.service';
             }
             <div class="badge-line">
               @if (jira.status) {
-                <app-status-badge [label]="jira.status" />
+                <app-status-badge [label]="jira.status" kind="jira-status" />
               }
               @if (currentSprint(jira); as sprint) {
                 <app-status-badge [label]="sprint.name" />
@@ -97,21 +97,54 @@ import { JiraService } from './jiras.service';
               </dl>
             </section>
 
-            @if ((jira.sprints?.length ?? 0) > 0 || jira.spillover || jira.spilloverReason) {
-              <section class="detail-section">
-                <h2>Sprint</h2>
-                @if (jira.sprints?.length) {
-                  <p><strong>Current sprint</strong><br />{{ currentSprint(jira)?.name }}</p>
-                  @if (jira.sprints.length > 1) {
-                    <p><strong>Sprint history</strong><br />{{ sprintHistory(jira) }}</p>
+            @if (jira.sprintHistory.length > 0) {
+              <section class="detail-section sprint-history-section">
+                <h2>Sprint history</h2>
+                <div class="sprint-timeline">
+                  @for (history of jira.sprintHistory; track history.sprint.id) {
+                    <article class="sprint-history-item" [class.current]="history.sprint.active">
+                      <div class="sprint-history-heading">
+                        <div>
+                          <h3>{{ history.sprint.name }}</h3>
+                          @if (history.sprint.active) {
+                            <app-status-badge label="Current" kind="success" />
+                          }
+                        </div>
+                        <a [routerLink]="['/app/sprints', history.sprint.id]">
+                          View sprint
+                          <ion-icon name="chevron-forward-outline" aria-hidden="true" />
+                        </a>
+                      </div>
+                      @if (dateRange(history.sprint.startDate, history.sprint.endDate)) {
+                        <p>{{ dateRange(history.sprint.startDate, history.sprint.endDate) }}</p>
+                      }
+                      @if (history.allocationConflict) {
+                        <p class="allocation-warning">
+                          <strong>Allocation conflict</strong> · {{ history.allocationCount }}
+                          {{ history.allocationCount === 1 ? 'record' : 'records' }} found
+                        </p>
+                      } @else {
+                        <p class="planned-days">{{ plannedDays(history) }}</p>
+                      }
+                    </article>
+                    @for (event of eventsFrom(jira, history.sprint.id); track event.number) {
+                      <article class="spill-event">
+                        <h3>Spill #{{ event.number }}</h3>
+                        <p class="spill-route">
+                          <a [routerLink]="['/app/sprints', event.fromSprint.id]">{{ event.fromSprint.name }}</a>
+                          <ion-icon name="arrow-forward-outline" aria-label="to" />
+                          <a [routerLink]="['/app/sprints', event.toSprint.id]">{{ event.toSprint.name }}</a>
+                        </p>
+                        @if (event.reason?.trim()) {
+                          <div class="spill-reason">
+                            <strong>Reason</strong>
+                            <p>{{ event.reason }}</p>
+                          </div>
+                        }
+                      </article>
+                    }
                   }
-                }
-                @if (jira.spilloverCount > 0) {
-                  <p><strong>Spillover count</strong><br />{{ jira.spilloverCount }}</p>
-                }
-                @if (jira.spilloverReason) {
-                  <p><strong>Reason</strong><br />{{ jira.spilloverReason }}</p>
-                }
+                </div>
               </section>
             }
 
@@ -152,18 +185,19 @@ import { JiraService } from './jiras.service';
 })
 export class JiraDetailPage {
   readonly jiraKey = input.required<string>();
-  readonly item = signal<Jira | null>(null);
+  readonly item = signal<JiraDetail | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
   readonly names = names;
   readonly date = formatDate;
+  readonly dateRange = formatDateRange;
   readonly spilled = spilloverLabel;
   private readonly service = inject(JiraService);
   private readonly destroyRef = inject(DestroyRef);
   private request?: Subscription;
 
   constructor() {
-    addIcons({ arrowBackOutline, refreshOutline });
+    addIcons({ arrowBackOutline, arrowForwardOutline, chevronForwardOutline, refreshOutline });
     effect(() => {
       this.jiraKey();
       this.load();
@@ -189,16 +223,16 @@ export class JiraDetailPage {
       });
   }
 
-  currentSprint(jira: Jira) {
-    return jira.sprints?.at(-1) ?? null;
+  currentSprint(jira: JiraDetail) {
+    return activeSprint(jira.sprints);
   }
 
-  sprintHistory(jira: Jira): string {
-    return (
-      jira.sprints
-        ?.slice(0, -1)
-        .map(sprint => sprint.name)
-        .join(', ') ?? ''
-    );
+  eventsFrom(jira: JiraDetail, sprintId: string): SpillEvent[] {
+    return jira.spillEvents.filter(event => event.fromSprint.id === sprintId);
+  }
+
+  plannedDays(history: SprintHistoryItem): string {
+    if (history.plannedDays === null) return 'Planned days not recorded';
+    return `Planned: ${history.plannedDays} ${history.plannedDays === 1 ? 'day' : 'days'}`;
   }
 }

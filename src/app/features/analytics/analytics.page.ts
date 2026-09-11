@@ -63,8 +63,8 @@ import { formatRelativeTime } from '../../shared/utils/format';
                 <p>{{ sprint.sprint }}</p>
                 <app-bar-chart label="Sprint days" [values]="sprintDays()" />
                 <p>
-                  Capacity {{ sprint.capacityDays }} · Allocated {{ sprint.allocatedDays }} · Remaining
-                  {{ sprint.remainingDays }}
+                  Capacity {{ sprint.capacityDays }} · Available {{ sprint.availableDays }} · Allocated
+                  {{ sprint.allocatedDays }} · Remaining {{ sprint.remainingDays }}
                 </p>
               </section>
             }
@@ -96,6 +96,9 @@ export class AnalyticsPage {
     return sprint
       ? [
           { label: 'Capacity', value: sprint.capacityDays },
+          ...(sprint.plannedLeaveDays > 0 ? [{ label: 'Planned leave', value: sprint.plannedLeaveDays }] : []),
+          ...(sprint.holidayDays > 0 ? [{ label: 'Holidays', value: sprint.holidayDays }] : []),
+          { label: 'Available', value: sprint.availableDays },
           { label: 'Allocated', value: sprint.allocatedDays },
           { label: 'Remaining', value: sprint.remainingDays },
         ]

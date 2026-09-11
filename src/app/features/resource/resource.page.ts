@@ -2,7 +2,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import {
   IonButton,
   IonContent,
@@ -30,6 +30,7 @@ import {
   ReleaseItem,
   Sprint,
   SprintAllocation,
+  SprintDetailJira,
   WorkLink,
   WorkLog,
 } from '../../shared/models/api.models';
@@ -41,8 +42,18 @@ import {
   names,
   truncate,
 } from '../../shared/utils/format';
-import { spilloverLabel } from '../../shared/utils/jira';
+import { activeSprint, spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from '../jiras/jira-link.component';
+
+interface AllocationDetailSource {
+  allocationJiras(allocations: SprintAllocation[], refresh?: boolean): Observable<Record<string, SprintDetailJira[]>>;
+}
+
+function supportsAllocationDetails(
+  service: ReadFeatureService,
+): service is ReadFeatureService & AllocationDetailSource {
+  return 'allocationJiras' in service && typeof service.allocationJiras === 'function';
+}
 
 @Component({
   selector: 'app-resource',
@@ -163,7 +174,7 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
                     }
                     <span class="badge-line">
                       @if (item.status) {
-                        <app-status-badge [label]="item.status" />
+                        <app-status-badge [label]="item.status" kind="jira-status" />
                       }
                       @if (currentSprint(item); as sprint) {
                         <app-status-badge [label]="sprint.name" />
@@ -187,7 +198,7 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
             <section class="sprint-list">
               @for (item of sprintItems(); track item.id) {
                 @if (isSprint(item)) {
-                  <article class="sprint-card" [class.current]="item.active">
+                  <a class="sprint-card" [class.current]="item.active" [routerLink]="['/app/sprints', item.id]">
                     <div class="sprint-title-row">
                       <div>
                         <span class="entity-kicker">{{ names(item.projects) || 'Sprint' }}</span>
@@ -230,11 +241,32 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
                       aria-label="Sprint capacity allocated">
                       <span [style.width.%]="progress(item)"></span>
                     </div>
-                  </article>
+                  </a>
                 } @else {
                   <article class="entity-row allocation-row">
-                    <span class="entity-copy"
-                      ><strong>{{ item.allocation || 'Sprint allocation' }}</strong>
+                    <span class="entity-copy">
+                      @if (allocationJiras(item).length > 0) {
+                        @for (jira of allocationJiras(item); track jira.id) {
+                          <a class="allocation-jira-link" [routerLink]="['/app/jiras', jira.jiraKey]">
+                            <span>
+                              <span class="entity-kicker">{{ jira.jiraKey }}</span>
+                              @if (jira.summary) {
+                                <strong>{{ short(jira.summary) }}</strong>
+                              }
+                              <span class="badge-line">
+                                @if (jira.status) {
+                                  <app-status-badge [label]="jira.status" kind="jira-status" />
+                                }
+                                @if (jira.spilloverCount > 0) {
+                                  <app-status-badge [label]="spilled(jira.spilloverCount)" />
+                                }
+                              </span>
+                            </span>
+                          </a>
+                        }
+                      } @else {
+                        <strong>{{ item.allocation || 'Sprint allocation' }}</strong>
+                      }
                       @if (item.notes) {
                         <span class="preview">{{ short(item.notes) }}</span>
                       }
@@ -242,6 +274,9 @@ import { JiraLinkComponent } from '../jiras/jira-link.component';
                     <span class="planned-days"
                       ><strong>{{ item.plannedDays }}</strong> planned days</span
                     >
+                    @if (allocationJiras(item).length > 0) {
+                      <ion-icon class="row-arrow allocation-arrow" name="chevron-forward-outline" aria-hidden="true" />
+                    }
                   </article>
                 }
               }
@@ -461,6 +496,7 @@ export class ResourcePage {
   private readonly router = inject(Router);
   private readonly navigationState = inject(NavigationStateService);
   private request?: Subscription;
+  private allocationRequest?: Subscription;
   readonly selected = signal(this.feature.views[0].path);
   readonly items = signal<DomainItem[]>([]);
   readonly count = signal(0);
@@ -471,6 +507,7 @@ export class ResourcePage {
   readonly loadingMore = signal(false);
   readonly updatedAt = signal<number | null>(null);
   readonly selectedWorkLog = signal<WorkLog | null>(null);
+  readonly allocationDetails = signal<Record<string, SprintDetailJira[]>>({});
   readonly filters = new FormGroup({
     from: new FormControl('', { nonNullable: true }),
     to: new FormControl('', { nonNullable: true }),
@@ -545,6 +582,8 @@ export class ResourcePage {
       return;
     }
     this.request?.unsubscribe();
+    this.allocationRequest?.unsubscribe();
+    this.allocationDetails.set({});
     this.loading.set(!more);
     this.loadingMore.set(more);
     this.error.set('');
@@ -563,6 +602,18 @@ export class ResourcePage {
           this.updatedAt.set(response.lastUpdated ?? this.feature.updatedAt(this.selected(), filters));
           this.loading.set(false);
           this.loadingMore.set(false);
+          const allocations = response.data.filter(
+            (item): item is SprintAllocation => this.feature.kind === 'sprints' && 'allocation' in item,
+          );
+          if (allocations.length > 0 && supportsAllocationDetails(this.feature)) {
+            this.allocationRequest = this.feature
+              .allocationJiras(allocations, refresh)
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe({
+                next: details => this.allocationDetails.set(details),
+                error: () => this.allocationDetails.set({}),
+              });
+          }
         },
         error: error => {
           this.error.set(apiError(error));
@@ -598,6 +649,10 @@ export class ResourcePage {
     return 'sprint' in item;
   }
 
+  allocationJiras(item: SprintAllocation): SprintDetailJira[] {
+    return this.allocationDetails()[item.id] ?? [];
+  }
+
   progress(item: Sprint): number {
     return item.availableDays > 0
       ? Math.min(100, Math.max(0, Math.round((item.allocatedDays / item.availableDays) * 100)))
@@ -605,7 +660,7 @@ export class ResourcePage {
   }
 
   currentSprint(item: Jira) {
-    return item.sprints?.at(-1) ?? null;
+    return activeSprint(item.sprints);
   }
 
   readonly spilled = spilloverLabel;
@@ -641,7 +696,14 @@ export class ResourcePage {
         .join(' ')
         .toLowerCase();
     if ('sprint' in item) return [item.sprint, names(item.projects)].join(' ').toLowerCase();
-    if ('allocation' in item) return [item.allocation, item.notes].join(' ').toLowerCase();
+    if ('allocation' in item)
+      return [
+        item.allocation,
+        item.notes,
+        ...this.allocationJiras(item).flatMap(jira => [jira.jiraKey, jira.summary, jira.status, ...jira.tags]),
+      ]
+        .join(' ')
+        .toLowerCase();
     if ('releaseItem' in item)
       return [item.releaseItem, item.componentName, item.deploymentType, item.versionNumber, jiraLabel(item.jiras)]
         .join(' ')

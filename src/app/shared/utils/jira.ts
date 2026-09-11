@@ -1,4 +1,9 @@
 import { safeUrl } from '../../core/platform/links.service';
+import { SprintRef } from '../models/api.models';
+
+export function activeSprint(sprints: readonly SprintRef[] | undefined): SprintRef | null {
+  return sprints?.find(sprint => sprint.active === true) ?? null;
+}
 
 export function spilloverLabel(count: number): string {
   if (!Number.isFinite(count) || count <= 0) return '';

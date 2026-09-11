@@ -1,5 +1,6 @@
 import { Service } from '@angular/core';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
+import { JiraDetail } from '../../shared/models/api.models';
 @Service()
 export class JiraService extends ReadFeatureService {
   readonly heading = 'JIRAs';
@@ -15,10 +16,6 @@ export class JiraService extends ReadFeatureService {
     { label: 'All', path: '/api/jiras', relations: true },
   ];
   detail(key: string, refresh = false) {
-    return this.api.detail<import('../../shared/models/api.models').Jira>(
-      '/api/jiras/' + encodeURIComponent(key),
-      { include: 'relations' },
-      refresh,
-    );
+    return this.api.detail<JiraDetail>('/api/jiras/' + encodeURIComponent(key), { include: 'relations' }, refresh);
   }
 }
