@@ -1,6 +1,8 @@
 # Authentication
 
-The Worker is a single-user backend. Sign in remains disabled until the login form is valid. Office Orbit sends only the password to `POST /api/auth/login`; the Worker returns a Bearer access token and session timing metadata. There is no registration, recovery, OAuth, refresh-token flow, or stored backend password. Office Orbit itself never persists the entered password; on Android, the user may consent to storing it with the device's credential provider.
+The Worker is a single-user backend. Sign in remains disabled until the login form is valid. Office Orbit sends the password as the only authentication secret, together with non-security device display metadata, to `POST /api/auth/login`; the Worker returns a Bearer access token and session timing metadata. There is no registration, recovery, OAuth, refresh-token flow, or stored backend password. Office Orbit itself never persists the entered password; on Android, the user may consent to storing it with the device's credential provider.
+
+Each password login also sends non-security display metadata: a stable random Office Orbit installation ID, friendly device/browser name, platform, optional Android model, and the version from `app-version.ts`. The username field remains an autofill/password-manager aid and is not added to the Worker authentication contract. Android keeps the installation ID under the dedicated `office-orbit.installation-id` secure-storage key, with the app-private WebView store as a non-blocking fallback. Web stores it as `office-orbit.device-id` in localStorage. An uninstall or browser storage reset may generate a new ID. Tokens, session IDs, usernames, IP addresses, and sensitive hardware identifiers are never used as device IDs. Android device-info failure falls back to `Android device`; browser labels use small, conservative User-Agent detection and are not treated as security evidence.
 
 Authenticated feature data is cached only in memory. Sign-out and Worker 401 handling clear this cache and saved navigation state together with the authenticated session. The data cache never stores credentials or bearer tokens.
 
@@ -8,7 +10,7 @@ The password exists only in the form, the in-flight Worker request, and the shor
 
 On Android, the native `OfficeOrbitCredentials` Capacitor plugin uses AndroidX Credential Manager. Only after the Worker accepts the password does it send the username and password to `CreatePasswordRequest`, allowing Google Password Manager or another configured provider to offer a save or update. Cancellation, no provider, and native failure never change the successful login result. Office Orbit does not copy the password into Preferences, IndexedDB, SecureStorage, files, SQLite, or its own Keystore data.
 
-The Android-only **Use saved password** action requests a `PasswordCredential` through the same provider. A selected credential fills the username and masked password controls; it never submits the form. The user must press **Sign in**, and the Worker remains the authentication authority. Cancellation is silent, while absence or provider failure produces a non-technical message. WebView autofill remains enabled with `IMPORTANT_FOR_AUTOFILL_YES`, but the old WebView `navigator.credentials.store()` and delayed-navigation heuristic are no longer used on Android.
+The Android-only **Use saved credentials** action requests a `PasswordCredential` through the same provider. A selected credential fills the username and masked password controls; it never submits the form. The user must press **Sign in**, and the Worker remains the authentication authority. Cancellation is silent, while absence or provider failure produces a non-technical message. WebView autofill remains enabled with `IMPORTANT_FOR_AUTOFILL_YES`, but the old WebView `navigator.credentials.store()` and delayed-navigation heuristic are no longer used on Android.
 
 On Web, ordinary browser autocomplete/password-manager behavior remains. Where the browser exposes the Credential Management API, the existing post-success save offer remains a best-effort fallback. It is never routed through the Android plugin. Passwords and access tokens are never logged or displayed in native errors.
 
@@ -39,6 +41,14 @@ A protected 401 immediately clears in-memory authentication, clears persisted se
 Temporary renewal failures such as offline, timeout, or 5xx keep the current token while it is still valid. The app backs off and tries again only on later meaningful activity, visibility, resume, or scheduled local evaluation. When the current token or absolute session expires, password sign-in is required.
 
 Central error messages cover 400, 401, 404, 429, network and backend failures, without exposing raw backend errors. Password submission and session checks time out after 15 seconds.
+
+## Active sessions and explicit logout
+
+Settings offers **Show all active sessions**. The active-session component is created only after that action, then requests `GET /api/auth/sessions` once. Closing destroys the component and cancels an unfinished list request. Reopening creates fresh state and performs one fresh request. There is no startup fetch, Settings-initialization fetch, background polling, or automatic retry; Retry is an explicit additional request.
+
+The modal uses the Worker's `current` field as the sole current-device marker. It shows friendly platform/device metadata, country, application version, and recent activity without exposing installation IDs, IP addresses, or access tokens. Revoking another session calls the URL-encoded `DELETE /api/auth/sessions/:sessionId` and removes only that row locally. **Log out from all other devices** calls `POST /api/auth/sessions/logout-others` and retains only the server-marked current session locally. Neither action performs a refresh GET.
+
+Revoking the current row clears the local session and routes to Login after the Worker confirms `currentSession: true`. The normal Settings **Sign out** action first attempts `POST /api/auth/logout`, then always performs the existing local cache, navigation-state, token-storage, and authentication cleanup. A network failure cannot trap the user: local sign-out completes with a notice that the server session may remain until expiry. Automatic expiry, renewal failure, startup recovery, and interceptor 401 cleanup continue to use local-only cleanup and never call the logout endpoint unnecessarily. Server-side revocation makes a revoked bearer token unusable immediately; the client does not infer that state from the installation ID.
 
 ## Local lock is separate
 

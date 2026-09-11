@@ -7,11 +7,19 @@ Only the Worker is called. The application has no Notion API client or backend s
 
 ## Authentication
 
-- POST /api/auth/login — JSON body with password only; response accessToken, tokenType, expiresIn, and optional expiresAt, renewAfter, sessionExpiresAt.
+- POST /api/auth/login — JSON body with password and non-security device display metadata; response accessToken, tokenType, expiresIn, and optional expiresAt, renewAfter, sessionExpiresAt.
 - POST /api/auth/renew — protected Bearer request with no request body; response either renewed=true with a replacement accessToken or renewed=false with updated timing metadata.
 - GET /api/auth/status — authenticated, subject, expiresAt, renewAfter, optional sessionStartedAt, sessionExpiresAt.
+- GET /api/auth/sessions — protected active-session list, requested only when the user opens Settings → Active sessions.
+- DELETE /api/auth/sessions/:sessionId — revoke one selected session; the client URL-encodes the session ID.
+- POST /api/auth/sessions/logout-others — revoke every session except the server-identified current session.
+- POST /api/auth/logout — revoke the current server session during an explicit Settings sign-out.
 - GET / and OPTIONS are public; other /api/* calls require a Bearer token.
 - Login 400/401/429 and authenticated 401s are handled separately.
+
+Device metadata contains a random installation ID, friendly device/browser name, platform, optional model, and the existing application version. It is display and deduplication metadata only. Android stores the generated installation ID through the existing secure-storage wrapper with an app-private fallback; Web stores it under `office-orbit.device-id`. No hardware identifier, username, token, session ID, or IP address is used as the installation ID.
+
+The active-session list is never requested by startup, login, status validation, renewal, Settings initialization, background activity, or polling. The modal fetches once each time the user opens it and may fetch again only when the user presses Retry. Successful revocations update the modal's local state without another list request.
 
 ## Read features
 

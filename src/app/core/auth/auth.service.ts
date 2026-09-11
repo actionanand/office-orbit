@@ -7,6 +7,7 @@ import { TokenStorageService, StoredToken } from '../storage/token-storage.servi
 import { AuthState } from './auth-state';
 import { DataCacheService } from '../cache/data-cache.service';
 import { NavigationStateService } from '../cache/navigation-state.service';
+import { DeviceMetadataService } from '../platform/device-metadata.service';
 import {
   ACCESS_TOKEN_RENEWAL_WINDOW_MS,
   ACTIVITY_THROTTLE_MS,
@@ -14,6 +15,7 @@ import {
   EXPIRY_SAFETY_WINDOW_MS,
   RENEW_RETRY_BACKOFF_MS,
 } from './session-policy';
+import { SessionManagementService } from './session-management.service';
 
 interface LoginResponse {
   accessToken: string;
@@ -49,6 +51,8 @@ export class AuthService {
   private readonly router = inject(Router);
   private readonly dataCache = inject(DataCacheService);
   private readonly navigationState = inject(NavigationStateService);
+  private readonly deviceMetadata = inject(DeviceMetadataService);
+  private readonly sessionManagement = inject(SessionManagementService);
   private expiryTimer?: ReturnType<typeof setTimeout>;
   private renewalTimer?: ReturnType<typeof setTimeout>;
   private renewalFlight?: Promise<void>;
@@ -248,8 +252,11 @@ export class AuthService {
     this.setSession(verified);
   }
   async login(password: string): Promise<void> {
+    const device = await this.deviceMetadata.getLoginMetadata();
     const result = await firstValueFrom(
-      this.http.post<LoginResponse>(`${environment.apiBaseUrl}/api/auth/login`, { password }).pipe(timeout(15000)),
+      this.http
+        .post<LoginResponse>(`${environment.apiBaseUrl}/api/auth/login`, { password, device })
+        .pipe(timeout(15000)),
     );
     if (
       typeof result.accessToken !== 'string' ||
@@ -289,5 +296,17 @@ export class AuthService {
     } catch {
       this.state.notice.set('Signed out locally. Secure storage could not be cleared. Please restart and try again.');
     }
+  }
+
+  async signOutCurrentSession(): Promise<void> {
+    let notice = '';
+    try {
+      await firstValueFrom(this.sessionManagement.logoutCurrentSession().pipe(timeout(15000)));
+    } catch (error) {
+      if (!(error instanceof HttpErrorResponse && error.status === 401)) {
+        notice = 'Signed out on this device. The server session may remain active until it expires.';
+      }
+    }
+    await this.signOut(notice);
   }
 }

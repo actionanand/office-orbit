@@ -16,13 +16,21 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { contrastOutline, lockClosedOutline, logOutOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
+import {
+  contrastOutline,
+  desktopOutline,
+  lockClosedOutline,
+  logOutOutline,
+  moonOutline,
+  sunnyOutline,
+} from 'ionicons/icons';
 import { ThemeService, ThemeMode } from '../../core/theme/theme.service';
 import { PlatformService } from '../../core/platform/platform.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppLockService, LockTimeoutMinutes } from '../../core/app-lock/app-lock.service';
 import { BiometricService } from '../../core/platform/biometric.service';
 import { appVersion } from '../../core/version/app-version';
+import { ActiveSessionsModalComponent } from './active-sessions.modal';
 @Component({
   selector: 'app-settings',
   imports: [
@@ -38,6 +46,7 @@ import { appVersion } from '../../core/version/app-version';
     IonTitle,
     IonToggle,
     IonToolbar,
+    ActiveSessionsModalComponent,
   ],
   template: ` <ion-header class="ion-no-border"
       ><ion-toolbar><ion-title>Settings</ion-title></ion-toolbar></ion-header
@@ -239,9 +248,14 @@ import { appVersion } from '../../core/version/app-version';
                 (ionChange)="setShowRemainingTime($event.detail.checked)" />
             </div>
           </div>
-          <ion-button fill="outline" (click)="auth.signOut()"
-            ><ion-icon slot="start" name="log-out-outline" aria-hidden="true" />Sign out</ion-button
-          >
+          <div class="button-row">
+            <ion-button fill="outline" (click)="sessionsOpen.set(true)">
+              <ion-icon slot="start" name="desktop-outline" aria-hidden="true" />Show all active sessions
+            </ion-button>
+            <ion-button fill="outline" [disabled]="signingOut()" (click)="signOut()">
+              <ion-icon slot="start" name="log-out-outline" aria-hidden="true" />Sign out
+            </ion-button>
+          </div>
         </section>
         <section class="data-card">
           <div class="brand-row">
@@ -261,8 +275,10 @@ import { appVersion } from '../../core/version/app-version';
           </dl>
           <p class="muted">Your local security preferences stay on this device.</p>
         </section>
-      </main></ion-content
-    >`,
+        @if (sessionsOpen()) {
+          <app-active-sessions-modal [timeFormat]="timeFormat()" (closed)="sessionsOpen.set(false)" />
+        }</main
+    ></ion-content>`,
 })
 export class SettingsPage {
   readonly theme = inject(ThemeService);
@@ -333,6 +349,8 @@ export class SettingsPage {
     { value: 10, label: '10 minutes' },
   ];
   readonly busy = signal(false);
+  readonly signingOut = signal(false);
+  readonly sessionsOpen = signal(false);
   readonly message = signal('');
   readonly securityAction = signal<'enable' | 'change' | 'disable' | 'biometric' | null>(null);
   readonly form = new FormGroup({
@@ -341,7 +359,7 @@ export class SettingsPage {
     confirm: new FormControl('', { nonNullable: true }),
   });
   constructor() {
-    addIcons({ contrastOutline, lockClosedOutline, logOutOutline, moonOutline, sunnyOutline });
+    addIcons({ contrastOutline, desktopOutline, lockClosedOutline, logOutOutline, moonOutline, sunnyOutline });
     interval(30_000)
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.now.set(Date.now()));
@@ -380,6 +398,15 @@ export class SettingsPage {
   }
   lockNow(): void {
     this.lock.lock();
+  }
+  async signOut(): Promise<void> {
+    if (this.signingOut()) return;
+    this.signingOut.set(true);
+    try {
+      await this.auth.signOutCurrentSession();
+    } finally {
+      this.signingOut.set(false);
+    }
   }
   async savePin() {
     const { pin, confirm, current } = this.form.getRawValue();
