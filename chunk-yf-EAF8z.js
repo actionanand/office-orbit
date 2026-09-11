@@ -1,0 +1,1 @@
+import {G as T}from'./main-LB2GBBCA.js';var t=T("Browser",{web:()=>import('./chunk-DOF8mSWl.js').then(e=>new e.BrowserWeb)});export{t as Browser};
