@@ -1153,6 +1153,48 @@ details > summary {
 }
 .feedback-row {
   align-items: flex-start;
+  padding-block: 15px 17px;
+}
+.feedback-row .entity-copy {
+  flex: 1;
+  gap: 6px;
+}
+.feedback-header,
+.feedback-actions {
+  display: flex;
+  align-items: center;
+}
+.feedback-header {
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+}
+.feedback-actions {
+  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 5px;
+}
+.feedback-actions ion-button {
+  --padding-start: 8px;
+  --padding-end: 4px;
+  margin: -8px 0;
+}
+.feedback-row .entity-kicker {
+  white-space: nowrap;
+}
+.feedback-row .preview,
+.feedback-row .follow-up {
+  display: block;
+  max-width: 92ch;
+}
+.feedback-row .preview {
+  margin-top: 1px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.feedback-row .follow-up {
+  margin-top: 2px;
+  color: var(--ion-text-color);
 }
 .sprint-list {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
@@ -1375,6 +1417,19 @@ details > summary {
 }
 .mobile-cell-label {
   display: none;
+}
+ion-popover.work-link-popover {
+  --width: 180px;
+}
+.work-link-menu {
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+}
+.work-link-menu ion-button {
+  min-height: 44px;
+  margin: 0;
+  --justify-content: flex-start;
 }
 .detail-backdrop {
   position: fixed;
@@ -1620,6 +1675,25 @@ details > summary {
   }
 }
 @media (max-width: 700px) {
+  .feedback-row {
+    padding: 13px 14px 16px;
+  }
+  .feedback-header {
+    gap: 8px;
+  }
+  .feedback-actions {
+    gap: 1px;
+  }
+  .feedback-actions ion-button {
+    --padding-start: 6px;
+    --padding-end: 2px;
+  }
+  .feedback-row .meta-line {
+    gap: 4px 7px;
+  }
+  .feedback-row .meta-line > span + span::before {
+    margin-right: 7px;
+  }
   .work-link-table-wrap {
     border-radius: 10px;
   }
@@ -2045,6 +2119,9 @@ details > summary {
   --width: min(760px, calc(100vw - 32px));
   --height: min(780px, calc(100vh - 32px));
   --border-radius: 16px;
+}
+.work-link-editor-modal {
+  --height: min(660px, calc(100vh - 32px));
 }
 .editor-form {
   display: grid;

@@ -18,6 +18,7 @@ import { firstValueFrom, Subscription } from 'rxjs';
 import { apiError } from '../../core/api/api-error';
 import { AuthService } from '../../core/auth/auth.service';
 import { ActiveSession, SessionManagementService } from '../../core/auth/session-management.service';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
 
 @Component({
   selector: 'app-active-sessions-modal',
@@ -131,6 +132,7 @@ export class ActiveSessionsModalComponent {
   private readonly auth = inject(AuthService);
   private readonly alerts = inject(AlertController);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly snackbar = inject(SnackbarService);
   readonly closed = output<void>();
   readonly timeFormat = input<'12' | '24'>('12');
   readonly sessions = signal<ActiveSession[]>([]);
@@ -195,7 +197,9 @@ export class ActiveSessionsModalComponent {
         return;
       }
       this.sessions.update(sessions => sessions.filter(item => item.id !== session.id));
-      this.message.set(`${this.deviceName(session)} was logged out.`);
+      const message = `${this.deviceName(session)} was logged out.`;
+      this.message.set(message);
+      this.snackbar.success(message);
     } catch (error) {
       this.actionError.set(apiError(error));
     } finally {
@@ -213,7 +217,9 @@ export class ActiveSessionsModalComponent {
       const response = await firstValueFrom(this.sessionManagement.revokeOtherSessions());
       this.sessions.update(sessions => sessions.filter(session => session.current));
       const count = response.revokedCount;
-      this.message.set(`${count} other session${count === 1 ? '' : 's'} logged out.`);
+      const message = `${count} other session${count === 1 ? '' : 's'} logged out.`;
+      this.message.set(message);
+      this.snackbar.success(message);
     } catch (error) {
       this.actionError.set(apiError(error));
     } finally {

@@ -29,6 +29,7 @@ import { PlatformService } from '../../core/platform/platform.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppLockService, LockTimeoutMinutes } from '../../core/app-lock/app-lock.service';
 import { BiometricService } from '../../core/platform/biometric.service';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
 import { appVersion } from '../../core/version/app-version';
 import { ActiveSessionsModalComponent } from './active-sessions.modal';
 @Component({
@@ -286,6 +287,7 @@ export class SettingsPage {
   readonly auth = inject(AuthService);
   readonly lock = inject(AppLockService);
   readonly biometric = inject(BiometricService);
+  private readonly snackbar = inject(SnackbarService);
   readonly version = appVersion;
   readonly sessionKind = computed(() =>
     this.auth.state.session()?.sessionKind === 'extended' ? 'Extended session' : 'Fresh session',
@@ -449,6 +451,7 @@ export class SettingsPage {
       this.form.reset();
       this.securityAction.set(null);
       this.message.set('Biometric preference updated.');
+      this.snackbar.success('Biometric preference updated.');
     } catch (error) {
       const text = error instanceof Error ? error.message : 'Unable to update security settings.';
       this.message.set(text);
@@ -483,6 +486,7 @@ export class SettingsPage {
       this.form.reset();
       this.securityAction.set(null);
       this.message.set(success);
+      this.snackbar.success(success);
     } catch (error) {
       this.message.set(error instanceof Error ? error.message : 'Unable to update security settings.');
     } finally {

@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { apiError } from '../../core/api/api-error';
 import { CursorService } from '../../core/api/cursor.service';
 import { ReportOutputService } from '../../core/platform/report-output.service';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
 import { WorkLog } from '../../shared/models/api.models';
 import { createReport, ExportOptions, exportCategories, reportFilename, validateExport } from './work-log-report';
 
@@ -10,6 +11,7 @@ import { createReport, ExportOptions, exportCategories, reportFilename, validate
 export class WorkLogExportService {
   private readonly cursors = inject(CursorService);
   private readonly output = inject(ReportOutputService);
+  private readonly snackbar = inject(SnackbarService);
   readonly android = this.output.android;
   readonly busy = signal(false);
   readonly status = signal('');
@@ -53,14 +55,16 @@ export class WorkLogExportService {
             ? 'PDF saved. Choose an app to save or share it.'
             : 'PDF downloaded',
       );
+      this.snackbar.success(action === 'print' ? 'Print preview opened.' : 'PDF exported.');
     } catch (error) {
-      this.status.set(
+      const message =
         error instanceof HttpErrorResponse
           ? apiError(error)
           : error instanceof Error
             ? error.message
-            : 'Unable to prepare or save this report. Please try again.',
-      );
+            : 'Unable to prepare or save this report. Please try again.';
+      this.status.set(message);
+      this.snackbar.error(message);
     } finally {
       this.busy.set(false);
     }

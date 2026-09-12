@@ -8,6 +8,7 @@ import {
   IonContent,
   IonHeader,
   IonIcon,
+  IonPopover,
   IonSegment,
   IonSegmentButton,
   IonTitle,
@@ -19,6 +20,8 @@ import {
   chevronDownOutline,
   chevronForwardOutline,
   closeOutline,
+  copyOutline,
+  ellipsisVerticalOutline,
   openOutline,
   pencilOutline,
   refreshOutline,
@@ -26,6 +29,7 @@ import {
 import { apiError } from '../../core/api/api-error';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
 import { NavigationStateService } from '../../core/cache/navigation-state.service';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
 import { LinksService, safeUrl } from '../../core/platform/links.service';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
@@ -74,6 +78,7 @@ function supportsAllocationDetails(
     IonContent,
     IonHeader,
     IonIcon,
+    IonPopover,
     IonSegment,
     IonSegmentButton,
     IonTitle,
@@ -354,8 +359,22 @@ function supportsAllocationDetails(
             <section class="entity-list" aria-label="Feedback">
               @for (item of feedbackItems(); track item.id) {
                 <article class="entity-row feedback-row">
-                  <span class="entity-copy">
-                    <span class="entity-kicker">{{ date(item.date) }}</span>
+                  <div class="entity-copy">
+                    <div class="feedback-header">
+                      <span class="entity-kicker">{{ date(item.date) }}</span>
+                      <div class="feedback-actions">
+                        @if (item.feedbackType) {
+                          <app-status-badge [label]="item.feedbackType" />
+                        }
+                        <ion-button
+                          fill="clear"
+                          size="small"
+                          [attr.aria-label]="'Edit feedback ' + (item.feedback || '')"
+                          (click)="openFeedback(item)">
+                          <ion-icon name="pencil-outline" slot="start" />Edit
+                        </ion-button>
+                      </div>
+                    </div>
                     <strong>{{ item.feedback || 'Feedback' }}</strong>
                     <span class="meta-line">
                       @if (item.feedbackFrom) {
@@ -383,16 +402,7 @@ function supportsAllocationDetails(
                     @if (item.actionFollowUp) {
                       <span class="follow-up"><strong>Follow-up:</strong> {{ item.actionFollowUp }}</span>
                     }
-                  </span>
-                  @if (item.feedbackType) {
-                    <app-status-badge [label]="item.feedbackType" />
-                  }
-                  <ion-button
-                    fill="clear"
-                    [attr.aria-label]="'Edit feedback ' + (item.feedback || '')"
-                    (click)="openFeedback(item)">
-                    <ion-icon name="pencil-outline" slot="start" />Edit
-                  </ion-button>
+                  </div>
                 </article>
               }
             </section>
@@ -409,7 +419,7 @@ function supportsAllocationDetails(
                   </tr>
                 </thead>
                 <tbody>
-                  @for (item of workLinks(); track item.id) {
+                  @for (item of workLinks(); track item.id; let rowIndex = $index) {
                     <tr>
                       <td class="work-link-resource">
                         <strong>{{ item.link || 'Work link' }}</strong>
@@ -452,12 +462,39 @@ function supportsAllocationDetails(
                         </ion-button>
                         @if (safeLink(item)) {
                           <ion-button
+                            [id]="'work-link-actions-' + rowIndex"
                             fill="clear"
                             size="small"
-                            [attr.aria-label]="'Open work link ' + item.link"
-                            (click)="openLink(item)"
-                            >Open <ion-icon name="open-outline" slot="end" aria-hidden="true"
-                          /></ion-button>
+                            [attr.aria-label]="'More actions for ' + item.link"
+                            aria-haspopup="menu">
+                            <ion-icon name="ellipsis-vertical-outline" slot="start" />More
+                          </ion-button>
+                          <ion-popover
+                            #actionsPopover
+                            cssClass="work-link-popover"
+                            [trigger]="'work-link-actions-' + rowIndex"
+                            triggerAction="click"
+                            side="bottom"
+                            alignment="end">
+                            <ng-template>
+                              <div class="work-link-menu" role="menu" [attr.aria-label]="'Actions for ' + item.link">
+                                <ion-button
+                                  role="menuitem"
+                                  expand="block"
+                                  fill="clear"
+                                  (click)="actionsPopover.dismiss(); openLink(item)">
+                                  <ion-icon name="open-outline" slot="start" />Open
+                                </ion-button>
+                                <ion-button
+                                  role="menuitem"
+                                  expand="block"
+                                  fill="clear"
+                                  (click)="actionsPopover.dismiss(); copyLink(item)">
+                                  <ion-icon name="copy-outline" slot="start" />Copy link
+                                </ion-button>
+                              </div>
+                            </ng-template>
+                          </ion-popover>
                         }
                       </td>
                     </tr>
@@ -583,6 +620,7 @@ export class ResourcePage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly navigationState = inject(NavigationStateService);
+  private readonly snackbar = inject(SnackbarService);
   private request?: Subscription;
   private allocationRequest?: Subscription;
   readonly selected = signal(this.feature.views[0].path);
@@ -636,6 +674,8 @@ export class ResourcePage {
       chevronDownOutline,
       chevronForwardOutline,
       closeOutline,
+      copyOutline,
+      ellipsisVerticalOutline,
       openOutline,
       pencilOutline,
       refreshOutline,
@@ -759,8 +799,10 @@ export class ResourcePage {
   }
 
   feedbackSaved(item: Feedback): void {
+    const editing = this.editingFeedback() !== null;
     this.upsert(item);
     this.closeFeedbackEditor();
+    this.snackbar.success(editing ? 'Feedback updated.' : 'Feedback added.');
     this.load(true, false, true);
   }
 
@@ -775,8 +817,10 @@ export class ResourcePage {
   }
 
   workLinkSaved(item: WorkLink): void {
+    const editing = this.editingWorkLink() !== null;
     this.upsert(item);
     this.closeWorkLinkEditor();
+    this.snackbar.success(editing ? 'Work link updated.' : 'Work link added.');
     this.load(true, false, true);
   }
 
@@ -825,6 +869,31 @@ export class ResourcePage {
   async openLink(item: WorkLink): Promise<void> {
     const url = this.safeLink(item);
     if (url) await this.links.open(url);
+  }
+
+  async copyLink(item: WorkLink): Promise<void> {
+    const url = this.safeLink(item);
+    if (!url) return;
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
+      else this.copyWithSelection(url);
+      this.snackbar.success('Link copied.');
+    } catch {
+      this.snackbar.error('The link could not be copied.');
+    }
+  }
+
+  private copyWithSelection(value: string): void {
+    const field = document.createElement('textarea');
+    field.value = value;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.opacity = '0';
+    document.body.appendChild(field);
+    field.select();
+    const copied = document.execCommand('copy');
+    field.remove();
+    if (!copied) throw new Error('Copy was not available.');
   }
 
   private searchText(item: DomainItem): string {

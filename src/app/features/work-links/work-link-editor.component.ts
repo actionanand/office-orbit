@@ -30,7 +30,7 @@ function validOptionalUrl(control: AbstractControl<string>) {
   selector: 'app-work-link-editor',
   imports: [ReactiveFormsModule, IonButton, IonContent, IonHeader, IonIcon, IonModal, IonTitle, IonToolbar],
   template: `<ion-modal
-    class="editor-modal"
+    class="editor-modal work-link-editor-modal"
     [isOpen]="open()"
     [backdropDismiss]="!submitting()"
     (didPresent)="focusFirst()"

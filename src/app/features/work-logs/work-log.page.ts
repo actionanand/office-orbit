@@ -35,6 +35,7 @@ import { StatePanelComponent } from '../../shared/components/state-panel.compone
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { MetadataSelectOption, WorkLog } from '../../shared/models/api.models';
 import { apiError } from '../../core/api/api-error';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
 import { metadataOptions } from '../../shared/utils/editor';
 import { formatDate, formatRelativeTime, names } from '../../shared/utils/format';
 import { calendarDays, currentMonth } from './calendar';
@@ -376,6 +377,7 @@ export class WorkLogPage {
   readonly metadataLoading = signal(false);
   readonly metadataError = signal('');
   private readonly workLogs = inject(WorkLogService);
+  private readonly snackbar = inject(SnackbarService);
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   readonly today = this.isoDate(new Date());
   readonly days = computed(() => calendarDays(this.store.month()));
@@ -506,9 +508,11 @@ export class WorkLogPage {
     this.editingLog.set(null);
   }
   workLogSaved(item: WorkLog): void {
+    const editing = this.editingLog() !== null;
     this.store.upsert(item);
     this.selectedLog.set(item);
     this.closeEditor();
+    this.snackbar.success(editing ? 'Work log updated.' : 'Work log added.');
     void this.store.load(true, false, true);
   }
   emptyMessage(): string {
