@@ -19,8 +19,8 @@ import {
   chevronDownOutline,
   chevronForwardOutline,
   closeOutline,
-  createOutline,
   openOutline,
+  pencilOutline,
   refreshOutline,
 } from 'ionicons/icons';
 import { apiError } from '../../core/api/api-error';
@@ -391,48 +391,80 @@ function supportsAllocationDetails(
                     fill="clear"
                     [attr.aria-label]="'Edit feedback ' + (item.feedback || '')"
                     (click)="openFeedback(item)">
-                    <ion-icon name="create-outline" slot="start" />Edit
+                    <ion-icon name="pencil-outline" slot="start" />Edit
                   </ion-button>
                 </article>
               }
             </section>
           } @else {
-            <section class="link-grid" aria-label="Work links">
-              @for (item of workLinks(); track item.id) {
-                <article class="shortcut-card">
-                  <div class="shortcut-icon" aria-hidden="true">{{ linkInitial(item) }}</div>
-                  <div>
-                    <span class="entity-kicker">{{ item.type || 'Resource' }}</span>
-                    <h2>{{ item.link || 'Work link' }}</h2>
-                    @if (item.notes) {
-                      <p>{{ item.notes }}</p>
-                    }
-                    @if (names(item.projects)) {
-                      <p class="meta-line">{{ names(item.projects) }}</p>
-                    }
-                    @if (names(item.companies)) {
-                      <p class="meta-line">{{ names(item.companies) }}</p>
-                    }
-                    <app-status-badge
-                      [label]="item.active ? 'Active' : 'Inactive'"
-                      [kind]="item.active ? 'success' : 'neutral'" />
-                  </div>
-                  <div class="shortcut-actions">
-                    <ion-button
-                      fill="clear"
-                      [attr.aria-label]="'Edit work link ' + item.link"
-                      (click)="openWorkLinkEditor(item)">
-                      <ion-icon name="create-outline" slot="start" />Edit
-                    </ion-button>
-                    @if (safeLink(item)) {
-                      <ion-button fill="clear" (click)="openLink(item)"
-                        >Open link <ion-icon name="open-outline" slot="end" aria-hidden="true"
-                      /></ion-button>
-                    }
-                  </div>
-                </article>
-              }
-            </section>
+            <div class="work-link-table-wrap">
+              <table class="work-link-table" aria-label="Work links">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Scope</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="actions-heading">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of workLinks(); track item.id) {
+                    <tr>
+                      <td class="work-link-resource">
+                        <strong>{{ item.link || 'Work link' }}</strong>
+                        @if (item.notes) {
+                          <span>{{ item.notes }}</span>
+                        }
+                      </td>
+                      <td class="work-link-type">
+                        <span class="mobile-cell-label" aria-hidden="true">Type</span>
+                        {{ item.type || 'Not set' }}
+                      </td>
+                      <td class="work-link-scope">
+                        <span class="mobile-cell-label" aria-hidden="true">Scope</span>
+                        @if (names(item.projects) || names(item.companies)) {
+                          <span class="scope-values">
+                            @if (names(item.projects)) {
+                              <span>{{ names(item.projects) }}</span>
+                            }
+                            @if (names(item.companies)) {
+                              <span>{{ names(item.companies) }}</span>
+                            }
+                          </span>
+                        } @else {
+                          <span class="muted-value">Not set</span>
+                        }
+                      </td>
+                      <td class="work-link-status">
+                        <span class="mobile-cell-label" aria-hidden="true">Status</span>
+                        <app-status-badge
+                          [label]="item.active ? 'Active' : 'Inactive'"
+                          [kind]="item.active ? 'success' : 'neutral'" />
+                      </td>
+                      <td class="work-link-actions">
+                        <ion-button
+                          fill="clear"
+                          size="small"
+                          [attr.aria-label]="'Edit work link ' + item.link"
+                          (click)="openWorkLinkEditor(item)">
+                          <ion-icon name="pencil-outline" slot="start" />Edit
+                        </ion-button>
+                        @if (safeLink(item)) {
+                          <ion-button
+                            fill="clear"
+                            size="small"
+                            [attr.aria-label]="'Open work link ' + item.link"
+                            (click)="openLink(item)"
+                            >Open <ion-icon name="open-outline" slot="end" aria-hidden="true"
+                          /></ion-button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           }
         }
 
@@ -604,8 +636,8 @@ export class ResourcePage {
       chevronDownOutline,
       chevronForwardOutline,
       closeOutline,
-      createOutline,
       openOutline,
+      pencilOutline,
       refreshOutline,
     });
     const requestedView = this.route.snapshot.queryParamMap.get('view');
@@ -788,10 +820,6 @@ export class ResourcePage {
 
   safeLink(item: WorkLink): string | null {
     return safeUrl(item.url);
-  }
-
-  linkInitial(item: WorkLink): string {
-    return (item.type || item.link || 'L').trim().slice(0, 1).toUpperCase();
   }
 
   async openLink(item: WorkLink): Promise<void> {

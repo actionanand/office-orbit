@@ -23,7 +23,7 @@ import {
   filterOutline,
   listOutline,
   printOutline,
-  createOutline,
+  pencilOutline,
   refreshOutline,
 } from 'ionicons/icons';
 import { WorkLogExportComponent } from './work-log-export.component';
@@ -278,7 +278,7 @@ import { WorkLogService } from './work-logs.service';
           <p class="eyebrow">Work log · {{ date(item.date) }}</p>
           <h2 id="work-log-detail-title">{{ item.update || 'Work update' }}</h2>
           <ion-button fill="outline" (click)="openEditor(item)">
-            <ion-icon name="create-outline" slot="start" />Edit work log
+            <ion-icon name="pencil-outline" slot="start" />Edit work log
           </ion-button>
           <section class="detail-section">
             <h3>Overview</h3>
@@ -412,7 +412,7 @@ export class WorkLogPage {
       chevronBackOutline,
       chevronForwardOutline,
       closeOutline,
-      createOutline,
+      pencilOutline,
       filterOutline,
       listOutline,
       printOutline,
