@@ -12,19 +12,21 @@ Android uses a five-item bottom navigation; desktop uses a sidebar. More links t
 
 ## State
 
-Signals hold session, renewal, foreground/activity, lock, request and theme state; computed signals derive visibility and filtered records. HttpClient/RxJS handle requests and cancellation. No NgRx, business-data persistence, or write endpoints are introduced.
+Signals hold session, renewal, foreground/activity, lock, request, editor and theme state; computed signals derive visibility and filtered records. HttpClient/RxJS handle requests and cancellation. No NgRx or business-data persistence is introduced.
 
 Ionic 9 IonInput exposes a ControlValueAccessor rather than a Signal Forms value model in this installation. Password/PIN forms therefore use typed Reactive Forms, with signal-based UI state, as the specified fallback. Native date filters also use Reactive Forms to keep one form strategy.
 
 ## API boundary
 
-Each collection has a feature-specific service and view allowlist. ReadFeatureService and ResourceService share request/envelope handling. Dashboard has its own service; JiraService also fetches JIRA details.
+Each collection has a feature-specific service and view allowlist. ReadFeatureService and ResourceService retain GET request/envelope handling. MutationApiService owns cached metadata, typed POST/PATCH transport, targeted cache invalidation, and literal HTTP QUERY transport. RelationOptionsService follows opaque GET cursors and maps relation records to human-readable options. Dashboard has its own service; JiraService also fetches JIRA details.
 
 The client models the Worker's documented domain contracts for JIRAs, Work Logs, Sprints, Sprint Allocations, Releases, Feedback, Work Links, and Dashboard. Production views render explicit domain fields. There is no generic object renderer or expandable property dump. Internal IDs and raw API timestamps remain available only to TypeScript for routing, filtering, and relation matching.
 
 Supported collection endpoints request `include=relations`, allowing the UI to show Project, Company, Team, Sprint, and JIRA names without displaying Notion page IDs. Sprint Allocation endpoints return relation IDs; the Sprints page resolves their JIRA summary, status, and spillover metadata through the cache-aware Sprint detail endpoint while retaining the allocation's Planned Days.
 
-Collection requests cancel when a user changes views or leaves the page, preventing stale responses from replacing a newer view. Lists use compact, domain-specific rows with layout-matched skeletons and contextual empty states. Work Logs remain bounded to the first server page. Search explicitly covers the loaded page only because the Worker returns `nextCursor` but does not accept a continuation cursor.
+Collection requests cancel when a user changes views or leaves the page, preventing stale responses from replacing a newer view. Lists use compact, domain-specific rows with layout-matched skeletons and contextual empty states. Advanced Work Log filters use RFC 10008 `QUERY` with stable typed filter arrays and opaque cursor continuation. Simple saved views continue through GET.
+
+WorkLogEditor, FeedbackEditor, and WorkLinkEditor own their domain-specific writable forms. Read models are separate from create/patch DTOs, preventing rollups and other read-only properties from entering mutation bodies. Feedback models use `workType` and Company/Team relations; the former Project fields were removed.
 
 ## Platform abstractions
 

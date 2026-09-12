@@ -14,6 +14,7 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
+  addOutline,
   analyticsOutline,
   calendarOutline,
   chevronBackOutline,
@@ -22,23 +23,30 @@ import {
   filterOutline,
   listOutline,
   printOutline,
+  pencilOutline,
   refreshOutline,
 } from 'ionicons/icons';
 import { WorkLogExportComponent } from './work-log-export.component';
+import { WorkLogEditorComponent } from './work-log-editor.component';
 import { JiraLinkComponent } from '../jiras/jira-link.component';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
 import { StatePanelComponent } from '../../shared/components/state-panel.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
-import { WorkLog } from '../../shared/models/api.models';
+import { MetadataSelectOption, WorkLog } from '../../shared/models/api.models';
+import { apiError } from '../../core/api/api-error';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
+import { metadataOptions } from '../../shared/utils/editor';
 import { formatDate, formatRelativeTime, names } from '../../shared/utils/format';
 import { calendarDays, currentMonth } from './calendar';
 import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store';
+import { WorkLogService } from './work-logs.service';
 
 @Component({
   selector: 'app-work-log',
   imports: [
     WorkLogExportComponent,
+    WorkLogEditorComponent,
     IonModal,
     ReactiveFormsModule,
     RouterLink,
@@ -71,6 +79,9 @@ import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store'
             title="Work Log"
             description="A focused history of your effort, decisions, and accomplishments." />
           <div class="page-actions no-print">
+            <ion-button (click)="openEditor(null)">
+              <ion-icon name="add-outline" slot="start" />Add work log
+            </ion-button>
             <ion-button fill="clear" routerLink="/app/analytics" [queryParams]="{ section: 'work-activity' }">
               <ion-icon name="analytics-outline" slot="start" />View work trends
             </ion-button>
@@ -112,9 +123,34 @@ import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store'
                     <label>From<input type="date" formControlName="from" /></label>
                     <label>To<input type="date" formControlName="to" /></label>
                   }
-                  <label>Category<input type="text" formControlName="category" /></label>
-                  <label>Type<input type="text" formControlName="type" /></label>
-                  <label>Work mode<input type="text" formControlName="workMode" /></label>
+                  @if (metadataLoading()) {
+                    <p class="field-span" role="status">Loading filter options…</p>
+                  } @else if (metadataError()) {
+                    <p class="form-error field-span" role="alert">{{ metadataError() }}</p>
+                    <ion-button type="button" fill="outline" (click)="loadMetadata(true)">Retry options</ion-button>
+                  } @else {
+                    <label
+                      >Categories<select multiple size="4" formControlName="categories">
+                        @for (option of filterOptions('categoryOptionId'); track option.id) {
+                          <option [value]="option.name">{{ option.name }}</option>
+                        }
+                      </select></label
+                    >
+                    <label
+                      >Types<select multiple size="4" formControlName="types">
+                        @for (option of filterOptions('typeOptionId'); track option.id) {
+                          <option [value]="option.name">{{ option.name }}</option>
+                        }
+                      </select></label
+                    >
+                    <label
+                      >Work modes<select multiple size="4" formControlName="workModes">
+                        @for (option of filterOptions('workModeOptionId'); track option.id) {
+                          <option [value]="option.name">{{ option.name }}</option>
+                        }
+                      </select></label
+                    >
+                  }
                   <ion-button type="submit" fill="outline">Apply filters</ion-button>
                   <ion-button type="button" fill="clear" (click)="clearFilters()">Clear</ion-button>
                 </form>
@@ -133,6 +169,9 @@ import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store'
 
         @if (store.lastUpdated(); as updatedAt) {
           <p class="updated-label">{{ relative(updatedAt) }}</p>
+        }
+        @if (store.notice()) {
+          <p class="refresh-notice" role="status">{{ store.notice() }}</p>
         }
 
         @if (store.mode() === 'calendar') {
@@ -239,6 +278,9 @@ import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store'
           /></ion-button>
           <p class="eyebrow">Work log · {{ date(item.date) }}</p>
           <h2 id="work-log-detail-title">{{ item.update || 'Work update' }}</h2>
+          <ion-button fill="outline" (click)="openEditor(item)">
+            <ion-icon name="pencil-outline" slot="start" />Edit work log
+          </ion-button>
           <section class="detail-section">
             <h3>Overview</h3>
             <dl class="detail-grid">
@@ -316,14 +358,26 @@ import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store'
           }
         </aside>
       }
-      <app-work-log-export [open]="exportOpen()" (closed)="exportOpen.set(false)"
-    /></ion-content>`,
+      <app-work-log-export [open]="exportOpen()" (closed)="exportOpen.set(false)" />
+      <app-work-log-editor
+        [open]="editorOpen()"
+        [item]="editingLog()"
+        (closed)="closeEditor()"
+        (saved)="workLogSaved($event)" />
+    </ion-content>`,
 })
 export class WorkLogPage {
   readonly store = inject(WorkLogStore);
   readonly exportOpen = signal(false);
+  readonly editorOpen = signal(false);
+  readonly editingLog = signal<WorkLog | null>(null);
   readonly filtersOpen = signal(false);
   readonly selectedLog = signal<WorkLog | null>(null);
+  readonly metadata = signal<import('../../shared/models/api.models').ResourceMetadataResponse | null>(null);
+  readonly metadataLoading = signal(false);
+  readonly metadataError = signal('');
+  private readonly workLogs = inject(WorkLogService);
+  private readonly snackbar = inject(SnackbarService);
   readonly weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   readonly today = this.isoDate(new Date());
   readonly days = computed(() => calendarDays(this.store.month()));
@@ -344,9 +398,9 @@ export class WorkLogPage {
   readonly form = new FormGroup({
     from: new FormControl(this.store.filters().from, { nonNullable: true }),
     to: new FormControl(this.store.filters().to, { nonNullable: true }),
-    category: new FormControl(this.store.filters().category, { nonNullable: true }),
-    type: new FormControl(this.store.filters().type, { nonNullable: true }),
-    workMode: new FormControl(this.store.filters().workMode, { nonNullable: true }),
+    categories: new FormControl(this.store.filters().categories, { nonNullable: true }),
+    types: new FormControl(this.store.filters().types, { nonNullable: true }),
+    workModes: new FormControl(this.store.filters().workModes, { nonNullable: true }),
   });
   readonly date = formatDate;
   readonly names = names;
@@ -354,16 +408,19 @@ export class WorkLogPage {
 
   constructor() {
     addIcons({
+      addOutline,
       analyticsOutline,
       calendarOutline,
       chevronBackOutline,
       chevronForwardOutline,
       closeOutline,
+      pencilOutline,
       filterOutline,
       listOutline,
       printOutline,
       refreshOutline,
     });
+    this.loadMetadata();
     void this.store.load(false);
   }
 
@@ -390,7 +447,7 @@ export class WorkLogPage {
     void this.store.load(false);
   }
   clearFilters(): void {
-    this.form.reset({ from: '', to: '', category: '', type: '', workMode: '' });
+    this.form.reset({ from: '', to: '', categories: [], types: [], workModes: [] });
     this.store.filters.set(this.form.getRawValue());
     void this.store.load(false);
   }
@@ -424,6 +481,39 @@ export class WorkLogPage {
   }
   closeDetail(): void {
     this.selectedLog.set(null);
+  }
+  filterOptions(key: string): MetadataSelectOption[] {
+    return metadataOptions(this.metadata(), key);
+  }
+  loadMetadata(refresh = false): void {
+    this.metadataLoading.set(true);
+    this.metadataError.set('');
+    this.workLogs.metadata(refresh).subscribe({
+      next: metadata => {
+        this.metadata.set(metadata);
+        this.metadataLoading.set(false);
+      },
+      error: error => {
+        this.metadataError.set(apiError(error));
+        this.metadataLoading.set(false);
+      },
+    });
+  }
+  openEditor(item: WorkLog | null): void {
+    this.editingLog.set(item);
+    this.editorOpen.set(true);
+  }
+  closeEditor(): void {
+    this.editorOpen.set(false);
+    this.editingLog.set(null);
+  }
+  workLogSaved(item: WorkLog): void {
+    const editing = this.editingLog() !== null;
+    this.store.upsert(item);
+    this.selectedLog.set(item);
+    this.closeEditor();
+    this.snackbar.success(editing ? 'Work log updated.' : 'Work log added.');
+    void this.store.load(true, false, true);
   }
   emptyMessage(): string {
     return this.store.search() ? 'No loaded Work Logs match your search.' : 'No work logged for this period.';

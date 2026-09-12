@@ -35,7 +35,21 @@ The active-session list is never requested by startup, login, status validation,
 
 Suffixes in the table attach to the preceding collection. The default JIRA view is active; the default links view is active. The Work Log sends from/to only when dates are entered. DashboardService accepts optional companyId/projectId filters.
 
-Companies, teams and projects endpoints from the brief are available for future lookup filters; the current navigation does not add unsupported entity editors. No POST/PUT/PATCH/DELETE business actions exist.
+Companies, teams, projects, and JIRAs provide paginated relation options for the editors. The client follows each opaque cursor and caches the completed option list for the authenticated session.
+
+## Writes and metadata
+
+Work Logs, Feedback, and Work Links support `POST` collection creates and `PATCH /:pageId` updates. The page ID is URL-encoded, and the request DTOs contain only each resource's writable fields. There is no delete API.
+
+The editors load `/api/work-logs/meta`, `/api/feedback/meta`, or `/api/work-links/meta`. Select labels remain presentation values; writes send the matching Notion option ID. Successful metadata responses are cached independently and are not cleared by normal record mutations. A missing former option blocks saving until the user chooses a current option.
+
+Feedback has Company and Team relations and a read-only `workType` rollup. It has no Project relation. The client never sends `workType`, `projectId`, or `projectIds`; after saving it refreshes Feedback so the value recalculated by Notion is displayed.
+
+Mutation success invalidates the affected collection prefix and Dashboard summaries. Work Log writes also invalidate Work Log calendar and Work Activity analytics entries. Existing authentication remains entirely interceptor-managed, and mutations are never retried automatically.
+
+## HTTP QUERY
+
+Advanced Work Log filters call `QUERY /api/work-logs` with `HttpClient.request('QUERY', ...)`. The body contains typed `filters`, `pageSize: 25`, the opaque `cursor`, and `includeRelations: true`. Category, Type, and Work Mode are arrays: values within a field are OR alternatives while separate fields are combined by the Worker. Filter changes reset the cursor; Load More resends the same filter body with the returned cursor. Saved views such as Work Log Appraisal remain ordinary GET requests.
 
 ## Response handling
 
@@ -66,4 +80,4 @@ Work Activity analytics use bounded Work Logs and local aggregation. Historical 
 
 UI states cover loading, empty collections, retryable errors and partial lists. Request cancellation prevents obsolete responses from changing a newer collection view. JIRA keys are URL-encoded. External links accept HTTP(S) only, without embedded credentials. Text is rendered through Angular interpolation; the app never inserts Worker HTML.
 
-No backend write support, refresh tokens, password recovery endpoints or Notion calls are invented.
+No refresh tokens, password recovery endpoints, delete behavior, direct Notion calls, or POST fallback for HTTP QUERY are invented.

@@ -8,16 +8,28 @@ import {
   IonContent,
   IonHeader,
   IonIcon,
+  IonPopover,
   IonSegment,
   IonSegmentButton,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { chevronDownOutline, chevronForwardOutline, closeOutline, openOutline, refreshOutline } from 'ionicons/icons';
+import {
+  addOutline,
+  chevronDownOutline,
+  chevronForwardOutline,
+  closeOutline,
+  copyOutline,
+  ellipsisVerticalOutline,
+  openOutline,
+  pencilOutline,
+  refreshOutline,
+} from 'ionicons/icons';
 import { apiError } from '../../core/api/api-error';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
 import { NavigationStateService } from '../../core/cache/navigation-state.service';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
 import { LinksService, safeUrl } from '../../core/platform/links.service';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
@@ -44,6 +56,8 @@ import {
 } from '../../shared/utils/format';
 import { activeSprint, spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from '../jiras/jira-link.component';
+import { FeedbackEditorComponent } from '../feedback/feedback-editor.component';
+import { WorkLinkEditorComponent } from '../work-links/work-link-editor.component';
 
 interface AllocationDetailSource {
   allocationJiras(allocations: SprintAllocation[], refresh?: boolean): Observable<Record<string, SprintDetailJira[]>>;
@@ -64,11 +78,14 @@ function supportsAllocationDetails(
     IonContent,
     IonHeader,
     IonIcon,
+    IonPopover,
     IonSegment,
     IonSegmentButton,
     IonTitle,
     IonToolbar,
     JiraLinkComponent,
+    FeedbackEditorComponent,
+    WorkLinkEditorComponent,
     LoadingSkeletonComponent,
     PageHeaderComponent,
     StatePanelComponent,
@@ -84,7 +101,18 @@ function supportsAllocationDetails(
     </ion-header>
     <ion-content>
       <main class="page-wrap resource-page">
-        <app-page-header [title]="feature.heading" [description]="feature.description" />
+        <div class="page-action-row">
+          <app-page-header [title]="feature.heading" [description]="feature.description" />
+          @if (feature.kind === 'feedback') {
+            <ion-button (click)="openFeedback(null)"
+              ><ion-icon name="add-outline" slot="start" />Add feedback</ion-button
+            >
+          } @else if (feature.kind === 'work-links') {
+            <ion-button (click)="openWorkLinkEditor(null)"
+              ><ion-icon name="add-outline" slot="start" />Add work link</ion-button
+            >
+          }
+        </div>
         @if (feature.kind === 'sprints') {
           <p class="today-label">Today: {{ today }}</p>
         }
@@ -116,6 +144,9 @@ function supportsAllocationDetails(
         </form>
         @if (updatedAt(); as timestamp) {
           <p class="updated-label">{{ relative(timestamp) }}</p>
+        }
+        @if (notice()) {
+          <p class="refresh-notice" role="status">{{ notice() }}</p>
         }
 
         @if (loading()) {
@@ -328,8 +359,22 @@ function supportsAllocationDetails(
             <section class="entity-list" aria-label="Feedback">
               @for (item of feedbackItems(); track item.id) {
                 <article class="entity-row feedback-row">
-                  <span class="entity-copy">
-                    <span class="entity-kicker">{{ date(item.date) }}</span>
+                  <div class="entity-copy">
+                    <div class="feedback-header">
+                      <span class="entity-kicker">{{ date(item.date) }}</span>
+                      <div class="feedback-actions">
+                        @if (item.feedbackType) {
+                          <app-status-badge [label]="item.feedbackType" />
+                        }
+                        <ion-button
+                          fill="clear"
+                          size="small"
+                          [attr.aria-label]="'Edit feedback ' + (item.feedback || '')"
+                          (click)="openFeedback(item)">
+                          <ion-icon name="pencil-outline" slot="start" />Edit
+                        </ion-button>
+                      </div>
+                    </div>
                     <strong>{{ item.feedback || 'Feedback' }}</strong>
                     <span class="meta-line">
                       @if (item.feedbackFrom) {
@@ -341,8 +386,8 @@ function supportsAllocationDetails(
                       @if (item.context) {
                         <span>{{ item.context }}</span>
                       }
-                      @if (names(item.projects)) {
-                        <span>{{ names(item.projects) }}</span>
+                      @if (item.workType) {
+                        <span>{{ item.workType }}</span>
                       }
                       @if (names(item.teams)) {
                         <span>{{ names(item.teams) }}</span>
@@ -357,36 +402,106 @@ function supportsAllocationDetails(
                     @if (item.actionFollowUp) {
                       <span class="follow-up"><strong>Follow-up:</strong> {{ item.actionFollowUp }}</span>
                     }
-                  </span>
-                  @if (item.feedbackType) {
-                    <app-status-badge [label]="item.feedbackType" />
-                  }
+                  </div>
                 </article>
               }
             </section>
           } @else {
-            <section class="link-grid" aria-label="Work links">
-              @for (item of workLinks(); track item.id) {
-                <article class="shortcut-card">
-                  <div class="shortcut-icon" aria-hidden="true">{{ linkInitial(item) }}</div>
-                  <div>
-                    <span class="entity-kicker">{{ item.type || 'Resource' }}</span>
-                    <h2>{{ item.link || 'Work link' }}</h2>
-                    @if (item.notes) {
-                      <p>{{ item.notes }}</p>
-                    }
-                    @if (names(item.projects)) {
-                      <p class="meta-line">{{ names(item.projects) }}</p>
-                    }
-                  </div>
-                  @if (safeLink(item)) {
-                    <ion-button fill="clear" (click)="openLink(item)"
-                      >Open link <ion-icon name="open-outline" slot="end" aria-hidden="true"
-                    /></ion-button>
+            <div class="work-link-table-wrap">
+              <table class="work-link-table" aria-label="Work links">
+                <thead>
+                  <tr>
+                    <th scope="col">Resource</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Scope</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="actions-heading">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of workLinks(); track item.id; let rowIndex = $index) {
+                    <tr>
+                      <td class="work-link-resource">
+                        <strong>{{ item.link || 'Work link' }}</strong>
+                        @if (item.notes) {
+                          <span>{{ item.notes }}</span>
+                        }
+                      </td>
+                      <td class="work-link-type">
+                        <span class="mobile-cell-label" aria-hidden="true">Type</span>
+                        {{ item.type || 'Not set' }}
+                      </td>
+                      <td class="work-link-scope">
+                        <span class="mobile-cell-label" aria-hidden="true">Scope</span>
+                        @if (names(item.projects) || names(item.companies)) {
+                          <span class="scope-values">
+                            @if (names(item.projects)) {
+                              <span>{{ names(item.projects) }}</span>
+                            }
+                            @if (names(item.companies)) {
+                              <span>{{ names(item.companies) }}</span>
+                            }
+                          </span>
+                        } @else {
+                          <span class="muted-value">Not set</span>
+                        }
+                      </td>
+                      <td class="work-link-status">
+                        <span class="mobile-cell-label" aria-hidden="true">Status</span>
+                        <app-status-badge
+                          [label]="item.active ? 'Active' : 'Inactive'"
+                          [kind]="item.active ? 'success' : 'neutral'" />
+                      </td>
+                      <td class="work-link-actions">
+                        <ion-button
+                          fill="clear"
+                          size="small"
+                          [attr.aria-label]="'Edit work link ' + item.link"
+                          (click)="openWorkLinkEditor(item)">
+                          <ion-icon name="pencil-outline" slot="start" />Edit
+                        </ion-button>
+                        @if (safeLink(item)) {
+                          <ion-button
+                            [id]="'work-link-actions-' + rowIndex"
+                            fill="clear"
+                            size="small"
+                            [attr.aria-label]="'More actions for ' + item.link"
+                            aria-haspopup="menu">
+                            <ion-icon name="ellipsis-vertical-outline" slot="start" />More
+                          </ion-button>
+                          <ion-popover
+                            #actionsPopover
+                            cssClass="work-link-popover"
+                            [trigger]="'work-link-actions-' + rowIndex"
+                            triggerAction="click"
+                            side="bottom"
+                            alignment="end">
+                            <ng-template>
+                              <div class="work-link-menu" role="menu" [attr.aria-label]="'Actions for ' + item.link">
+                                <ion-button
+                                  role="menuitem"
+                                  expand="block"
+                                  fill="clear"
+                                  (click)="actionsPopover.dismiss(); openLink(item)">
+                                  <ion-icon name="open-outline" slot="start" />Open
+                                </ion-button>
+                                <ion-button
+                                  role="menuitem"
+                                  expand="block"
+                                  fill="clear"
+                                  (click)="actionsPopover.dismiss(); copyLink(item)">
+                                  <ion-icon name="copy-outline" slot="start" />Copy link
+                                </ion-button>
+                              </div>
+                            </ng-template>
+                          </ion-popover>
+                        }
+                      </td>
+                    </tr>
                   }
-                </article>
-              }
-            </section>
+                </tbody>
+              </table>
+            </div>
           }
         }
 
@@ -486,6 +601,16 @@ function supportsAllocationDetails(
           }
         </aside>
       }
+      <app-feedback-editor
+        [open]="feedbackEditorOpen()"
+        [item]="editingFeedback()"
+        (closed)="closeFeedbackEditor()"
+        (saved)="feedbackSaved($event)" />
+      <app-work-link-editor
+        [open]="workLinkEditorOpen()"
+        [item]="editingWorkLink()"
+        (closed)="closeWorkLinkEditor()"
+        (saved)="workLinkSaved($event)" />
     </ion-content>`,
 })
 export class ResourcePage {
@@ -495,6 +620,7 @@ export class ResourcePage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly navigationState = inject(NavigationStateService);
+  private readonly snackbar = inject(SnackbarService);
   private request?: Subscription;
   private allocationRequest?: Subscription;
   readonly selected = signal(this.feature.views[0].path);
@@ -502,11 +628,16 @@ export class ResourcePage {
   readonly count = signal(0);
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly notice = signal('');
   readonly search = signal('');
   readonly hasMore = signal(false);
   readonly loadingMore = signal(false);
   readonly updatedAt = signal<number | null>(null);
   readonly selectedWorkLog = signal<WorkLog | null>(null);
+  readonly feedbackEditorOpen = signal(false);
+  readonly editingFeedback = signal<Feedback | null>(null);
+  readonly workLinkEditorOpen = signal(false);
+  readonly editingWorkLink = signal<WorkLink | null>(null);
   readonly allocationDetails = signal<Record<string, SprintDetailJira[]>>({});
   readonly filters = new FormGroup({
     from: new FormControl('', { nonNullable: true }),
@@ -538,7 +669,17 @@ export class ResourcePage {
   readonly today = formatTodayLabel();
 
   constructor() {
-    addIcons({ chevronDownOutline, chevronForwardOutline, closeOutline, openOutline, refreshOutline });
+    addIcons({
+      addOutline,
+      chevronDownOutline,
+      chevronForwardOutline,
+      closeOutline,
+      copyOutline,
+      ellipsisVerticalOutline,
+      openOutline,
+      pencilOutline,
+      refreshOutline,
+    });
     const requestedView = this.route.snapshot.queryParamMap.get('view');
     const matchingView = this.feature.views.find(view => requestedView && this.viewToken(view.label) === requestedView);
     const restored = this.navigationState.read(this.feature.kind);
@@ -572,7 +713,7 @@ export class ResourcePage {
     }
   }
 
-  load(refresh = false, more = false): void {
+  load(refresh = false, more = false, preserveVisible = false): void {
     if (more && this.loadingMore()) return;
     const filters: Record<string, string> = this.feature.kind === 'work-logs' ? this.filters.getRawValue() : {};
     if (filters['from'] && filters['to'] && filters['from'] > filters['to']) {
@@ -584,10 +725,11 @@ export class ResourcePage {
     this.request?.unsubscribe();
     this.allocationRequest?.unsubscribe();
     this.allocationDetails.set({});
-    this.loading.set(!more);
+    this.loading.set(!more && !preserveVisible);
     this.loadingMore.set(more);
     this.error.set('');
-    if (!more) {
+    this.notice.set('');
+    if (!more && !preserveVisible) {
       this.hasMore.set(false);
       this.items.set([]);
     }
@@ -616,7 +758,8 @@ export class ResourcePage {
           }
         },
         error: error => {
-          this.error.set(apiError(error));
+          if (preserveVisible) this.notice.set('Saved, but the latest list could not be refreshed. Try Refresh.');
+          else this.error.set(apiError(error));
           this.loading.set(false);
           this.loadingMore.set(false);
         },
@@ -643,6 +786,50 @@ export class ResourcePage {
 
   closeWorkLog(): void {
     this.selectedWorkLog.set(null);
+  }
+
+  openFeedback(item: Feedback | null): void {
+    this.editingFeedback.set(item);
+    this.feedbackEditorOpen.set(true);
+  }
+
+  closeFeedbackEditor(): void {
+    this.feedbackEditorOpen.set(false);
+    this.editingFeedback.set(null);
+  }
+
+  feedbackSaved(item: Feedback): void {
+    const editing = this.editingFeedback() !== null;
+    this.upsert(item);
+    this.closeFeedbackEditor();
+    this.snackbar.success(editing ? 'Feedback updated.' : 'Feedback added.');
+    this.load(true, false, true);
+  }
+
+  openWorkLinkEditor(item: WorkLink | null): void {
+    this.editingWorkLink.set(item);
+    this.workLinkEditorOpen.set(true);
+  }
+
+  closeWorkLinkEditor(): void {
+    this.workLinkEditorOpen.set(false);
+    this.editingWorkLink.set(null);
+  }
+
+  workLinkSaved(item: WorkLink): void {
+    const editing = this.editingWorkLink() !== null;
+    this.upsert(item);
+    this.closeWorkLinkEditor();
+    this.snackbar.success(editing ? 'Work link updated.' : 'Work link added.');
+    this.load(true, false, true);
+  }
+
+  private upsert(item: DomainItem): void {
+    this.items.update(items =>
+      items.some(current => current.id === item.id)
+        ? items.map(current => (current.id === item.id ? item : current))
+        : [item, ...items],
+    );
   }
 
   isSprint(item: Sprint | SprintAllocation): item is Sprint {
@@ -679,13 +866,34 @@ export class ResourcePage {
     return safeUrl(item.url);
   }
 
-  linkInitial(item: WorkLink): string {
-    return (item.type || item.link || 'L').trim().slice(0, 1).toUpperCase();
-  }
-
   async openLink(item: WorkLink): Promise<void> {
     const url = this.safeLink(item);
     if (url) await this.links.open(url);
+  }
+
+  async copyLink(item: WorkLink): Promise<void> {
+    const url = this.safeLink(item);
+    if (!url) return;
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
+      else this.copyWithSelection(url);
+      this.snackbar.success('Link copied.');
+    } catch {
+      this.snackbar.error('The link could not be copied.');
+    }
+  }
+
+  private copyWithSelection(value: string): void {
+    const field = document.createElement('textarea');
+    field.value = value;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.opacity = '0';
+    document.body.appendChild(field);
+    field.select();
+    const copied = document.execCommand('copy');
+    field.remove();
+    if (!copied) throw new Error('Copy was not available.');
   }
 
   private searchText(item: DomainItem): string {
@@ -709,8 +917,19 @@ export class ResourcePage {
         .join(' ')
         .toLowerCase();
     if ('feedback' in item)
-      return [item.feedback, item.feedbackFrom, item.context, item.feedbackType, item.details].join(' ').toLowerCase();
-    return [item.link, item.type, item.notes, names(item.projects)].join(' ').toLowerCase();
+      return [
+        item.feedback,
+        item.feedbackFrom,
+        item.context,
+        item.feedbackType,
+        item.workType,
+        item.details,
+        names(item.teams),
+        names(item.companies),
+      ]
+        .join(' ')
+        .toLowerCase();
+    return [item.link, item.type, item.notes, names(item.projects), names(item.companies)].join(' ').toLowerCase();
   }
 
   private saveNavigationState(): void {

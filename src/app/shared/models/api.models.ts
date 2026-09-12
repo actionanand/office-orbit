@@ -15,6 +15,137 @@ export interface NamedRef {
   name: string;
 }
 
+export interface MetadataSelectOption {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export type ResourceFieldType =
+  | 'title'
+  | 'rich_text'
+  | 'date'
+  | 'select'
+  | 'multi_select'
+  | 'relation'
+  | 'checkbox'
+  | 'url'
+  | 'status'
+  | 'rollup'
+  | 'formula'
+  | 'unknown';
+
+export interface ResourceFieldMetadata {
+  key: string;
+  label: string;
+  type: ResourceFieldType | string;
+  writable: boolean;
+  options?: MetadataSelectOption[];
+  optionsEndpoint?: string;
+}
+
+export interface ResourceMetadataResponse {
+  resource: string;
+  fields: ResourceFieldMetadata[];
+}
+
+export interface MutationResponse<T> {
+  data: T;
+}
+
+export interface RelationOption {
+  id: string;
+  label: string;
+  description?: string;
+}
+
+export interface QueryRequest<TFilters> {
+  filters: TFilters;
+  pageSize: number;
+  cursor: string | null;
+  includeRelations: boolean;
+}
+
+export interface WorkLogQueryFilters {
+  from?: string;
+  to?: string;
+  projectIds?: string[];
+  jiraIds?: string[];
+  categories?: string[];
+  types?: string[];
+  workModes?: string[];
+  appraisal?: boolean;
+}
+
+export interface FeedbackQueryFilters {
+  from?: string;
+  to?: string;
+  companyIds?: string[];
+  teamIds?: string[];
+  personTypes?: string[];
+  contexts?: string[];
+  feedbackTypes?: string[];
+}
+
+export interface WorkLinkQueryFilters {
+  companyIds?: string[];
+  projectIds?: string[];
+  types?: string[];
+  active?: boolean;
+  q?: string;
+}
+
+export interface JiraQueryFilters {
+  statuses?: string[];
+  tags?: string[];
+  sprintIds?: string[];
+  projectIds?: string[];
+  inActiveSprint?: boolean;
+  spillover?: boolean;
+  appraisal?: boolean;
+  demoRequired?: boolean;
+  q?: string;
+}
+
+export interface WorkLogCreateRequest {
+  update: string;
+  date: string | null;
+  categoryOptionId: string | null;
+  typeOptionId: string | null;
+  workModeOptionId: string | null;
+  projectId: string | null;
+  jiraIds: string[];
+  comment: string;
+  wentWrong: string;
+  appraisal: boolean;
+}
+export type WorkLogPatchRequest = Partial<WorkLogCreateRequest>;
+
+export interface FeedbackCreateRequest {
+  feedback: string;
+  date: string | null;
+  feedbackFrom: string;
+  personTypeOptionId: string | null;
+  contextOptionId: string | null;
+  feedbackTypeOptionId: string | null;
+  companyId: string | null;
+  teamId: string | null;
+  details: string;
+  actionFollowUp: string;
+}
+export type FeedbackPatchRequest = Partial<FeedbackCreateRequest>;
+
+export interface WorkLinkCreateRequest {
+  link: string;
+  typeOptionId: string | null;
+  url: string | null;
+  companyId: string | null;
+  projectId: string | null;
+  notes: string;
+  active: boolean;
+}
+export type WorkLinkPatchRequest = Partial<WorkLinkCreateRequest>;
+
 export interface JiraRef {
   id: string;
   key: string;
@@ -180,13 +311,12 @@ export interface Feedback {
   personType: string | null;
   context: string | null;
   feedbackType: string | null;
+  workType: string | null;
   details: string;
   actionFollowUp: string;
   companyIds: string[];
-  projectIds: string[];
   teamIds: string[];
   companies?: NamedRef[];
-  projects?: NamedRef[];
   teams?: NamedRef[];
 }
 

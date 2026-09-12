@@ -4,7 +4,7 @@ import { WorkLogService } from './work-logs.service';
 export const routes: Routes = [
   {
     path: '',
-    providers: [{ provide: ReadFeatureService, useClass: WorkLogService }],
+    providers: [WorkLogService, { provide: ReadFeatureService, useExisting: WorkLogService }],
     loadComponent: () => import('./work-log.page').then(m => m.WorkLogPage),
   },
 ];

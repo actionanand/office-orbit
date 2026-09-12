@@ -16,11 +16,17 @@ Dashboard makes one request to `GET /api/dashboard`. It shows the current Sprint
 
 ## Lists and details
 
-Work Logs offer persistent List and Calendar modes. List mode groups compact activity rows by work date. Calendar mode requests only the selected month with `from` and `to`, caches each month/filter combination separately, shows per-day counts, and filters the list below when a date is selected. Selecting a Work Log opens an explicit detail sheet with Overview, Related work, Notes, and Recognition sections only when those sections contain data.
+Work Logs offer persistent List and Calendar modes. List mode groups compact activity rows by work date. Metadata-backed Category, Type, and Work Mode controls support multiple selections and use server-side HTTP QUERY filtering. Calendar mode requests the selected month with the same server-side filters, shows per-day counts, and filters the list below when a date is selected. Selecting a Work Log opens an explicit detail sheet with Overview, Related work, Notes, Recognition, and an Edit action only when relevant.
 
 Web printing uses the current Work Log view and filters with a dedicated print layout. Navigation, filters, buttons, internal IDs, and application implementation details are excluded. Native Android printing remains unavailable until a maintained Capacitor-compatible solution is selected.
 
-JIRAs use compact rows and a dedicated detail route. JIRA detail presents chronological Sprint allocation history, Planned Days, allocation conflicts, and Worker-derived spill transitions. Every related Sprint links to its internal detail route. Sprints use navigable capacity cards and proportional progress; Sprint detail shows overview capacity and every JIRA returned by the Worker, regardless of status. Releases use a table/list hybrid with inline disclosure. Feedback uses content-led rows with text status badges. Work Links use shortcut cards and safe external link handling.
+JIRAs use compact rows and a dedicated detail route. JIRA detail presents chronological Sprint allocation history, Planned Days, allocation conflicts, and Worker-derived spill transitions. Every related Sprint links to its internal detail route. Sprints use navigable capacity cards and proportional progress; Sprint detail shows overview capacity and every JIRA returned by the Worker, regardless of status. Releases use a table/list hybrid with inline disclosure. Feedback rows show the Company-derived Work Type and have a separate Edit action. Work Link cards keep Open link separate from Edit.
+
+## Editors
+
+Work Logs, Feedback, and Work Links use focused Ionic modal editors with typed Reactive Forms. Reactive Forms are used because the native Ionic modal and native multi-select controls integrate directly with their ControlValueAccessor behavior. Required titles, dates, optional URLs, metadata failures, and server failures have visible accessible states. Save is disabled while invalid or pending, modal dismissal is blocked during submission, changed forms warn before dismissal, and focus moves to the first field when the editor opens.
+
+Select controls display Worker metadata names and submit option IDs. Relation controls display names or JIRA key plus summary and submit Notion page IDs. Relation pagination is completed with opaque cursors and selected values are merged back into the options. Feedback Work Type is shown as derived and cannot be edited; Project is absent from Feedback.
 
 ## Data volume
 

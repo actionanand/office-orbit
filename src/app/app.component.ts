@@ -5,9 +5,10 @@ import { NgOptimizedImage } from '@angular/common';
 import { IonApp, IonButton, IonSpinner } from '@ionic/angular';
 import { StartupService } from './core/startup.service';
 import { AuthService } from './core/auth/auth.service';
+import { SnackbarComponent } from './shared/components/snackbar.component';
 @Component({
   selector: 'app-root',
-  imports: [IonApp, IonButton, NgOptimizedImage, RouterOutlet, IonSpinner],
+  imports: [IonApp, IonButton, NgOptimizedImage, RouterOutlet, IonSpinner, SnackbarComponent],
   template: `<ion-app>
     @if (startup.phase() === 'loading') {
       <div class="session-shield" role="status">
@@ -26,8 +27,9 @@ import { AuthService } from './core/auth/auth.service';
         <ion-button fill="clear" (click)="goToSignIn()">Go to sign in</ion-button>
       </div>
     }
-    <router-outlet
-  /></ion-app>`,
+    <app-snackbar />
+    <router-outlet />
+  </ion-app>`,
 })
 export class AppComponent {
   readonly startup = inject(StartupService);
