@@ -1,12 +1,14 @@
 import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
 import { PrintService } from '../../core/platform/print.service';
 import { provideHttpClient } from '@angular/common/http';
 import { WorkLog } from '../../shared/models/api.models';
 import { WorkLogPage } from './work-log.page';
 import { WorkLogStore } from './work-log.store';
 import { WorkLogExportService } from './work-log-export.service';
+import { WorkLogService } from './work-logs.service';
 
 const exporter = {
   android: false,
@@ -47,7 +49,7 @@ describe('WorkLogPage calendar', () => {
     const store = {
       mode: signal('calendar'),
       selectedPath: signal('/api/work-logs'),
-      filters: signal({ from: '', to: '', category: '', type: '', workMode: '' }),
+      filters: signal({ from: '', to: '', categories: [], types: [], workModes: [] }),
       search: signal(''),
       month: signal('2026-09'),
       selectedDate: signal<string | null>(null),
@@ -57,6 +59,7 @@ describe('WorkLogPage calendar', () => {
       hasMore: signal(false),
       loading: signal(false),
       error: signal(''),
+      notice: signal(''),
       lastUpdated: signal<number | null>(null),
       load: vi.fn().mockResolvedValue(undefined),
       setMode: vi.fn(),
@@ -70,6 +73,7 @@ describe('WorkLogPage calendar', () => {
         { provide: WorkLogStore, useValue: store },
         { provide: PrintService, useValue: { supported: true, print: vi.fn() } },
         { provide: WorkLogExportService, useValue: exporter },
+        { provide: WorkLogService, useValue: { metadata: () => of({ resource: 'work-logs', fields: [] }) } },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(WorkLogPage);
@@ -89,7 +93,7 @@ describe('WorkLogPage calendar', () => {
     const store = {
       mode: signal('list'),
       selectedPath: signal('/api/work-logs'),
-      filters: signal({ from: '', to: '', category: '', type: '', workMode: '' }),
+      filters: signal({ from: '', to: '', categories: [], types: [], workModes: [] }),
       search: signal(''),
       month: signal('2026-09'),
       selectedDate: signal<string | null>(null),
@@ -99,6 +103,7 @@ describe('WorkLogPage calendar', () => {
       hasMore: signal(false),
       loading: signal(false),
       error: signal(''),
+      notice: signal(''),
       lastUpdated: signal<number | null>(null),
       load: vi.fn().mockResolvedValue(undefined),
       setMode: vi.fn(),
@@ -112,6 +117,7 @@ describe('WorkLogPage calendar', () => {
         { provide: WorkLogStore, useValue: store },
         { provide: PrintService, useValue: { supported: true, print } },
         { provide: WorkLogExportService, useValue: exporter },
+        { provide: WorkLogService, useValue: { metadata: () => of({ resource: 'work-logs', fields: [] }) } },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(WorkLogPage);

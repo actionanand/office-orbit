@@ -1,9 +1,18 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
 import { LinksService } from '../../core/platform/links.service';
-import { Jira, ReleaseItem, Sprint, SprintAllocation, SprintDetailJira, WorkLog } from '../../shared/models/api.models';
+import {
+  Feedback,
+  Jira,
+  ReleaseItem,
+  Sprint,
+  SprintAllocation,
+  SprintDetailJira,
+  WorkLog,
+} from '../../shared/models/api.models';
 import { ResourcePage } from './resource.page';
 
 const route = { snapshot: { queryParamMap: convertToParamMap({}) } };
@@ -32,6 +41,7 @@ describe('ResourcePage presentation', () => {
     await TestBed.configureTestingModule({
       imports: [ResourcePage],
       providers: [
+        provideHttpClient(),
         provideRouter([]),
         { provide: ActivatedRoute, useValue: route },
         { provide: LinksService, useValue: {} },
@@ -84,6 +94,7 @@ describe('ResourcePage presentation', () => {
     await TestBed.configureTestingModule({
       imports: [ResourcePage],
       providers: [
+        provideHttpClient(),
         provideRouter([]),
         { provide: ActivatedRoute, useValue: route },
         { provide: LinksService, useValue: { open: vi.fn() } },
@@ -143,6 +154,7 @@ describe('ResourcePage presentation', () => {
     await TestBed.configureTestingModule({
       imports: [ResourcePage],
       providers: [
+        provideHttpClient(),
         provideRouter([]),
         { provide: ActivatedRoute, useValue: route },
         { provide: LinksService, useValue: { open: vi.fn() } },
@@ -213,6 +225,7 @@ describe('ResourcePage presentation', () => {
     await TestBed.configureTestingModule({
       imports: [ResourcePage],
       providers: [
+        provideHttpClient(),
         provideRouter([]),
         { provide: ActivatedRoute, useValue: route },
         { provide: LinksService, useValue: { open: vi.fn() } },
@@ -235,12 +248,63 @@ describe('ResourcePage presentation', () => {
     const sprintLink = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('.sprint-card');
     expect(sprintLink?.href).toContain('/app/sprints/sprint%2Fid');
     expect(fixture.nativeElement.querySelector('.allocation-row')?.tagName).toBe('ARTICLE');
-    const allocationLink = fixture.nativeElement.querySelector<HTMLAnchorElement>('.allocation-jira-link');
+    const allocationLink = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>(
+      '.allocation-jira-link',
+    );
     expect(allocationLink?.href).toContain('/app/jiras/LSC-85120');
     expect(allocationLink?.textContent).toContain('GRC alert migration to first-party services');
     expect(allocationLink?.textContent).toContain('In progress');
     expect(allocationLink?.textContent).toContain('Spilled once');
     const allocationArrow = fixture.nativeElement.querySelector('.allocation-row > .allocation-arrow');
     expect(allocationArrow).toBeTruthy();
+  });
+
+  it('shows Feedback Work Type and never renders a Project relation', async () => {
+    const feedback: Feedback = {
+      id: 'feedback-id',
+      createdTime: '',
+      lastEditedTime: '',
+      feedback: 'Strong delivery',
+      date: '2026-09-12',
+      feedbackFrom: 'Manager',
+      personType: 'Manager',
+      context: 'Appraisal',
+      feedbackType: 'Positive',
+      workType: 'Office Work',
+      details: '',
+      actionFollowUp: '',
+      companyIds: ['company-id'],
+      teamIds: ['team-id'],
+      companies: [{ id: 'company-id', name: 'Clarivate' }],
+      teams: [{ id: 'team-id', name: 'Jupiter' }],
+    };
+    await TestBed.configureTestingModule({
+      imports: [ResourcePage],
+      providers: [
+        provideHttpClient(),
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: route },
+        { provide: LinksService, useValue: { open: vi.fn() } },
+        {
+          provide: ReadFeatureService,
+          useValue: {
+            heading: 'Feedback',
+            description: '',
+            kind: 'feedback',
+            views: [{ label: 'All', path: '/api/feedback' }],
+            list: () => of({ data: [feedback], count: 1, hasMore: false, nextCursor: null }),
+            updatedAt: () => Date.now(),
+          },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ResourcePage);
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Office Work');
+    expect(text).toContain('Jupiter');
+    expect(text).toContain('Clarivate');
+    expect(text).not.toContain('Project');
+    expect((fixture.nativeElement as HTMLElement).querySelector('[aria-label^="Edit feedback"]')).not.toBeNull();
   });
 });

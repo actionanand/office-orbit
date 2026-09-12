@@ -14,7 +14,15 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { chevronDownOutline, chevronForwardOutline, closeOutline, openOutline, refreshOutline } from 'ionicons/icons';
+import {
+  addOutline,
+  chevronDownOutline,
+  chevronForwardOutline,
+  closeOutline,
+  createOutline,
+  openOutline,
+  refreshOutline,
+} from 'ionicons/icons';
 import { apiError } from '../../core/api/api-error';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
 import { NavigationStateService } from '../../core/cache/navigation-state.service';
@@ -44,6 +52,8 @@ import {
 } from '../../shared/utils/format';
 import { activeSprint, spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from '../jiras/jira-link.component';
+import { FeedbackEditorComponent } from '../feedback/feedback-editor.component';
+import { WorkLinkEditorComponent } from '../work-links/work-link-editor.component';
 
 interface AllocationDetailSource {
   allocationJiras(allocations: SprintAllocation[], refresh?: boolean): Observable<Record<string, SprintDetailJira[]>>;
@@ -69,6 +79,8 @@ function supportsAllocationDetails(
     IonTitle,
     IonToolbar,
     JiraLinkComponent,
+    FeedbackEditorComponent,
+    WorkLinkEditorComponent,
     LoadingSkeletonComponent,
     PageHeaderComponent,
     StatePanelComponent,
@@ -84,7 +96,18 @@ function supportsAllocationDetails(
     </ion-header>
     <ion-content>
       <main class="page-wrap resource-page">
-        <app-page-header [title]="feature.heading" [description]="feature.description" />
+        <div class="page-action-row">
+          <app-page-header [title]="feature.heading" [description]="feature.description" />
+          @if (feature.kind === 'feedback') {
+            <ion-button (click)="openFeedback(null)"
+              ><ion-icon name="add-outline" slot="start" />Add feedback</ion-button
+            >
+          } @else if (feature.kind === 'work-links') {
+            <ion-button (click)="openWorkLinkEditor(null)"
+              ><ion-icon name="add-outline" slot="start" />Add work link</ion-button
+            >
+          }
+        </div>
         @if (feature.kind === 'sprints') {
           <p class="today-label">Today: {{ today }}</p>
         }
@@ -116,6 +139,9 @@ function supportsAllocationDetails(
         </form>
         @if (updatedAt(); as timestamp) {
           <p class="updated-label">{{ relative(timestamp) }}</p>
+        }
+        @if (notice()) {
+          <p class="refresh-notice" role="status">{{ notice() }}</p>
         }
 
         @if (loading()) {
@@ -341,8 +367,8 @@ function supportsAllocationDetails(
                       @if (item.context) {
                         <span>{{ item.context }}</span>
                       }
-                      @if (names(item.projects)) {
-                        <span>{{ names(item.projects) }}</span>
+                      @if (item.workType) {
+                        <span>{{ item.workType }}</span>
                       }
                       @if (names(item.teams)) {
                         <span>{{ names(item.teams) }}</span>
@@ -361,6 +387,12 @@ function supportsAllocationDetails(
                   @if (item.feedbackType) {
                     <app-status-badge [label]="item.feedbackType" />
                   }
+                  <ion-button
+                    fill="clear"
+                    [attr.aria-label]="'Edit feedback ' + (item.feedback || '')"
+                    (click)="openFeedback(item)">
+                    <ion-icon name="create-outline" slot="start" />Edit
+                  </ion-button>
                 </article>
               }
             </section>
@@ -378,12 +410,26 @@ function supportsAllocationDetails(
                     @if (names(item.projects)) {
                       <p class="meta-line">{{ names(item.projects) }}</p>
                     }
+                    @if (names(item.companies)) {
+                      <p class="meta-line">{{ names(item.companies) }}</p>
+                    }
+                    <app-status-badge
+                      [label]="item.active ? 'Active' : 'Inactive'"
+                      [kind]="item.active ? 'success' : 'neutral'" />
                   </div>
-                  @if (safeLink(item)) {
-                    <ion-button fill="clear" (click)="openLink(item)"
-                      >Open link <ion-icon name="open-outline" slot="end" aria-hidden="true"
-                    /></ion-button>
-                  }
+                  <div class="shortcut-actions">
+                    <ion-button
+                      fill="clear"
+                      [attr.aria-label]="'Edit work link ' + item.link"
+                      (click)="openWorkLinkEditor(item)">
+                      <ion-icon name="create-outline" slot="start" />Edit
+                    </ion-button>
+                    @if (safeLink(item)) {
+                      <ion-button fill="clear" (click)="openLink(item)"
+                        >Open link <ion-icon name="open-outline" slot="end" aria-hidden="true"
+                      /></ion-button>
+                    }
+                  </div>
                 </article>
               }
             </section>
@@ -486,6 +532,16 @@ function supportsAllocationDetails(
           }
         </aside>
       }
+      <app-feedback-editor
+        [open]="feedbackEditorOpen()"
+        [item]="editingFeedback()"
+        (closed)="closeFeedbackEditor()"
+        (saved)="feedbackSaved($event)" />
+      <app-work-link-editor
+        [open]="workLinkEditorOpen()"
+        [item]="editingWorkLink()"
+        (closed)="closeWorkLinkEditor()"
+        (saved)="workLinkSaved($event)" />
     </ion-content>`,
 })
 export class ResourcePage {
@@ -502,11 +558,16 @@ export class ResourcePage {
   readonly count = signal(0);
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly notice = signal('');
   readonly search = signal('');
   readonly hasMore = signal(false);
   readonly loadingMore = signal(false);
   readonly updatedAt = signal<number | null>(null);
   readonly selectedWorkLog = signal<WorkLog | null>(null);
+  readonly feedbackEditorOpen = signal(false);
+  readonly editingFeedback = signal<Feedback | null>(null);
+  readonly workLinkEditorOpen = signal(false);
+  readonly editingWorkLink = signal<WorkLink | null>(null);
   readonly allocationDetails = signal<Record<string, SprintDetailJira[]>>({});
   readonly filters = new FormGroup({
     from: new FormControl('', { nonNullable: true }),
@@ -538,7 +599,15 @@ export class ResourcePage {
   readonly today = formatTodayLabel();
 
   constructor() {
-    addIcons({ chevronDownOutline, chevronForwardOutline, closeOutline, openOutline, refreshOutline });
+    addIcons({
+      addOutline,
+      chevronDownOutline,
+      chevronForwardOutline,
+      closeOutline,
+      createOutline,
+      openOutline,
+      refreshOutline,
+    });
     const requestedView = this.route.snapshot.queryParamMap.get('view');
     const matchingView = this.feature.views.find(view => requestedView && this.viewToken(view.label) === requestedView);
     const restored = this.navigationState.read(this.feature.kind);
@@ -572,7 +641,7 @@ export class ResourcePage {
     }
   }
 
-  load(refresh = false, more = false): void {
+  load(refresh = false, more = false, preserveVisible = false): void {
     if (more && this.loadingMore()) return;
     const filters: Record<string, string> = this.feature.kind === 'work-logs' ? this.filters.getRawValue() : {};
     if (filters['from'] && filters['to'] && filters['from'] > filters['to']) {
@@ -584,10 +653,11 @@ export class ResourcePage {
     this.request?.unsubscribe();
     this.allocationRequest?.unsubscribe();
     this.allocationDetails.set({});
-    this.loading.set(!more);
+    this.loading.set(!more && !preserveVisible);
     this.loadingMore.set(more);
     this.error.set('');
-    if (!more) {
+    this.notice.set('');
+    if (!more && !preserveVisible) {
       this.hasMore.set(false);
       this.items.set([]);
     }
@@ -616,7 +686,8 @@ export class ResourcePage {
           }
         },
         error: error => {
-          this.error.set(apiError(error));
+          if (preserveVisible) this.notice.set('Saved, but the latest list could not be refreshed. Try Refresh.');
+          else this.error.set(apiError(error));
           this.loading.set(false);
           this.loadingMore.set(false);
         },
@@ -643,6 +714,46 @@ export class ResourcePage {
 
   closeWorkLog(): void {
     this.selectedWorkLog.set(null);
+  }
+
+  openFeedback(item: Feedback | null): void {
+    this.editingFeedback.set(item);
+    this.feedbackEditorOpen.set(true);
+  }
+
+  closeFeedbackEditor(): void {
+    this.feedbackEditorOpen.set(false);
+    this.editingFeedback.set(null);
+  }
+
+  feedbackSaved(item: Feedback): void {
+    this.upsert(item);
+    this.closeFeedbackEditor();
+    this.load(true, false, true);
+  }
+
+  openWorkLinkEditor(item: WorkLink | null): void {
+    this.editingWorkLink.set(item);
+    this.workLinkEditorOpen.set(true);
+  }
+
+  closeWorkLinkEditor(): void {
+    this.workLinkEditorOpen.set(false);
+    this.editingWorkLink.set(null);
+  }
+
+  workLinkSaved(item: WorkLink): void {
+    this.upsert(item);
+    this.closeWorkLinkEditor();
+    this.load(true, false, true);
+  }
+
+  private upsert(item: DomainItem): void {
+    this.items.update(items =>
+      items.some(current => current.id === item.id)
+        ? items.map(current => (current.id === item.id ? item : current))
+        : [item, ...items],
+    );
   }
 
   isSprint(item: Sprint | SprintAllocation): item is Sprint {
@@ -709,8 +820,19 @@ export class ResourcePage {
         .join(' ')
         .toLowerCase();
     if ('feedback' in item)
-      return [item.feedback, item.feedbackFrom, item.context, item.feedbackType, item.details].join(' ').toLowerCase();
-    return [item.link, item.type, item.notes, names(item.projects)].join(' ').toLowerCase();
+      return [
+        item.feedback,
+        item.feedbackFrom,
+        item.context,
+        item.feedbackType,
+        item.workType,
+        item.details,
+        names(item.teams),
+        names(item.companies),
+      ]
+        .join(' ')
+        .toLowerCase();
+    return [item.link, item.type, item.notes, names(item.projects), names(item.companies)].join(' ').toLowerCase();
   }
 
   private saveNavigationState(): void {

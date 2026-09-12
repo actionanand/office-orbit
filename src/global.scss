@@ -1914,7 +1914,126 @@ details > summary {
   text-decoration: none;
 }
 
+.editor-modal {
+  --width: min(760px, calc(100vw - 32px));
+  --height: min(780px, calc(100vh - 32px));
+  --border-radius: 16px;
+}
+.editor-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 24px max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
+}
+.editor-form label {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  color: var(--ion-text-color);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+.editor-form input:not([type='checkbox']),
+.editor-form select,
+.editor-form textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ion-text-color);
+  font: inherit;
+}
+.editor-form select[multiple] {
+  min-height: 150px;
+}
+.editor-form textarea {
+  resize: vertical;
+}
+.editor-form small,
+.derived-field small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 450;
+}
+.editor-form .field-span,
+.editor-actions,
+.derived-field {
+  grid-column: 1 / -1;
+}
+.editor-form .check-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.editor-form .check-field input {
+  width: 20px;
+  height: 20px;
+}
+.field-error,
+.form-error {
+  margin: -9px 0 0;
+  color: var(--ion-color-danger);
+  font-size: 0.78rem;
+}
+.refresh-notice {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--ion-text-color);
+  font-size: 0.78rem;
+}
+.derived-field {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-soft);
+}
+.editor-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  background: var(--ion-background-color);
+}
+.editor-state {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+  padding: 24px;
+  text-align: center;
+}
+.shortcut-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.compact-filters select[multiple] {
+  min-height: 112px;
+}
+
 @media (max-width: 700px) {
+  .editor-modal {
+    --width: 100%;
+    --height: 100%;
+    --border-radius: 0;
+  }
+  .editor-form {
+    grid-template-columns: 1fr;
+  }
+  .editor-form > * {
+    grid-column: 1;
+  }
   .page-action-row,
   .work-log-controls {
     display: block;
