@@ -1,0 +1,1 @@
+import {H as T}from'./main-DEYJQBGR.js';var o=(function(t){return t.Dark="DARK",t.Light="LIGHT",t.Default="DEFAULT",t})(o||{}),e=(function(t){return t.None="NONE",t.Slide="SLIDE",t.Fade="FADE",t})(e||{});var p=T("StatusBar");export{e as Animation,p as StatusBar,o as Style};
