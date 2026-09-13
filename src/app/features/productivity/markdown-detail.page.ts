@@ -51,6 +51,16 @@ import { ProductivityService } from './productivity.service';
             <div>
               <p class="eyebrow">{{ kind === 'memos' ? 'Memo' : 'Reference Library' }}</p>
               <h1>{{ title(item) }}</h1>
+              @if ('category' in item) {
+                <div class="reference-metadata">
+                  @if (item.category) {
+                    <span class="status-badge">{{ item.category }}</span>
+                  }
+                  @for (tag of item.tags; track tag) {
+                    <span class="status-badge">{{ tag }}</span>
+                  }
+                </div>
+              }
               <p>Last edited {{ formatDateTime(item.lastEditedTime) }}</p>
             </div>
             <div class="source-toggle" role="group" aria-label="Content view">
@@ -111,6 +121,6 @@ export class MarkdownDetailPage {
     });
   }
   title(item: MemoDetail | ReferenceLibraryDetail): string {
-    return 'memo' in item ? item.memo : item.title;
+    return 'memo' in item ? item.memo : item.article;
   }
 }

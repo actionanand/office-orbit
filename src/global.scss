@@ -2720,6 +2720,62 @@ ion-popover.work-link-popover {
   color: var(--muted);
   font-size: 0.76rem;
 }
+.reference-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.reference-filters ion-input,
+.reference-filters ion-select,
+.reference-import-fields ion-input,
+.reference-import-fields ion-select,
+.jira-create-form ion-input,
+.jira-create-form ion-select {
+  --border-color: var(--line);
+  --highlight-color-focused: var(--accent);
+}
+.reference-import-form {
+  display: grid;
+  gap: 16px;
+}
+.import-heading-row,
+.reference-badges,
+.reference-metadata,
+.jira-create-checks {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.import-heading-row {
+  justify-content: space-between;
+}
+.reference-import-fields {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+}
+.reference-group {
+  margin-top: 24px;
+}
+.reference-group h2 {
+  font-size: 1rem;
+}
+.reference-badges .status-badge,
+.reference-metadata .status-badge {
+  display: inline-flex;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ion-text-color);
+  font-size: 0.7rem;
+}
+.jira-create-checks {
+  justify-content: flex-start;
+  gap: 18px;
+  padding-block: 8px;
+}
 .import-panel {
   margin: 14px 0;
   padding: 14px 16px;
@@ -2791,6 +2847,141 @@ ion-popover.work-link-popover {
 }
 .markdown-viewer {
   max-width: 82ch;
+  color: var(--ion-text-color);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.markdown-viewer > :first-child {
+  margin-top: 0;
+}
+.markdown-viewer > :last-child {
+  margin-bottom: 0;
+}
+.markdown-viewer p,
+.markdown-viewer ul,
+.markdown-viewer ol,
+.markdown-viewer dl,
+.markdown-viewer blockquote,
+.markdown-viewer details,
+.markdown-viewer .markdown-table-scroll {
+  margin-block: 0 1rem;
+}
+.markdown-viewer li + li {
+  margin-top: 0.25rem;
+}
+.markdown-viewer li > ul,
+.markdown-viewer li > ol {
+  margin-block: 0.35rem;
+}
+.markdown-viewer hr {
+  height: 1px;
+  margin-block: 2rem;
+  border: 0;
+  background: var(--line);
+}
+.markdown-viewer img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: 1rem;
+  border-radius: 8px;
+}
+.markdown-viewer a {
+  color: var(--ion-color-primary);
+  text-underline-offset: 0.16em;
+}
+.markdown-viewer :not(pre) > code,
+.markdown-viewer kbd {
+  padding: 0.12em 0.35em;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-soft);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.9em;
+}
+.markdown-viewer mark {
+  padding-inline: 0.15em;
+  background: #fff0a6;
+  color: #2b2500;
+}
+.markdown-viewer details {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+.markdown-viewer summary {
+  cursor: pointer;
+  color: var(--ion-color-primary);
+  font-weight: 700;
+}
+.markdown-viewer details[open] summary {
+  margin-bottom: 10px;
+}
+.markdown-viewer dl {
+  display: grid;
+  grid-template-columns: minmax(100px, max-content) minmax(0, 1fr);
+  gap: 6px 16px;
+}
+.markdown-viewer dt {
+  font-weight: 700;
+}
+.markdown-viewer dd {
+  margin: 0;
+}
+.markdown-footnote-ref {
+  margin-inline: 0.12em;
+  font-size: 0.78em;
+  line-height: 1;
+}
+.markdown-footnotes {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9em;
+}
+.markdown-footnote-back {
+  text-decoration: none;
+}
+.markdown-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+.markdown-table-scroll:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 2px;
+}
+.markdown-viewer table {
+  width: 100%;
+  min-width: 440px;
+  border-collapse: collapse;
+  background: var(--surface);
+}
+.markdown-viewer th,
+.markdown-viewer td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.markdown-viewer th {
+  background: var(--surface-soft);
+  font-weight: 700;
+}
+.markdown-viewer tr:last-child td {
+  border-bottom: 0;
+}
+.markdown-viewer th[align='center'],
+.markdown-viewer td[align='center'] {
+  text-align: center;
+}
+.markdown-viewer th[align='right'],
+.markdown-viewer td[align='right'] {
+  text-align: right;
 }
 .markdown-viewer pre,
 .markdown-source {
@@ -2798,14 +2989,62 @@ ion-popover.work-link-popover {
   padding: 14px;
   border-radius: 8px;
   background: var(--surface-soft);
+  white-space: pre;
+}
+.markdown-source {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.markdown-viewer .checklist-item {
+.markdown-mermaid {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-block: 18px;
+}
+.markdown-mermaid svg {
+  display: block;
+  min-width: min(100%, 480px);
+  height: auto;
+}
+.markdown-math-block {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-block: 8px;
+  text-align: center;
+}
+.markdown-diagram-error {
+  color: #8a4b00;
+}
+.markdown-viewer .checklist-item,
+.markdown-viewer .task-list-item {
   display: flex;
   align-items: flex-start;
   gap: 8px;
   list-style: none;
+}
+.markdown-viewer .contains-task-list {
+  padding-left: 0;
+}
+.markdown-viewer .task-list-item > .contains-task-list {
+  padding-left: 24px;
+}
+.markdown-checkbox {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.2rem;
+  place-items: center;
+  border: 1.5px solid var(--muted);
+  border-radius: 4px;
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.markdown-checkbox.checked {
+  border-color: var(--ion-color-primary);
+  background: var(--ion-color-primary);
 }
 .markdown-mode {
   display: flex;
@@ -2952,6 +3191,35 @@ ion-popover.work-link-popover {
   }
   .markdown-panel {
     padding: 17px;
+  }
+  .markdown-viewer {
+    font-size: 0.94rem;
+  }
+  .markdown-viewer hr {
+    margin-block: 1.5rem;
+  }
+  .markdown-viewer ul,
+  .markdown-viewer ol {
+    padding-left: 1.4rem;
+  }
+  .markdown-viewer dl {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .markdown-viewer dd + dt {
+    margin-top: 8px;
+  }
+  .markdown-viewer th,
+  .markdown-viewer td {
+    padding: 9px 10px;
+  }
+  .reference-filters,
+  .reference-import-fields {
+    grid-template-columns: 1fr;
+  }
+  .jira-create-checks {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .page-action-row,
   .work-log-controls {

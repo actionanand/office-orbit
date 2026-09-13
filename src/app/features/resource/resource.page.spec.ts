@@ -67,6 +67,7 @@ describe('ResourcePage presentation', () => {
     expect(element.textContent).not.toContain('private-release-id');
     expect(element.textContent).not.toContain('Load more');
     expect(element.textContent).not.toContain('items on this page');
+    expect(element.textContent).not.toContain('Add JIRA');
   });
 
   it('renders a compact Work Log and hides empty fields and internal IDs', async () => {
@@ -179,6 +180,9 @@ describe('ResourcePage presentation', () => {
     expect(text).not.toContain('Sprint history');
     expect(text).not.toContain('hidden-sprint-id');
     expect(fixture.nativeElement.querySelectorAll('.status-badge').length).toBeGreaterThan(1);
+    expect(text).toContain('Add JIRA');
+    expect(text).not.toContain('Edit JIRA');
+    expect(text).not.toContain('Delete JIRA');
   });
 
   it('links Sprint cards and enriches allocation rows with compact JIRA details', async () => {

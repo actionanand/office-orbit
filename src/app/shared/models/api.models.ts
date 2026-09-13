@@ -151,6 +151,23 @@ export interface JiraQueryFilters {
   q?: string;
 }
 
+export interface ReferenceLibraryQueryFilters {
+  categories?: string[];
+  tags?: string[];
+  q?: string;
+}
+
+export interface JiraCreateRequest {
+  jiraKey: string;
+  summary: string;
+  projectId: string | null;
+  statusOptionId: string | null;
+  tagOptionIds: string[];
+  inActiveSprint: boolean;
+  demoRequired: boolean;
+  appraisal: boolean;
+}
+
 export interface WorkLogCreateRequest {
   update: string;
   date: string | null;
@@ -479,7 +496,9 @@ export interface MemoDetail extends Memo {
 
 export interface ReferenceLibraryItem {
   id: string;
-  title: string;
+  article: string;
+  category: string | null;
+  tags: string[];
   createdTime: string | null;
   lastEditedTime: string | null;
 }
