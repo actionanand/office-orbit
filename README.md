@@ -1,6 +1,6 @@
 # Office Orbit
 
-Office Orbit is a personal, read-only work-management application for Android and responsive web: Dashboard, JIRAs, Work Log, Sprints, Releases, Feedback, and Work Links.
+Office Orbit is a personal work-management application for Android and responsive web: Dashboard, JIRAs, Work Log, Sprints, Releases, Feedback, Productivity, and Work Links.
 
 The existing Angular 22.0.1, Ionic 9.0.0, Capacitor 8.5.0, TypeScript 6, and Vitest setup is retained. The app uses standalone components, lazy feature routes, signals, functional guards/interceptors, and feature-specific API services. Your canonical brand artwork is `src/assets/office-orbit.png`.
 
@@ -67,6 +67,14 @@ The `main-android` GitHub workflow auto-bumps versionCode and creates signed or 
 - `shared/`: navigation, typed response envelopes, safe unknown-field rendering, cards and request states.
 - `scripts/`: native patches, assets, versioning, local release collection, signing-key utilities.
 - `documentation/`: architecture, auth, API boundaries, Android security and release instructions.
+
+## Productivity
+
+The lazy `/app/productivity` workspace contains To Do, Tasks & Follow-ups, Memos, and Reference Library. To Do, Tasks, and Memos use authenticated HTTP `QUERY` requests for server-side search and saved-view filters, opaque cursor pagination with 25 rows per page, metadata option IDs for writes, single deletion, and one-request bulk deletion of up to 25 selected records. Task Company and JIRA choices come from the metadata-provided relation endpoints.
+
+Memos store their body as Markdown and load it only for detail or editing. The client provides source and safe Angular-rendered preview views without injecting untrusted HTML. Reference Library is read/import only: `.md` and `.markdown` files up to 4,500,000 bytes are imported using multipart `FormData`. The client supports both immediate HTTP 201 results and HTTP 202 processing by following the Worker-provided polling interval until success or failure.
+
+See [Productivity client guide](documentation/PRODUCTIVITY.md) for views, API behavior, deletion, Markdown, imports, and validation details.
 
 ## Integration and validation status
 

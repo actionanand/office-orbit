@@ -9,6 +9,8 @@ import {
   IonIcon,
   IonSegment,
   IonSegmentButton,
+  IonSelect,
+  IonSelectOption,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
@@ -41,6 +43,7 @@ import { formatDate, formatRelativeTime, names } from '../../shared/utils/format
 import { calendarDays, currentMonth } from './calendar';
 import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store';
 import { WorkLogService } from './work-logs.service';
+import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
 
 @Component({
   selector: 'app-work-log',
@@ -56,6 +59,8 @@ import { WorkLogService } from './work-logs.service';
     IonIcon,
     IonSegment,
     IonSegmentButton,
+    IonSelect,
+    IonSelectOption,
     IonTitle,
     IonToolbar,
     JiraLinkComponent,
@@ -63,6 +68,7 @@ import { WorkLogService } from './work-logs.service';
     PageHeaderComponent,
     StatePanelComponent,
     StatusBadgeComponent,
+    IonicDateFieldComponent,
   ],
   template: `<ion-header class="ion-no-border">
       <ion-toolbar>
@@ -120,8 +126,8 @@ import { WorkLogService } from './work-logs.service';
               ><ion-content>
                 <form class="filters compact-filters" [formGroup]="form" (ngSubmit)="applyFilters()">
                   @if (store.mode() === 'list') {
-                    <label>From<input type="date" formControlName="from" /></label>
-                    <label>To<input type="date" formControlName="to" /></label>
+                    <app-ionic-date-field label="From" controlId="work-log-filter-from" formControlName="from" />
+                    <app-ionic-date-field label="To" controlId="work-log-filter-to" formControlName="to" />
                   }
                   @if (metadataLoading()) {
                     <p class="field-span" role="status">Loading filter options…</p>
@@ -129,27 +135,39 @@ import { WorkLogService } from './work-logs.service';
                     <p class="form-error field-span" role="alert">{{ metadataError() }}</p>
                     <ion-button type="button" fill="outline" (click)="loadMetadata(true)">Retry options</ion-button>
                   } @else {
-                    <label
-                      >Categories<select multiple size="4" formControlName="categories">
-                        @for (option of filterOptions('categoryOptionId'); track option.id) {
-                          <option [value]="option.name">{{ option.name }}</option>
-                        }
-                      </select></label
-                    >
-                    <label
-                      >Types<select multiple size="4" formControlName="types">
-                        @for (option of filterOptions('typeOptionId'); track option.id) {
-                          <option [value]="option.name">{{ option.name }}</option>
-                        }
-                      </select></label
-                    >
-                    <label
-                      >Work modes<select multiple size="4" formControlName="workModes">
-                        @for (option of filterOptions('workModeOptionId'); track option.id) {
-                          <option [value]="option.name">{{ option.name }}</option>
-                        }
-                      </select></label
-                    >
+                    <ion-select
+                      label="Categories"
+                      labelPlacement="stacked"
+                      fill="outline"
+                      interface="alert"
+                      [multiple]="true"
+                      formControlName="categories">
+                      @for (option of filterOptions('categoryOptionId'); track option.id) {
+                        <ion-select-option [value]="option.name">{{ option.name }}</ion-select-option>
+                      }
+                    </ion-select>
+                    <ion-select
+                      label="Types"
+                      labelPlacement="stacked"
+                      fill="outline"
+                      interface="alert"
+                      [multiple]="true"
+                      formControlName="types">
+                      @for (option of filterOptions('typeOptionId'); track option.id) {
+                        <ion-select-option [value]="option.name">{{ option.name }}</ion-select-option>
+                      }
+                    </ion-select>
+                    <ion-select
+                      label="Work modes"
+                      labelPlacement="stacked"
+                      fill="outline"
+                      interface="alert"
+                      [multiple]="true"
+                      formControlName="workModes">
+                      @for (option of filterOptions('workModeOptionId'); track option.id) {
+                        <ion-select-option [value]="option.name">{{ option.name }}</ion-select-option>
+                      }
+                    </ion-select>
                   }
                   <ion-button type="submit" fill="outline">Apply filters</ion-button>
                   <ion-button type="button" fill="clear" (click)="clearFilters()">Clear</ion-button>

@@ -2,7 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
 import { Observable, tap, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ListResponse, MutationResponse, QueryRequest, ResourceMetadataResponse } from '../../shared/models/api.models';
+import {
+  BulkDeleteResponse,
+  ListResponse,
+  MutationResponse,
+  QueryRequest,
+  ResourceMetadataResponse,
+} from '../../shared/models/api.models';
 import { DataCacheService } from '../cache/data-cache.service';
 
 @Service()
@@ -34,6 +40,21 @@ export class MutationApiService {
       );
   }
 
+  delete(path: string, pageId: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiBaseUrl}${path}/${encodeURIComponent(pageId)}`).pipe(
+      timeout(15000),
+      tap(() => this.invalidate(path)),
+    );
+  }
+
+  bulkDelete(path: string, pageIds: string[]): Observable<BulkDeleteResponse> {
+    if (pageIds.length === 0 || pageIds.length > 25) throw new Error('Select between 1 and 25 items.');
+    return this.http.post<BulkDeleteResponse>(`${environment.apiBaseUrl}${path}/bulk-delete`, { pageIds }).pipe(
+      timeout(15000),
+      tap(() => this.invalidate(path)),
+    );
+  }
+
   query<T, TFilters>(path: string, request: QueryRequest<TFilters>): Observable<ListResponse<T>> {
     return this.http
       .request<ListResponse<T>>('QUERY', environment.apiBaseUrl + path, { body: request })
@@ -43,6 +64,7 @@ export class MutationApiService {
   private invalidate(path: string): void {
     this.cache.invalidate(path);
     this.cache.invalidate(`cursor:${path}`);
+    this.cache.invalidate(`query-cursor:${path}`);
     if (path === '/api/work-logs') {
       this.cache.invalidate('calendar:/api/work-logs');
       this.cache.invalidate('analytics:work-activity:');

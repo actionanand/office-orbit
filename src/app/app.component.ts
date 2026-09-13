@@ -6,9 +6,18 @@ import { IonApp, IonButton, IonSpinner } from '@ionic/angular';
 import { StartupService } from './core/startup.service';
 import { AuthService } from './core/auth/auth.service';
 import { SnackbarComponent } from './shared/components/snackbar.component';
+import { ConfirmationDialogComponent } from './shared/components/confirmation-dialog.component';
 @Component({
   selector: 'app-root',
-  imports: [IonApp, IonButton, NgOptimizedImage, RouterOutlet, IonSpinner, SnackbarComponent],
+  imports: [
+    IonApp,
+    IonButton,
+    NgOptimizedImage,
+    RouterOutlet,
+    IonSpinner,
+    SnackbarComponent,
+    ConfirmationDialogComponent,
+  ],
   template: `<ion-app>
     @if (startup.phase() === 'loading') {
       <div class="session-shield" role="status">
@@ -27,6 +36,7 @@ import { SnackbarComponent } from './shared/components/snackbar.component';
         <ion-button fill="clear" (click)="goToSignIn()">Go to sign in</ion-button>
       </div>
     }
+    <app-confirmation-dialog />
     <app-snackbar />
     <router-outlet />
   </ion-app>`,

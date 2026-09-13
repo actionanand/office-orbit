@@ -66,6 +66,50 @@ export interface QueryRequest<TFilters> {
   includeRelations: boolean;
 }
 
+export interface BulkDeleteResponse {
+  requested: number;
+  deleted: number;
+  failed: Array<{ id: string; deleted: false; error?: string }>;
+  allSucceeded: boolean;
+}
+
+export interface TodoQueryFilters {
+  statuses?: string[];
+  dueFrom?: string;
+  dueTo?: string;
+  dueBefore?: string;
+  dueOnOrBefore?: string;
+  q?: string;
+}
+
+export interface TaskQueryFilters {
+  statuses?: string[];
+  priorities?: string[];
+  responsibilities?: string[];
+  requestedByTypes?: string[];
+  assignedToTypes?: string[];
+  companyIds?: string[];
+  jiraIds?: string[];
+  dueFrom?: string;
+  dueTo?: string;
+  dueBefore?: string;
+  dueOnOrBefore?: string;
+  followUpFrom?: string;
+  followUpTo?: string;
+  followUpBefore?: string;
+  followUpOnOrBefore?: string;
+  completedFrom?: string;
+  completedTo?: string;
+  q?: string;
+}
+
+export interface MemoQueryFilters {
+  categories?: string[];
+  tags?: string[];
+  pinned?: boolean;
+  q?: string;
+}
+
 export interface WorkLogQueryFilters {
   from?: string;
   to?: string;
@@ -145,6 +189,42 @@ export interface WorkLinkCreateRequest {
   active: boolean;
 }
 export type WorkLinkPatchRequest = Partial<WorkLinkCreateRequest>;
+
+export interface TodoCreateRequest {
+  toDo: string;
+  statusOptionId: string | null;
+  dueDate: string | null;
+  notes: string;
+}
+export type TodoPatchRequest = Partial<TodoCreateRequest>;
+
+export interface TaskCreateRequest {
+  task: string;
+  statusOptionId: string | null;
+  priorityOptionId: string | null;
+  responsibilityOptionId: string | null;
+  requestedBy: string;
+  requestedByTypeOptionId: string | null;
+  assignedTo: string;
+  assignedToTypeOptionId: string | null;
+  dueDate: string | null;
+  followUpDate: string | null;
+  completedDate: string | null;
+  companyId: string | null;
+  jiraIds: string[];
+  notes: string;
+  outcomeUpdate: string;
+}
+export type TaskPatchRequest = Partial<TaskCreateRequest>;
+
+export interface MemoCreateRequest {
+  memo: string;
+  categoryOptionId: string | null;
+  tagOptionIds: string[];
+  pinned: boolean;
+  markdown: string;
+}
+export type MemoPatchRequest = Partial<MemoCreateRequest>;
 
 export interface JiraRef {
   id: string;
@@ -335,7 +415,96 @@ export interface WorkLink {
   projects?: NamedRef[];
 }
 
-export type DomainItem = Jira | WorkLog | Sprint | SprintAllocation | ReleaseItem | Feedback | WorkLink;
+export interface Todo {
+  id: string;
+  createdTime: string;
+  lastEditedTime: string;
+  toDo: string;
+  status: string | null;
+  dueDate: string | null;
+  notes: string;
+}
+
+export interface Task {
+  id: string;
+  createdTime: string;
+  lastEditedTime: string;
+  task: string;
+  status: string | null;
+  priority: string | null;
+  responsibility: string | null;
+  requestedBy: string;
+  requestedByType: string | null;
+  assignedTo: string;
+  assignedToType: string | null;
+  dueDate: string | null;
+  followUpDate: string | null;
+  completedDate: string | null;
+  companyIds: string[];
+  jiraIds: string[];
+  notes: string;
+  outcomeUpdate: string;
+  companies?: NamedRef[];
+  jiras?: JiraRef[];
+}
+
+export interface Memo {
+  id: string;
+  createdTime: string;
+  lastEditedTime: string;
+  memo: string;
+  category: string | null;
+  tags: string[];
+  pinned: boolean;
+}
+
+export interface MemoDetail extends Memo {
+  markdown: string;
+  truncated: boolean;
+  unknownBlockIds: string[];
+  textFallback: string;
+}
+
+export interface ReferenceLibraryItem {
+  id: string;
+  title: string;
+  createdTime: string | null;
+  lastEditedTime: string | null;
+}
+
+export interface ReferenceLibraryDetail extends ReferenceLibraryItem {
+  markdown: string;
+  truncated: boolean;
+  unknownBlockIds: string[];
+  textFallback: string;
+}
+
+export interface ReferenceImportAccepted {
+  status: string;
+  taskId: string;
+  pollAfterSeconds: number;
+}
+
+export interface ReferenceImportStatus {
+  status: 'queued' | 'running' | 'retrying' | 'succeeded' | 'failed';
+  taskId: string;
+  pollAfterSeconds: number | null;
+  pageId: string | null;
+  failed: boolean;
+}
+
+export type DomainItem =
+  | Jira
+  | WorkLog
+  | Sprint
+  | SprintAllocation
+  | ReleaseItem
+  | Feedback
+  | WorkLink
+  | Todo
+  | Task
+  | Memo
+  | ReferenceLibraryItem;
 
 export interface DashboardResponse {
   generatedAt: string;

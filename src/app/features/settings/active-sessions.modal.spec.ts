@@ -1,6 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { AlertController } from '@ionic/angular';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import {
@@ -8,6 +7,7 @@ import {
   ActiveSessionsResponse,
   SessionManagementService,
 } from '../../core/auth/session-management.service';
+import { ConfirmationService } from '../../core/notifications/confirmation.service';
 import { ActiveSessionsModalComponent } from './active-sessions.modal';
 
 describe('ActiveSessionsModal', () => {
@@ -20,7 +20,7 @@ describe('ActiveSessionsModal', () => {
     revokeOtherSessions: ReturnType<typeof vi.fn>;
   };
   let auth: { signOut: ReturnType<typeof vi.fn> };
-  let alerts: { create: ReturnType<typeof vi.fn> };
+  let confirmation: { confirm: ReturnType<typeof vi.fn> };
 
   function session(options: { id: string; current?: boolean; platform?: string; name?: string | null }): ActiveSession {
     return {
@@ -48,18 +48,13 @@ describe('ActiveSessionsModal', () => {
       revokeOtherSessions: vi.fn(() => of({ success: true, revokedCount: 1 })),
     };
     auth = { signOut: vi.fn().mockResolvedValue(undefined) };
-    alerts = {
-      create: vi.fn().mockResolvedValue({
-        present: vi.fn().mockResolvedValue(undefined),
-        onDidDismiss: vi.fn().mockResolvedValue({ role: 'confirm' }),
-      }),
-    };
+    confirmation = { confirm: vi.fn().mockResolvedValue(true) };
     await TestBed.configureTestingModule({
       imports: [ActiveSessionsModalComponent],
       providers: [
         { provide: SessionManagementService, useValue: sessionManagement },
         { provide: AuthService, useValue: auth },
-        { provide: AlertController, useValue: alerts },
+        { provide: ConfirmationService, useValue: confirmation },
       ],
     }).compileComponents();
     return TestBed.createComponent(ActiveSessionsModalComponent);
@@ -121,6 +116,9 @@ describe('ActiveSessionsModal', () => {
     listResult = of({ sessions: [current, other] });
     const fixture = await create();
     await fixture.componentInstance.logoutSession(other);
+    expect(confirmation.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Log out Chrome on Windows?', danger: true }),
+    );
     expect(sessionManagement.revokeSession).toHaveBeenCalledWith('other/session');
     expect(fixture.componentInstance.sessions()).toEqual([current]);
     expect(auth.signOut).not.toHaveBeenCalled();
@@ -143,8 +141,19 @@ describe('ActiveSessionsModal', () => {
     listResult = of({ sessions: [current, other] });
     const fixture = await create();
     await fixture.componentInstance.logoutOthers();
+    expect(confirmation.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Log out all other devices?', danger: true }),
+    );
     expect(sessionManagement.revokeOtherSessions).toHaveBeenCalledOnce();
     expect(fixture.componentInstance.sessions()).toEqual([current]);
     expect(auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it('does not revoke a session when confirmation is cancelled', async () => {
+    listResult = of({ sessions: [current, other] });
+    const fixture = await create();
+    confirmation.confirm.mockResolvedValueOnce(false);
+    await fixture.componentInstance.logoutSession(other);
+    expect(sessionManagement.revokeSession).not.toHaveBeenCalled();
   });
 });
