@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom, forkJoin } from 'rxjs';
 import {
@@ -20,6 +20,7 @@ import { MutationApiService } from '../../core/api/mutation-api.service';
 import { RelationOptionsService } from '../../core/api/relation-options.service';
 import {
   MetadataSelectOption,
+  JiraRef,
   RelationOption,
   ResourceMetadataResponse,
   WorkLog,
@@ -27,6 +28,7 @@ import {
 } from '../../shared/models/api.models';
 import { metadataOptions, optionId, relationOptions, todayIso } from '../../shared/utils/editor';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
+import { JiraPickerComponent, JiraPickerSelection } from '../jiras/jira-picker.component';
 
 @Component({
   selector: 'app-work-log-editor',
@@ -42,6 +44,7 @@ import { IonicDateFieldComponent } from '../../shared/components/ionic-date-fiel
     IonTitle,
     IonToolbar,
     IonicDateFieldComponent,
+    JiraPickerComponent,
   ],
   template: `<ion-modal
     class="editor-modal"
@@ -132,29 +135,11 @@ import { IonicDateFieldComponent } from '../../shared/components/ionic-date-fiel
                 <ion-select-option [value]="option.id">{{ option.label }}</ion-select-option>
               }
             </ion-select>
-            <label class="field-span"
-              >Search JIRA options<input
-                type="search"
-                [value]="jiraSearch()"
-                (input)="searchJiras($event)"
-                placeholder="Key or summary"
-            /></label>
-            <div class="field-span ionic-field-with-helper">
-              <ion-select
-                label="JIRAs"
-                labelPlacement="stacked"
-                fill="outline"
-                interface="alert"
-                [multiple]="true"
-                formControlName="jiraIds">
-                @for (option of visibleJiras(); track option.id) {
-                  <ion-select-option [value]="option.id">
-                    {{ option.label }}{{ option.description ? ' — ' + option.description : '' }}
-                  </ion-select-option>
-                }
-              </ion-select>
-              <small>Selected values remain available while searching.</small>
-            </div>
+            <app-jira-picker
+              class="field-span"
+              [selectedIds]="form.controls.jiraIds.value"
+              [selectedJiras]="selectedJiras()"
+              (selectionChange)="jirasChanged($event)" />
             <label class="field-span">Comment<textarea rows="3" formControlName="comment"></textarea></label>
             <label class="field-span">Went wrong<textarea rows="3" formControlName="wentWrong"></textarea></label>
             <label class="check-field"><input type="checkbox" formControlName="appraisal" />Appraisal</label>
@@ -184,8 +169,7 @@ export class WorkLogEditorComponent {
   readonly saved = output<WorkLog>();
   readonly metadata = signal<ResourceMetadataResponse | null>(null);
   readonly projects = signal<RelationOption[]>([]);
-  readonly jiras = signal<RelationOption[]>([]);
-  readonly jiraSearch = signal('');
+  readonly selectedJiras = signal<JiraRef[]>([]);
   readonly loading = signal(false);
   readonly loadError = signal('');
   readonly saveError = signal('');
@@ -202,14 +186,6 @@ export class WorkLogEditorComponent {
     comment: new FormControl('', { nonNullable: true }),
     wentWrong: new FormControl('', { nonNullable: true }),
     appraisal: new FormControl(false, { nonNullable: true }),
-  });
-  readonly visibleJiras = computed(() => {
-    const term = this.jiraSearch().trim().toLowerCase();
-    const selected = new Set(this.form.controls.jiraIds.value);
-    return this.jiras().filter(
-      option =>
-        selected.has(option.id) || !term || `${option.label} ${option.description ?? ''}`.toLowerCase().includes(term),
-    );
   });
   optionWarning(): string {
     const item = this.item();
@@ -247,25 +223,16 @@ export class WorkLogEditorComponent {
     this.loadError.set('');
     this.saveError.set('');
     try {
-      const [metadata, projects, jiras] = await firstValueFrom(
+      const [metadata, projects] = await firstValueFrom(
         forkJoin([
           this.api.metadata('/api/work-logs/meta', refresh),
           this.relations.load('/api/projects/active', refresh),
-          this.relations.load('/api/jiras', refresh),
         ]),
       );
       this.metadata.set(metadata);
       const item = this.item();
       this.projects.set(this.merge(projects, relationOptions(item?.projectIds ?? [], item?.projects)));
-      this.jiras.set(
-        this.merge(
-          jiras,
-          (item?.jiraIds ?? []).map(id => ({
-            id,
-            label: item?.jiras?.find(jira => jira.id === id)?.key ?? 'Selected JIRA',
-          })),
-        ),
-      );
+      this.selectedJiras.set(this.workLogJiras(item));
       this.form.reset({
         update: item?.update ?? '',
         date: item?.date ?? todayIso(),
@@ -278,7 +245,6 @@ export class WorkLogEditorComponent {
         wentWrong: item?.wentWrong ?? '',
         appraisal: item?.appraisal ?? false,
       });
-      this.jiraSearch.set('');
     } catch (error) {
       this.loadError.set(apiError(error));
     } finally {
@@ -322,8 +288,11 @@ export class WorkLogEditorComponent {
   focusFirst(): void {
     this.firstField()?.nativeElement.focus();
   }
-  searchJiras(event: Event): void {
-    if (event.target instanceof HTMLInputElement) this.jiraSearch.set(event.target.value);
+  jirasChanged(selection: JiraPickerSelection): void {
+    const control = this.form.controls.jiraIds;
+    if (control.value.join('\u0000') !== selection.ids.join('\u0000')) control.markAsDirty();
+    control.setValue(selection.ids);
+    this.selectedJiras.set(selection.jiras);
   }
   async requestClose(): Promise<void> {
     if (await this.confirmClose()) {
@@ -333,6 +302,11 @@ export class WorkLogEditorComponent {
   }
   private merge(loaded: RelationOption[], selected: RelationOption[]): RelationOption[] {
     return [...new Map([...selected, ...loaded].map(option => [option.id, option])).values()];
+  }
+  private workLogJiras(item: WorkLog | null): JiraRef[] {
+    if (!item) return [];
+    const refs = new Map((item.jiras ?? []).map(jira => [jira.id, jira]));
+    return item.jiraIds.map((id, index) => refs.get(id) ?? { id, key: `Selected JIRA ${index + 1}`, summary: '' });
   }
   private async confirmClose(): Promise<boolean> {
     if (this.submitting()) return false;
