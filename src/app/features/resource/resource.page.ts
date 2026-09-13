@@ -56,6 +56,7 @@ import {
 } from '../../shared/utils/format';
 import { activeSprint, spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from '../jiras/jira-link.component';
+import { JiraCreateComponent } from '../jiras/jira-create.component';
 import { FeedbackEditorComponent } from '../feedback/feedback-editor.component';
 import { WorkLinkEditorComponent } from '../work-links/work-link-editor.component';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
@@ -85,6 +86,7 @@ function supportsAllocationDetails(
     IonTitle,
     IonToolbar,
     JiraLinkComponent,
+    JiraCreateComponent,
     FeedbackEditorComponent,
     WorkLinkEditorComponent,
     LoadingSkeletonComponent,
@@ -112,6 +114,10 @@ function supportsAllocationDetails(
           } @else if (feature.kind === 'work-links') {
             <ion-button (click)="openWorkLinkEditor(null)"
               ><ion-icon name="add-outline" slot="start" />Add work link</ion-button
+            >
+          } @else if (feature.kind === 'jiras') {
+            <ion-button (click)="jiraCreateOpen.set(true)"
+              ><ion-icon name="add-outline" slot="start" />Add JIRA</ion-button
             >
           }
         </div>
@@ -613,6 +619,9 @@ function supportsAllocationDetails(
         [item]="editingWorkLink()"
         (closed)="closeWorkLinkEditor()"
         (saved)="workLinkSaved($event)" />
+      @if (feature.kind === 'jiras') {
+        <app-jira-create [open]="jiraCreateOpen()" (closed)="jiraCreateOpen.set(false)" (saved)="jiraSaved($event)" />
+      }
     </ion-content>`,
 })
 export class ResourcePage {
@@ -639,6 +648,7 @@ export class ResourcePage {
   readonly feedbackEditorOpen = signal(false);
   readonly editingFeedback = signal<Feedback | null>(null);
   readonly workLinkEditorOpen = signal(false);
+  readonly jiraCreateOpen = signal(false);
   readonly editingWorkLink = signal<WorkLink | null>(null);
   readonly allocationDetails = signal<Record<string, SprintDetailJira[]>>({});
   readonly filters = new FormGroup({
@@ -823,6 +833,13 @@ export class ResourcePage {
     this.upsert(item);
     this.closeWorkLinkEditor();
     this.snackbar.success(editing ? 'Work link updated.' : 'Work link added.');
+    this.load(true, false, true);
+  }
+
+  jiraSaved(item: Jira): void {
+    this.upsert(item);
+    this.jiraCreateOpen.set(false);
+    this.snackbar.success('JIRA added.');
     this.load(true, false, true);
   }
 

@@ -1,8 +1,10 @@
-import { Service } from '@angular/core';
+import { Service, inject } from '@angular/core';
+import { MutationApiService } from '../../core/api/mutation-api.service';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
-import { JiraDetail } from '../../shared/models/api.models';
+import { Jira, JiraCreateRequest, JiraDetail } from '../../shared/models/api.models';
 @Service()
 export class JiraService extends ReadFeatureService {
+  private readonly mutations = inject(MutationApiService);
   readonly heading = 'JIRAs';
   readonly description = 'Your priorities, blockers, and progress in one place.';
   readonly kind = 'jiras';
@@ -17,5 +19,11 @@ export class JiraService extends ReadFeatureService {
   ];
   detail(key: string, refresh = false) {
     return this.api.detail<JiraDetail>('/api/jiras/' + encodeURIComponent(key), { include: 'relations' }, refresh);
+  }
+  metadata(refresh = false) {
+    return this.mutations.metadata('/api/jiras/meta', refresh);
+  }
+  create(body: JiraCreateRequest) {
+    return this.mutations.create<Jira, JiraCreateRequest>('/api/jiras', body);
   }
 }

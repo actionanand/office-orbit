@@ -4,7 +4,7 @@ import { JiraService } from './jiras.service';
 export const routes: Routes = [
   {
     path: '',
-    providers: [{ provide: ReadFeatureService, useClass: JiraService }],
+    providers: [JiraService, { provide: ReadFeatureService, useExisting: JiraService }],
     loadComponent: () => import('../resource/resource.page').then(m => m.ResourcePage),
   },
 ];

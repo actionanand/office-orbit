@@ -1,15 +1,15 @@
-import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Service, inject } from '@angular/core';
 import { Observable, firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   DomainItem,
-  ListResponse,
   MemoDetail,
   ReferenceImportAccepted,
   ReferenceImportStatus,
   ReferenceLibraryDetail,
   ReferenceLibraryItem,
+  ReferenceLibraryQueryFilters,
 } from '../../shared/models/api.models';
 import { CursorResult, CursorService } from '../../core/api/cursor.service';
 import { MutationApiService } from '../../core/api/mutation-api.service';
@@ -61,22 +61,36 @@ export class ProductivityService {
     return this.detail<MemoDetail>(`/api/memos/${encodeURIComponent(id)}`, refresh);
   }
 
-  referenceList(refresh = false, cursor?: string) {
-    const params = new HttpParams({ fromObject: { pageSize: '25', ...(cursor ? { cursor } : {}) } });
-    return this.http
-      .get<ListResponse<ReferenceLibraryItem>>(`${environment.apiBaseUrl}/api/reference-library`, { params })
-      .pipe(timeout(15000));
+  referenceMetadata(refresh = false) {
+    return this.mutations.metadata('/api/reference-library/meta', refresh);
+  }
+
+  referenceList(refresh = false, more = false) {
+    return this.cursors.query<ReferenceLibraryItem>('/api/reference-library', {}, refresh, more);
+  }
+
+  referenceQuery(filters: ReferenceLibraryQueryFilters, refresh = false, more = false) {
+    return this.queryCursors.query<ReferenceLibraryItem, ReferenceLibraryQueryFilters>(
+      '/api/reference-library',
+      filters,
+      false,
+      refresh,
+      more,
+    );
   }
 
   referenceDetail(id: string, refresh = false) {
     return this.detail<ReferenceLibraryDetail>(`/api/reference-library/${encodeURIComponent(id)}`, refresh);
   }
 
-  importMarkdown(file: File) {
+  importMarkdown(file: File, title = '', categoryOptionId = '', tagOptionIds: string[] = []) {
     const body = new FormData();
     body.append('file', file);
+    if (title.trim()) body.append('title', title.trim());
+    if (categoryOptionId) body.append('categoryOptionId', categoryOptionId);
+    for (const id of tagOptionIds) body.append('tagOptionIds', id);
     return this.http
-      .post<{ data: { id: string; title: string } } | ReferenceImportAccepted>(
+      .post<{ data: { id: string; article: string } } | ReferenceImportAccepted>(
         `${environment.apiBaseUrl}/api/reference-library/import`,
         body,
         { observe: 'response' },
@@ -112,6 +126,8 @@ export class ProductivityService {
 
   clearReferenceCache(): void {
     this.cache.invalidate('/api/reference-library');
+    this.cache.invalidate('cursor:/api/reference-library');
+    this.cache.invalidate('query-cursor:/api/reference-library');
   }
 
   private detail<T>(path: string, refresh: boolean) {
@@ -134,4 +150,4 @@ export class ProductivityService {
 }
 
 export type ProductivityListResult<T> = CursorResult<T> | QueryCursorResult<T>;
-export type ReferenceImportResponse = HttpResponse<{ data: { id: string; title: string } } | ReferenceImportAccepted>;
+export type ReferenceImportResponse = HttpResponse<{ data: { id: string; article: string } } | ReferenceImportAccepted>;
