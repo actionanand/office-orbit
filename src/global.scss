@@ -2217,6 +2217,7 @@ ion-popover.work-link-popover {
 .editor-form > ion-textarea,
 .editor-form > ion-checkbox,
 .editor-form > app-ionic-date-field,
+.editor-form > app-jira-picker,
 .editor-form > .ionic-field-with-helper {
   min-width: 0;
   margin: 0;
@@ -2269,6 +2270,157 @@ ion-datetime-button::part(native) {
   justify-content: flex-start;
   background: transparent;
   color: var(--ion-text-color);
+}
+.jira-picker-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.jira-picker-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 56px;
+  padding: 7px 8px 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+}
+.jira-picker-summary-copy,
+.jira-picker-selected-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.jira-picker-chip,
+.jira-picker-more {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--ion-text-color);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+.jira-picker-more,
+.jira-picker-empty-summary {
+  color: var(--muted);
+}
+.jira-picker-modal {
+  --width: min(720px, calc(100vw - 32px));
+  --height: min(760px, calc(100vh - 32px));
+  --border-radius: 16px;
+}
+.jira-picker-body {
+  display: grid;
+  gap: 22px;
+  padding: 20px max(16px, env(safe-area-inset-right)) 28px max(16px, env(safe-area-inset-left));
+}
+.jira-picker-body h2 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.jira-picker-selected,
+.jira-picker-search,
+.jira-picker-results {
+  display: grid;
+  gap: 10px;
+}
+.jira-picker-selected-list {
+  max-height: 104px;
+  overflow-y: auto;
+}
+.jira-picker-selected-list ion-button {
+  margin: 0;
+}
+.jira-picker-search ion-searchbar {
+  min-height: 46px;
+  padding: 0;
+  --background: var(--surface);
+  --border-radius: 9px;
+  --box-shadow: 0 0 0 1px var(--line);
+}
+.jira-picker-helper,
+.jira-picker-results-heading p,
+.jira-picker-state p {
+  margin: 0;
+}
+.jira-picker-helper,
+.jira-picker-state small,
+.jira-picker-results-heading p {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.jira-picker-results-heading,
+.jira-picker-option-heading,
+.jira-picker-loading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.jira-picker-loading {
+  justify-content: flex-start;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.jira-picker-loading ion-spinner {
+  width: 18px;
+  height: 18px;
+}
+.jira-picker-options {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+}
+.jira-picker-option {
+  width: 100%;
+  min-height: 72px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  --size: 21px;
+}
+.jira-picker-option:last-child {
+  border-bottom: 0;
+}
+.jira-picker-option::part(label) {
+  width: 100%;
+  margin-inline-start: 12px;
+}
+.jira-picker-option-copy {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  color: var(--ion-text-color);
+  font-size: 0.8rem;
+  text-align: left;
+}
+.jira-picker-option-copy > span:not(.jira-picker-option-heading) {
+  overflow-wrap: anywhere;
+}
+.jira-picker-option-copy small {
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+.jira-picker-load-more {
+  justify-self: end;
+}
+.jira-picker-state {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  text-align: center;
+}
+.jira-picker-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-inline: 12px;
 }
 .editor-form > label input:not([type='checkbox']),
 .editor-form > label select,
@@ -2418,6 +2570,7 @@ ion-datetime-button::part(native) {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 2px;
 }
 .productivity-list,
 .reference-list {
@@ -2441,6 +2594,11 @@ ion-datetime-button::part(native) {
 }
 .productivity-row.urgent {
   box-shadow: inset 4px 0 var(--danger);
+}
+.productivity-row.completed .productivity-row-heading strong {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
 }
 .selection-check {
   display: grid;
@@ -2470,9 +2628,30 @@ ion-datetime-button::part(native) {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 2px;
 }
 .productivity-actions ion-button {
   margin: 0;
+}
+.productivity-action-date {
+  display: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.inline-status-select {
+  width: auto;
+  min-width: 116px;
+  max-width: 168px;
+  min-height: 36px;
+  margin-right: 4px;
+  padding-inline: 10px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--ion-text-color);
+  font-size: 0.72rem;
+  font-weight: 650;
 }
 .load-more {
   margin-top: 18px;
@@ -2638,6 +2817,18 @@ ion-datetime-button::part(native) {
   .productivity-editor-modal.compact-editor-modal {
     --height: 100%;
   }
+  .jira-picker-modal {
+    --width: 100%;
+    --height: 100%;
+    --border-radius: 0;
+  }
+  .jira-picker-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .jira-picker-summary ion-button {
+    align-self: stretch;
+  }
   .editor-form {
     grid-template-columns: 1fr;
   }
@@ -2653,8 +2844,26 @@ ion-datetime-button::part(native) {
   }
   .productivity-actions {
     grid-column: 2;
+    width: 100%;
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+  .productivity-actions ion-button {
+    --padding-start: 6px;
+    --padding-end: 6px;
+  }
+  .productivity-actions .inline-status-select {
+    min-width: 108px;
+    margin-right: 0;
+  }
+  .productivity-action-date {
+    display: inline-flex;
+    align-items: center;
+    margin-right: auto;
+    font-size: 0.7rem;
+  }
+  .todo-row .productivity-copy > .meta-line {
+    display: none;
   }
   .productivity-row-heading,
   .markdown-heading,
@@ -2663,10 +2872,35 @@ ion-datetime-button::part(native) {
     flex-direction: column;
   }
   .selection-toolbar {
-    align-items: flex-start;
+    align-items: center;
+    flex-direction: row;
+    gap: 6px;
+  }
+  .selection-toolbar > span:first-child {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
   .selection-toolbar > span:last-child {
-    flex-wrap: wrap;
+    flex: 1 1 auto;
+    width: auto;
+    flex-wrap: nowrap;
+    gap: 0;
+  }
+  .selection-toolbar ion-button {
+    min-height: 38px;
+    margin-inline: 0;
+    font-size: 0.68rem;
+    --padding-start: 5px;
+    --padding-end: 5px;
+  }
+  .selection-toolbar .selection-delete-label {
+    display: none;
+  }
+  .selection-toolbar ion-button[color='danger'] {
+    min-width: 38px;
+  }
+  .selection-toolbar ion-button[color='danger'] ion-icon {
+    margin-inline-end: 0;
   }
   .markdown-panel {
     padding: 17px;

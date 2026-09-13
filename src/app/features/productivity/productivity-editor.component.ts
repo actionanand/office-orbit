@@ -16,12 +16,13 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline, saveOutline } from 'ionicons/icons';
-import { firstValueFrom, forkJoin, of } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { apiError } from '../../core/api/api-error';
 import { ConfirmationService } from '../../core/notifications/confirmation.service';
 import { RelationOptionsService } from '../../core/api/relation-options.service';
 import {
   DomainItem,
+  JiraRef,
   Memo,
   MemoCreateRequest,
   RelationOption,
@@ -34,6 +35,7 @@ import {
 import { metadataOptions, optionId, relationOptions, todayIso } from '../../shared/utils/editor';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
 import { MarkdownViewerComponent } from './markdown-viewer.component';
+import { JiraPickerComponent, JiraPickerSelection } from './jira-picker.component';
 import { ProductivityKind, ProductivityService } from './productivity.service';
 
 @Component({
@@ -53,6 +55,7 @@ import { ProductivityKind, ProductivityService } from './productivity.service';
     IonTitle,
     IonToolbar,
     IonicDateFieldComponent,
+    JiraPickerComponent,
     MarkdownViewerComponent,
   ],
   template: `<ion-modal
@@ -192,17 +195,10 @@ import { ProductivityKind, ProductivityService } from './productivity.service';
                 label="Completed date"
                 controlId="task-completed-date"
                 formControlName="completedDate" />
-              <ion-select
-                label="JIRAs"
-                labelPlacement="stacked"
-                fill="outline"
-                interface="alert"
-                [multiple]="true"
-                formControlName="jiraIds">
-                @for (option of jiras(); track option.id) {
-                  <ion-select-option [value]="option.id">{{ option.label }}</ion-select-option>
-                }
-              </ion-select>
+              <app-jira-picker
+                [selectedIds]="form.controls.jiraIds.value"
+                [selectedJiras]="selectedJiras()"
+                (selectionChange)="jirasChanged($event)" />
               <ion-textarea
                 class="field-span"
                 fill="outline"
@@ -291,7 +287,7 @@ export class ProductivityEditorComponent {
   readonly preview = signal(false);
   readonly metadata = signal<ResourceMetadataResponse | null>(null);
   readonly companies = signal<RelationOption[]>([]);
-  readonly jiras = signal<RelationOption[]>([]);
+  readonly selectedJiras = signal<JiraRef[]>([]);
   readonly firstField = viewChild<IonInput>('firstField');
   readonly form = new FormGroup({
     title: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -344,24 +340,12 @@ export class ProductivityEditorComponent {
       const item = this.item();
       if (this.kind() === 'tasks') {
         const companyPath = metadata.fields.find(field => field.key === 'companyId')?.optionsEndpoint;
-        const jiraPath = metadata.fields.find(field => field.key === 'jiraIds')?.optionsEndpoint;
-        const [companies, jiras] = await firstValueFrom(
-          forkJoin([
-            companyPath ? this.relations.load(companyPath, refresh) : of([]),
-            jiraPath ? this.relations.load(jiraPath, refresh) : of([]),
-          ]),
-        );
+        const companies = companyPath ? await firstValueFrom(this.relations.load(companyPath, refresh)) : [];
         const task = item as Task | null;
         this.companies.set(this.merge(companies, relationOptions(task?.companyIds ?? [], task?.companies)));
-        this.jiras.set(
-          this.merge(
-            jiras,
-            (task?.jiraIds ?? []).map(id => ({
-              id,
-              label: task?.jiras?.find(jira => jira.id === id)?.key ?? 'Selected JIRA',
-            })),
-          ),
-        );
+        this.selectedJiras.set(this.taskJiras(task));
+      } else {
+        this.selectedJiras.set([]);
       }
       const memoDetail =
         this.kind() === 'memos' && item ? await firstValueFrom(this.api.detailMemo(item.id, refresh)) : null;
@@ -456,6 +440,13 @@ export class ProductivityEditorComponent {
     void this.firstField()?.setFocus();
   }
 
+  jirasChanged(selection: JiraPickerSelection): void {
+    const control = this.form.controls.jiraIds;
+    if (control.value.join('\u0000') !== selection.ids.join('\u0000')) control.markAsDirty();
+    control.setValue(selection.ids);
+    this.selectedJiras.set(selection.jiras);
+  }
+
   private reset(metadata: ResourceMetadataResponse, item: DomainItem | null, markdown: string): void {
     const todo = this.kind() === 'todos' ? (item as Todo | null) : null;
     const task = this.kind() === 'tasks' ? (item as Task | null) : null;
@@ -484,6 +475,12 @@ export class ProductivityEditorComponent {
   }
   private merge(loaded: RelationOption[], selected: RelationOption[]) {
     return [...new Map([...selected, ...loaded].map(option => [option.id, option])).values()];
+  }
+
+  private taskJiras(task: Task | null): JiraRef[] {
+    if (!task) return [];
+    const refs = new Map((task.jiras ?? []).map(jira => [jira.id, jira]));
+    return task.jiraIds.map((id, index) => refs.get(id) ?? { id, key: `Selected JIRA ${index + 1}`, summary: '' });
   }
   private async confirmClose(): Promise<boolean> {
     if (this.submitting()) return false;

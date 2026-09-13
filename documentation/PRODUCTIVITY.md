@@ -6,6 +6,8 @@ Office Orbit exposes one Productivity navigation entry with four lazy child area
 
 To Do, Tasks, and Memos send literal authenticated HTTP `QUERY` requests for filtered views and debounced search. Each body contains `filters`, `pageSize: 25`, an opaque `cursor`, and `includeRelations` (`true` for Tasks). Changing a view or search creates a new cursor chain. Load more preserves the exact filters, prevents duplicate continuation requests, and deduplicates returned IDs. The unfiltered All views retain paginated GET.
 
+The Task editor uses a dedicated JIRA picker backed by `QUERY /api/jiras/options`. Opening it requests only the first 20 current-Sprint JIRAs. Entering at least two characters searches all JIRAs by key or summary on the Worker; the client never loads the complete JIRA database or searches it locally. Load more follows one opaque cursor at a time. Multiple selections are supported, and selected historical or non-Sprint JIRAs remain visible when search is cleared or results change. Company options continue through `RelationOptionsService`.
+
 To Do provides All, Open, Today, Upcoming, and Done. Tasks provides All, Active, My Tasks, From Seniors, Delegated, Waiting On, Follow-up, Overdue, and Done. Memos provides All, Pinned, Commands, Prompts, and Recently Updated. Date filters use the local calendar day.
 
 ## Writes and deletion

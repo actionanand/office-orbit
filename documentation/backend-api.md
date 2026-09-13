@@ -35,7 +35,7 @@ The active-session list is never requested by startup, login, status validation,
 
 Suffixes in the table attach to the preceding collection. The default JIRA view is active; the default links view is active. The Work Log sends from/to only when dates are entered. DashboardService accepts optional companyId/projectId filters.
 
-Companies, teams, projects, and JIRAs provide paginated relation options for the editors. The client follows each opaque cursor and caches the completed option list for the authenticated session.
+Companies, teams, and projects provide paginated relation options for the editors. The client follows each opaque cursor and caches the completed option list for the authenticated session. Task JIRA selection is the deliberate exception: it uses the lightweight `QUERY /api/jiras/options` picker described below and never loads the full JIRA relation collection.
 
 ## Writes and metadata
 
@@ -50,6 +50,8 @@ Mutation success invalidates the affected collection prefix and Dashboard summar
 ## HTTP QUERY
 
 Advanced Work Log filters call `QUERY /api/work-logs` with `HttpClient.request('QUERY', ...)`. The body contains typed `filters`, `pageSize: 25`, the opaque `cursor`, and `includeRelations: true`. Category, Type, and Work Mode are arrays: values within a field are OR alternatives while separate fields are combined by the Worker. Filter changes reset the cursor; Load More resends the same filter body with the returned cursor. Saved views such as Work Log Appraisal remain ordinary GET requests.
+
+The Task editor calls `QUERY /api/jiras/options` in 20-item pages with `includeRelations: false`. An empty filter returns current-Sprint JIRAs. A search of at least two characters sends `{ filters: { q } }`, which searches all JIRA keys and summaries on the Worker. Selected historical or non-Sprint JIRAs remain pinned in the picker while its result context changes. See [Angular HTTP and the QUERY method](ANGULAR-HTTP.md) for request examples and guidance for the other HTTP methods.
 
 ## Response handling
 
