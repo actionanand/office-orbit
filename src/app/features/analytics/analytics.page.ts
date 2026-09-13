@@ -1,6 +1,15 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { IonButton, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar } from '@ionic/angular';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonSelect,
+  IonSelectOption,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { refreshOutline } from 'ionicons/icons';
 import { firstValueFrom } from 'rxjs';
@@ -10,10 +19,23 @@ import { BarChartComponent } from '../../shared/components/bar-chart.component';
 import { AnalyticsService, aggregateWork } from './analytics.service';
 import { localDate } from '../work-logs/calendar';
 import { formatRelativeTime } from '../../shared/utils/format';
+import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
 
 @Component({
   selector: 'app-analytics',
-  imports: [ReactiveFormsModule, IonButton, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar, BarChartComponent],
+  imports: [
+    ReactiveFormsModule,
+    IonButton,
+    IonContent,
+    IonHeader,
+    IonIcon,
+    IonSelect,
+    IonSelectOption,
+    IonTitle,
+    IonToolbar,
+    BarChartComponent,
+    IonicDateFieldComponent,
+  ],
   template: `<ion-header
       ><ion-toolbar
         ><ion-title>Analytics</ion-title
@@ -25,16 +47,20 @@ import { formatRelativeTime } from '../../shared/utils/format';
         <h1>Analytics</h1>
         <p class="muted">Your work activity and current sprint at a glance.</p>
         <form class="analytics-range" [formGroup]="form" (ngSubmit)="load()">
-          <label
-            >Range<select (change)="rangeChanged($event)">
-              <option value="30">30 days</option>
-              <option value="90">90 days</option>
-              <option value="180">6 months</option>
-              <option value="custom">Custom</option>
-            </select></label
-          >
-          <label>From<input type="date" formControlName="from" /></label
-          ><label>To<input type="date" formControlName="to" /></label>
+          <ion-select
+            label="Range"
+            labelPlacement="stacked"
+            fill="outline"
+            interface="popover"
+            value="30"
+            (ionChange)="rangeChanged($event.detail.value)">
+            <ion-select-option value="30">30 days</ion-select-option>
+            <ion-select-option value="90">90 days</ion-select-option>
+            <ion-select-option value="180">6 months</ion-select-option>
+            <ion-select-option value="custom">Custom</ion-select-option>
+          </ion-select>
+          <app-ionic-date-field label="From" controlId="analytics-from" formControlName="from" />
+          <app-ionic-date-field label="To" controlId="analytics-to" formControlName="to" />
           <ion-button type="submit" fill="outline">Apply</ion-button>
         </form>
         @if (loading()) {
@@ -122,9 +148,9 @@ export class AnalyticsPage {
       .then(value => this.dashboard.set(value))
       .catch(() => this.dashboardError.set('Current sprint information is unavailable.'));
   }
-  rangeChanged(event: Event): void {
-    if (!(event.target instanceof HTMLSelectElement) || event.target.value === 'custom') return;
-    this.form.setValue({ from: this.startDate(Number(event.target.value)), to: localDate(new Date()) });
+  rangeChanged(value: string): void {
+    if (value === 'custom') return;
+    this.form.setValue({ from: this.startDate(Number(value)), to: localDate(new Date()) });
     void this.load();
   }
   async load(refresh = false): Promise<void> {

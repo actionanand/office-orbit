@@ -58,6 +58,7 @@ import { activeSprint, spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from '../jiras/jira-link.component';
 import { FeedbackEditorComponent } from '../feedback/feedback-editor.component';
 import { WorkLinkEditorComponent } from '../work-links/work-link-editor.component';
+import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
 
 interface AllocationDetailSource {
   allocationJiras(allocations: SprintAllocation[], refresh?: boolean): Observable<Record<string, SprintDetailJira[]>>;
@@ -90,6 +91,7 @@ function supportsAllocationDetails(
     PageHeaderComponent,
     StatePanelComponent,
     StatusBadgeComponent,
+    IonicDateFieldComponent,
   ],
   template: `<ion-header class="ion-no-border">
       <ion-toolbar>
@@ -137,8 +139,8 @@ function supportsAllocationDetails(
               placeholder="Filter visible items" />
           </label>
           @if (feature.kind === 'work-logs') {
-            <label>From<input type="date" formControlName="from" /></label>
-            <label>To<input type="date" formControlName="to" /></label>
+            <app-ionic-date-field label="From" controlId="resource-from" formControlName="from" />
+            <app-ionic-date-field label="To" controlId="resource-to" formControlName="to" />
             <ion-button type="submit" fill="outline">Apply dates</ion-button>
           }
         </form>
@@ -929,7 +931,9 @@ export class ResourcePage {
       ]
         .join(' ')
         .toLowerCase();
-    return [item.link, item.type, item.notes, names(item.projects), names(item.companies)].join(' ').toLowerCase();
+    if ('link' in item)
+      return [item.link, item.type, item.notes, names(item.projects), names(item.companies)].join(' ').toLowerCase();
+    return '';
   }
 
   private saveNavigationState(): void {

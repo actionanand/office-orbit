@@ -1,7 +1,6 @@
 import { Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
-  AlertController,
   IonBadge,
   IonButton,
   IonContent,
@@ -19,6 +18,7 @@ import { apiError } from '../../core/api/api-error';
 import { AuthService } from '../../core/auth/auth.service';
 import { ActiveSession, SessionManagementService } from '../../core/auth/session-management.service';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
+import { ConfirmationService } from '../../core/notifications/confirmation.service';
 
 @Component({
   selector: 'app-active-sessions-modal',
@@ -130,7 +130,7 @@ import { SnackbarService } from '../../core/notifications/snackbar.service';
 export class ActiveSessionsModalComponent {
   private readonly sessionManagement = inject(SessionManagementService);
   private readonly auth = inject(AuthService);
-  private readonly alerts = inject(AlertController);
+  private readonly confirmation = inject(ConfirmationService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly snackbar = inject(SnackbarService);
   readonly closed = output<void>();
@@ -324,30 +324,22 @@ export class ActiveSessionsModalComponent {
   }
 
   private async confirmSessionLogout(session: ActiveSession): Promise<boolean> {
-    const alert = await this.alerts.create({
-      header: session.current ? 'Log out this device?' : `Log out ${this.deviceName(session)}?`,
+    return this.confirmation.confirm({
+      title: session.current ? 'Log out this device?' : `Log out ${this.deviceName(session)}?`,
       message: session.current
         ? 'You will need to sign in again on this device.'
         : 'That device or browser will need to sign in again.',
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        { text: 'Log out', role: 'confirm' },
-      ],
+      confirmLabel: 'Log out',
+      danger: true,
     });
-    await alert.present();
-    return (await alert.onDidDismiss()).role === 'confirm';
   }
 
   private async confirmLogoutOthers(): Promise<boolean> {
-    const alert = await this.alerts.create({
-      header: 'Log out all other devices?',
+    return this.confirmation.confirm({
+      title: 'Log out all other devices?',
       message: 'Your current device will stay signed in.',
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        { text: 'Log out', role: 'confirm' },
-      ],
+      confirmLabel: 'Log out',
+      danger: true,
     });
-    await alert.present();
-    return (await alert.onDidDismiss()).role === 'confirm';
   }
 }

@@ -1,10 +1,21 @@
 import { Component, ElementRef, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom, forkJoin } from 'rxjs';
-import { IonButton, IonContent, IonHeader, IonIcon, IonModal, IonTitle, IonToolbar } from '@ionic/angular';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonModal,
+  IonSelect,
+  IonSelectOption,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline, saveOutline } from 'ionicons/icons';
 import { apiError } from '../../core/api/api-error';
+import { ConfirmationService } from '../../core/notifications/confirmation.service';
 import { MutationApiService } from '../../core/api/mutation-api.service';
 import { RelationOptionsService } from '../../core/api/relation-options.service';
 import {
@@ -14,14 +25,27 @@ import {
   ResourceMetadataResponse,
 } from '../../shared/models/api.models';
 import { metadataOptions, optionId, relationOptions, todayIso } from '../../shared/utils/editor';
+import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
 
 @Component({
   selector: 'app-feedback-editor',
-  imports: [ReactiveFormsModule, IonButton, IonContent, IonHeader, IonIcon, IonModal, IonTitle, IonToolbar],
+  imports: [
+    ReactiveFormsModule,
+    IonButton,
+    IonContent,
+    IonHeader,
+    IonIcon,
+    IonModal,
+    IonSelect,
+    IonSelectOption,
+    IonTitle,
+    IonToolbar,
+    IonicDateFieldComponent,
+  ],
   template: `<ion-modal
     class="editor-modal"
     [isOpen]="open()"
-    [backdropDismiss]="!submitting()"
+    [canDismiss]="canDismiss"
     (didPresent)="focusFirst()"
     (didDismiss)="closed.emit()"
     ><ng-template>
@@ -55,54 +79,72 @@ import { metadataOptions, optionId, relationOptions, todayIso } from '../../shar
                 type="text"
                 formControlName="feedback"
                 required
-                [attr.aria-invalid]="form.controls.feedback.invalid"
+                [attr.aria-invalid]="form.controls.feedback.touched && form.controls.feedback.invalid ? 'true' : null"
                 aria-describedby="feedback-title-error"
             /></label>
             @if (form.controls.feedback.touched && form.controls.feedback.invalid) {
               <p id="feedback-title-error" class="field-error field-span">Feedback is required.</p>
             }
-            <label>Date<input type="date" formControlName="date" /></label>
+            <app-ionic-date-field label="Date" controlId="feedback-date" formControlName="date" />
             <label>Feedback from<input type="text" formControlName="feedbackFrom" /></label>
-            <label
-              >Person type<select formControlName="personTypeOptionId">
-                <option value="">None</option>
-                @for (option of options('personTypeOptionId'); track option.id) {
-                  <option [value]="option.id">{{ option.name }}</option>
-                }
-              </select></label
-            >
-            <label
-              >Context<select formControlName="contextOptionId">
-                <option value="">None</option>
-                @for (option of options('contextOptionId'); track option.id) {
-                  <option [value]="option.id">{{ option.name }}</option>
-                }
-              </select></label
-            >
-            <label
-              >Feedback type<select formControlName="feedbackTypeOptionId">
-                <option value="">None</option>
-                @for (option of options('feedbackTypeOptionId'); track option.id) {
-                  <option [value]="option.id">{{ option.name }}</option>
-                }
-              </select></label
-            >
-            <label
-              >Company<select formControlName="companyId">
-                <option value="">None</option>
+            <ion-select
+              label="Person type"
+              labelPlacement="stacked"
+              fill="outline"
+              interface="popover"
+              formControlName="personTypeOptionId">
+              <ion-select-option value="">None</ion-select-option>
+              @for (option of options('personTypeOptionId'); track option.id) {
+                <ion-select-option [value]="option.id">{{ option.name }}</ion-select-option>
+              }
+            </ion-select>
+            <ion-select
+              label="Context"
+              labelPlacement="stacked"
+              fill="outline"
+              interface="popover"
+              formControlName="contextOptionId">
+              <ion-select-option value="">None</ion-select-option>
+              @for (option of options('contextOptionId'); track option.id) {
+                <ion-select-option [value]="option.id">{{ option.name }}</ion-select-option>
+              }
+            </ion-select>
+            <ion-select
+              label="Feedback type"
+              labelPlacement="stacked"
+              fill="outline"
+              interface="popover"
+              formControlName="feedbackTypeOptionId">
+              <ion-select-option value="">None</ion-select-option>
+              @for (option of options('feedbackTypeOptionId'); track option.id) {
+                <ion-select-option [value]="option.id">{{ option.name }}</ion-select-option>
+              }
+            </ion-select>
+            <div class="ionic-field-with-helper">
+              <ion-select
+                label="Company"
+                labelPlacement="stacked"
+                fill="outline"
+                interface="popover"
+                formControlName="companyId">
+                <ion-select-option value="">None</ion-select-option>
                 @for (option of companies(); track option.id) {
-                  <option [value]="option.id">{{ option.label }}</option>
-                }</select
-              ><small>Work Type is derived automatically from Company.</small></label
-            >
-            <label
-              >Team<select formControlName="teamId">
-                <option value="">None</option>
-                @for (option of teams(); track option.id) {
-                  <option [value]="option.id">{{ option.label }}</option>
+                  <ion-select-option [value]="option.id">{{ option.label }}</ion-select-option>
                 }
-              </select></label
-            >
+              </ion-select>
+              <small>Work Type is derived automatically from Company.</small>
+            </div>
+            <ion-select
+              label="Team"
+              labelPlacement="stacked"
+              fill="outline"
+              interface="popover"
+              formControlName="teamId">
+              <ion-select-option value="">None</ion-select-option>
+              @for (option of teams(); track option.id) {
+                <ion-select-option [value]="option.id">{{ option.label }}</ion-select-option>
+              }
+            </ion-select>
             @if (item()?.workType; as workType) {
               <div class="derived-field">
                 <strong>Work Type</strong><span>{{ workType }}</span
@@ -174,6 +216,8 @@ export class FeedbackEditorComponent {
   }
   private readonly api = inject(MutationApiService);
   private readonly relations = inject(RelationOptionsService);
+  private readonly confirmation = inject(ConfirmationService);
+  readonly canDismiss = () => this.confirmClose();
   constructor() {
     addIcons({ closeOutline, refreshOutline, saveOutline });
     effect(() => {
@@ -253,10 +297,23 @@ export class FeedbackEditorComponent {
   focusFirst(): void {
     this.firstField()?.nativeElement.focus();
   }
-  requestClose(): void {
-    if (!this.submitting() && (!this.form.dirty || window.confirm('Discard unsaved changes?'))) this.closed.emit();
+  async requestClose(): Promise<void> {
+    if (await this.confirmClose()) {
+      this.form.markAsPristine();
+      this.closed.emit();
+    }
   }
   private merge(loaded: RelationOption[], selected: RelationOption[]) {
     return [...new Map([...selected, ...loaded].map(option => [option.id, option])).values()];
+  }
+  private async confirmClose(): Promise<boolean> {
+    if (this.submitting()) return false;
+    if (!this.form.dirty) return true;
+    return this.confirmation.confirm({
+      title: 'Discard changes?',
+      message: 'Your unsaved feedback changes will be lost.',
+      confirmLabel: 'Discard',
+      danger: true,
+    });
   }
 }

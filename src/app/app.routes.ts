@@ -47,6 +47,10 @@ export const routes: Routes = [
         loadChildren: () => import('./features/work-links/work-links.routes').then(m => m.routes),
       },
       {
+        path: 'productivity',
+        loadChildren: () => import('./features/productivity/productivity.routes').then(m => m.routes),
+      },
+      {
         path: 'jiras/:jiraKey',
         loadComponent: () => import('./features/jiras/jira-detail.page').then(m => m.JiraDetailPage),
       },

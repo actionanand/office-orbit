@@ -1,6 +1,16 @@
 import { Component, inject, input, output, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { IonButton, IonContent, IonHeader, IonIcon, IonModal, IonTitle, IonToolbar } from '@ionic/angular';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonModal,
+  IonSelect,
+  IonSelectOption,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { closeOutline, documentOutline, printOutline } from 'ionicons/icons';
 import { firstValueFrom } from 'rxjs';
@@ -8,10 +18,23 @@ import { DashboardService } from '../dashboard/dashboard.service';
 import { localDate, monthRange } from './calendar';
 import { ExportOptions, exportCategories, validateExport } from './work-log-report';
 import { WorkLogExportService } from './work-log-export.service';
+import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
 
 @Component({
   selector: 'app-work-log-export',
-  imports: [ReactiveFormsModule, IonButton, IonContent, IonHeader, IonIcon, IonModal, IonTitle, IonToolbar],
+  imports: [
+    ReactiveFormsModule,
+    IonButton,
+    IonContent,
+    IonHeader,
+    IonIcon,
+    IonModal,
+    IonSelect,
+    IonSelectOption,
+    IonTitle,
+    IonToolbar,
+    IonicDateFieldComponent,
+  ],
   template: `<ion-modal
     class="export-modal"
     [isOpen]="open()"
@@ -33,19 +56,31 @@ import { WorkLogExportService } from './work-log-export.service';
       <ion-content
         ><div class="export-options">
           <fieldset [disabled]="exporter.busy() || presetLoading()">
-            <label
-              >Period<select [value]="preset()" (change)="changePreset($event)">
-                <option value="today">Today</option>
-                <option value="week">This week</option>
-                <option value="month">This month</option>
-                <option value="previous">Previous month</option>
-                <option value="sprint">Current Sprint</option>
-                <option value="custom">Custom</option>
-              </select></label
-            >
+            <ion-select
+              label="Period"
+              labelPlacement="stacked"
+              fill="outline"
+              interface="popover"
+              [value]="preset()"
+              (ionChange)="changePreset($event.detail.value)">
+              <ion-select-option value="today">Today</ion-select-option>
+              <ion-select-option value="week">This week</ion-select-option>
+              <ion-select-option value="month">This month</ion-select-option>
+              <ion-select-option value="previous">Previous month</ion-select-option>
+              <ion-select-option value="sprint">Current Sprint</ion-select-option>
+              <ion-select-option value="custom">Custom</ion-select-option>
+            </ion-select>
             <form [formGroup]="form" class="report-dates">
-              <label>From<input type="date" formControlName="from" (change)="preset.set('custom')" /></label>
-              <label>To<input type="date" formControlName="to" (change)="preset.set('custom')" /></label>
+              <app-ionic-date-field
+                label="From"
+                controlId="work-log-export-from"
+                formControlName="from"
+                (click)="preset.set('custom')" />
+              <app-ionic-date-field
+                label="To"
+                controlId="work-log-export-to"
+                formControlName="to"
+                (click)="preset.set('custom')" />
             </form>
             <fieldset>
               <legend>Categories</legend>
@@ -118,9 +153,7 @@ export class WorkLogExportComponent {
         : values.filter(value => value !== category),
     );
   }
-  async changePreset(event: Event): Promise<void> {
-    if (!(event.target instanceof HTMLSelectElement)) return;
-    const preset = event.target.value;
+  async changePreset(preset: string): Promise<void> {
     this.preset.set(preset);
     this.error.set('');
     const today = new Date();

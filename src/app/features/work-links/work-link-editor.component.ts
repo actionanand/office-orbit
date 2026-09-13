@@ -1,10 +1,21 @@
 import { Component, ElementRef, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom, forkJoin } from 'rxjs';
-import { IonButton, IonContent, IonHeader, IonIcon, IonModal, IonTitle, IonToolbar } from '@ionic/angular';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonModal,
+  IonSelect,
+  IonSelectOption,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline, saveOutline } from 'ionicons/icons';
 import { apiError } from '../../core/api/api-error';
+import { ConfirmationService } from '../../core/notifications/confirmation.service';
 import { MutationApiService } from '../../core/api/mutation-api.service';
 import { RelationOptionsService } from '../../core/api/relation-options.service';
 import {
@@ -28,11 +39,22 @@ function validOptionalUrl(control: AbstractControl<string>) {
 
 @Component({
   selector: 'app-work-link-editor',
-  imports: [ReactiveFormsModule, IonButton, IonContent, IonHeader, IonIcon, IonModal, IonTitle, IonToolbar],
+  imports: [
+    ReactiveFormsModule,
+    IonButton,
+    IonContent,
+    IonHeader,
+    IonIcon,
+    IonModal,
+    IonSelect,
+    IonSelectOption,
+    IonTitle,
+    IonToolbar,
+  ],
   template: `<ion-modal
     class="editor-modal work-link-editor-modal"
     [isOpen]="open()"
-    [backdropDismiss]="!submitting()"
+    [canDismiss]="canDismiss"
     (didPresent)="focusFirst()"
     (didDismiss)="closed.emit()"
     ><ng-template>
@@ -66,47 +88,56 @@ function validOptionalUrl(control: AbstractControl<string>) {
                 type="text"
                 formControlName="link"
                 required
-                [attr.aria-invalid]="form.controls.link.invalid"
+                [attr.aria-invalid]="form.controls.link.touched && form.controls.link.invalid ? 'true' : null"
                 aria-describedby="work-link-title-error"
             /></label>
             @if (form.controls.link.touched && form.controls.link.invalid) {
               <p id="work-link-title-error" class="field-error field-span">Link title is required.</p>
             }
-            <label
-              >Type<select formControlName="typeOptionId">
-                <option value="">None</option>
-                @for (option of options(); track option.id) {
-                  <option [value]="option.id">{{ option.name }}</option>
-                }
-              </select></label
-            >
+            <ion-select
+              label="Type"
+              labelPlacement="stacked"
+              fill="outline"
+              interface="popover"
+              formControlName="typeOptionId">
+              <ion-select-option value="">None</ion-select-option>
+              @for (option of options(); track option.id) {
+                <ion-select-option [value]="option.id">{{ option.name }}</ion-select-option>
+              }
+            </ion-select>
             <label
               >URL<input
                 type="url"
                 formControlName="url"
                 placeholder="https://"
-                [attr.aria-invalid]="form.controls.url.invalid"
+                [attr.aria-invalid]="form.controls.url.touched && form.controls.url.invalid ? 'true' : null"
                 aria-describedby="work-link-url-error"
             /></label>
             @if (form.controls.url.touched && form.controls.url.invalid) {
               <p id="work-link-url-error" class="field-error field-span">Enter a valid URL or leave it empty.</p>
             }
-            <label
-              >Company<select formControlName="companyId">
-                <option value="">None</option>
-                @for (option of companies(); track option.id) {
-                  <option [value]="option.id">{{ option.label }}</option>
-                }
-              </select></label
-            >
-            <label
-              >Project<select formControlName="projectId">
-                <option value="">None</option>
-                @for (option of projects(); track option.id) {
-                  <option [value]="option.id">{{ option.label }}</option>
-                }
-              </select></label
-            >
+            <ion-select
+              label="Company"
+              labelPlacement="stacked"
+              fill="outline"
+              interface="popover"
+              formControlName="companyId">
+              <ion-select-option value="">None</ion-select-option>
+              @for (option of companies(); track option.id) {
+                <ion-select-option [value]="option.id">{{ option.label }}</ion-select-option>
+              }
+            </ion-select>
+            <ion-select
+              label="Project"
+              labelPlacement="stacked"
+              fill="outline"
+              interface="popover"
+              formControlName="projectId">
+              <ion-select-option value="">None</ion-select-option>
+              @for (option of projects(); track option.id) {
+                <ion-select-option [value]="option.id">{{ option.label }}</ion-select-option>
+              }
+            </ion-select>
             <label class="field-span">Notes<textarea rows="4" formControlName="notes"></textarea></label>
             <label class="check-field"><input type="checkbox" formControlName="active" />Active</label>
             @if (optionWarning()) {
@@ -164,6 +195,8 @@ export class WorkLinkEditorComponent {
   }
   private readonly api = inject(MutationApiService);
   private readonly relations = inject(RelationOptionsService);
+  private readonly confirmation = inject(ConfirmationService);
+  readonly canDismiss = () => this.confirmClose();
   constructor() {
     addIcons({ closeOutline, refreshOutline, saveOutline });
     effect(() => {
@@ -238,10 +271,23 @@ export class WorkLinkEditorComponent {
   focusFirst(): void {
     this.firstField()?.nativeElement.focus();
   }
-  requestClose(): void {
-    if (!this.submitting() && (!this.form.dirty || window.confirm('Discard unsaved changes?'))) this.closed.emit();
+  async requestClose(): Promise<void> {
+    if (await this.confirmClose()) {
+      this.form.markAsPristine();
+      this.closed.emit();
+    }
   }
   private merge(loaded: RelationOption[], selected: RelationOption[]) {
     return [...new Map([...selected, ...loaded].map(option => [option.id, option])).values()];
+  }
+  private async confirmClose(): Promise<boolean> {
+    if (this.submitting()) return false;
+    if (!this.form.dirty) return true;
+    return this.confirmation.confirm({
+      title: 'Discard changes?',
+      message: 'Your unsaved work link changes will be lost.',
+      confirmLabel: 'Discard',
+      danger: true,
+    });
   }
 }

@@ -50,6 +50,13 @@ describe('authInterceptor', () => {
       request.flush({});
     }
   });
+  it('attaches the bearer token to QUERY requests', () => {
+    client.request('QUERY', environment.apiBaseUrl + '/api/tasks', { body: { filters: {} } }).subscribe();
+    const request = http.expectOne(environment.apiBaseUrl + '/api/tasks');
+    expect(request.request.method).toBe('QUERY');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer test-bearer');
+    request.flush({ data: [] });
+  });
   it('clears state and redirects on protected 401', () => {
     client.get(environment.apiBaseUrl + '/api/jiras').subscribe({ error: () => undefined });
     http.expectOne(environment.apiBaseUrl + '/api/jiras').flush({}, { status: 401, statusText: 'Unauthorized' });

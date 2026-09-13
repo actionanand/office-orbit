@@ -91,6 +91,73 @@ ion-segment-button {
 ion-content {
   --background: var(--ion-background-color);
 }
+.confirmation-modal {
+  --width: min(440px, calc(100vw - 32px));
+  --height: auto;
+  --border-radius: 18px;
+  align-items: center;
+}
+.confirmation-modal::part(content) {
+  position: relative;
+  height: auto;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+}
+.confirmation-card {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  background: var(--surface);
+  color: var(--ion-text-color);
+}
+.confirmation-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--surface-soft);
+  color: var(--accent);
+}
+.confirmation-icon.danger {
+  background: color-mix(in srgb, var(--danger) 13%, var(--surface));
+  color: var(--danger);
+}
+.confirmation-icon ion-icon {
+  font-size: 25px;
+}
+.confirmation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.confirmation-heading h2,
+.confirmation-card p {
+  margin: 0;
+}
+.confirmation-heading ion-button {
+  min-width: 44px;
+  margin: -10px -10px -10px 0;
+}
+.confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 520px) {
+  .confirmation-modal {
+    --width: calc(100vw - 24px);
+    align-items: flex-end;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .confirmation-card {
+    padding: 20px;
+  }
+  .confirmation-actions ion-button {
+    flex: 1;
+  }
+}
 app-shell {
   height: 100%;
   display: block;
@@ -2123,6 +2190,12 @@ ion-popover.work-link-popover {
 .work-link-editor-modal {
   --height: min(660px, calc(100vh - 32px));
 }
+.productivity-editor-modal {
+  --width: min(880px, calc(100vw - 32px));
+}
+.productivity-editor-modal.compact-editor-modal {
+  --height: min(500px, calc(100vh - 32px));
+}
 .editor-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2139,9 +2212,67 @@ ion-popover.work-link-popover {
   font-size: 0.82rem;
   font-weight: 650;
 }
-.editor-form input:not([type='checkbox']),
-.editor-form select,
-.editor-form textarea {
+.editor-form > ion-input,
+.editor-form > ion-select,
+.editor-form > ion-textarea,
+.editor-form > ion-checkbox,
+.editor-form > app-ionic-date-field,
+.editor-form > .ionic-field-with-helper {
+  min-width: 0;
+  margin: 0;
+}
+.editor-form ion-input,
+.editor-form ion-select,
+.editor-form ion-textarea {
+  --border-color: var(--line);
+  --highlight-color-focused: var(--accent);
+}
+.ionic-field-with-helper {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+.ionic-field-with-helper small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.ionic-date-field {
+  display: block;
+  min-width: 0;
+}
+.ionic-field-label {
+  padding: 0 4px;
+  color: var(--ion-text-color);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.ionic-control-shell {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 56px;
+  margin: 0;
+  padding: 0 12px 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+}
+.ionic-control-shell:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.ionic-control-disabled {
+  opacity: 0.5;
+}
+ion-datetime-button::part(native) {
+  width: 100%;
+  justify-content: flex-start;
+  background: transparent;
+  color: var(--ion-text-color);
+}
+.editor-form > label input:not([type='checkbox']),
+.editor-form > label select,
+.editor-form > label textarea {
   width: 100%;
   min-height: 46px;
   padding: 10px 12px;
@@ -2151,10 +2282,10 @@ ion-popover.work-link-popover {
   color: var(--ion-text-color);
   font: inherit;
 }
-.editor-form select[multiple] {
+.editor-form > label select[multiple] {
   min-height: 150px;
 }
-.editor-form textarea {
+.editor-form > label textarea {
   resize: vertical;
 }
 .editor-form small,
@@ -2221,17 +2352,324 @@ ion-popover.work-link-popover {
   min-height: 112px;
 }
 
+.productivity-page {
+  max-width: 1180px;
+}
+.productivity-nav,
+.productivity-tabs {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.productivity-nav {
+  margin: 18px 0 12px;
+}
+.productivity-nav a,
+.productivity-tabs button {
+  flex: 1 0 auto;
+  min-height: 46px;
+  padding: 11px 18px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.productivity-nav a.active,
+.productivity-tabs button.active {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+.productivity-tabs {
+  margin-bottom: 14px;
+  border-radius: 10px;
+}
+.productivity-tabs button {
+  min-height: 42px;
+  padding-block: 8px;
+  font-size: 0.76rem;
+}
+.productivity-search {
+  max-width: none;
+}
+.selection-toolbar,
+.import-panel,
+.markdown-heading,
+.productivity-row-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.selection-toolbar {
+  min-height: 48px;
+  margin: 7px 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.selection-toolbar > span:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.productivity-list,
+.reference-list {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.productivity-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  min-height: 84px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.productivity-row:last-child,
+.reference-row:last-child {
+  border-bottom: 0;
+}
+.productivity-row.urgent {
+  box-shadow: inset 4px 0 var(--danger);
+}
+.selection-check {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-height: 44px;
+}
+.selection-check input {
+  width: 19px;
+  height: 19px;
+}
+.productivity-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.productivity-copy.clickable {
+  cursor: pointer;
+}
+.productivity-row-heading strong {
+  overflow-wrap: anywhere;
+}
+.productivity-row .preview {
+  max-width: 90ch;
+}
+.productivity-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.productivity-actions ion-button {
+  margin: 0;
+}
+.load-more {
+  margin-top: 18px;
+}
+.reference-row {
+  display: grid;
+  gap: 4px;
+  padding: 17px 18px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ion-text-color);
+  text-decoration: none;
+}
+.reference-row:hover,
+.reference-row:focus-visible {
+  background: var(--surface-soft);
+}
+.reference-row span {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.import-panel {
+  margin: 14px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+.import-panel > div {
+  display: grid;
+  gap: 2px;
+}
+.import-panel > div span {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.visually-hidden-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 18px 0;
+  text-decoration: none;
+}
+.markdown-heading {
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+.markdown-heading h1 {
+  margin-bottom: 7px;
+}
+.source-toggle {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.source-toggle button {
+  min-height: 40px;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+}
+.source-toggle button.active {
+  background: var(--surface-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+.content-warning {
+  padding: 10px 12px;
+  border-left: 4px solid #a56312;
+  background: var(--surface-soft);
+  color: var(--ion-text-color);
+}
+.markdown-panel {
+  padding: clamp(18px, 4vw, 38px);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.markdown-viewer {
+  max-width: 82ch;
+}
+.markdown-viewer pre,
+.markdown-source {
+  overflow-x: auto;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.markdown-viewer .checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  list-style: none;
+}
+.markdown-mode {
+  display: flex;
+  width: max-content;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-soft);
+}
+.markdown-mode button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+}
+.markdown-mode button.active {
+  background: var(--surface);
+  color: var(--ion-color-primary);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 8%);
+}
+.markdown-editor-preview {
+  min-height: 320px;
+  padding: 18px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.markdown-viewer blockquote {
+  margin-inline: 0;
+  padding-left: 16px;
+  border-left: 4px solid var(--line);
+  color: var(--muted);
+}
+.markdown-editor {
+  min-height: 330px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
+  line-height: 1.55;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
 @media (max-width: 700px) {
   .editor-modal {
     --width: 100%;
     --height: 100%;
     --border-radius: 0;
   }
+  .productivity-editor-modal.compact-editor-modal {
+    --height: 100%;
+  }
   .editor-form {
     grid-template-columns: 1fr;
   }
   .editor-form > * {
     grid-column: 1;
+  }
+  .productivity-nav a {
+    flex: 0 0 auto;
+  }
+  .productivity-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 13px 12px;
+  }
+  .productivity-actions {
+    grid-column: 2;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .productivity-row-heading,
+  .markdown-heading,
+  .import-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .selection-toolbar {
+    align-items: flex-start;
+  }
+  .selection-toolbar > span:last-child {
+    flex-wrap: wrap;
+  }
+  .markdown-panel {
+    padding: 17px;
   }
   .page-action-row,
   .work-log-controls {
@@ -2433,17 +2871,14 @@ ion-popover.work-link-popover {
   height: 20px;
   accent-color: var(--accent);
 }
-.export-options select,
-.export-options input[type='date'],
-.analytics-range select,
-.analytics-range input {
-  color: var(--ion-text-color);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  padding: 10px;
-  border-radius: 10px;
-  min-height: 44px;
+.export-options ion-select,
+.analytics-range ion-select {
+  --border-color: var(--line);
+  --highlight-color-focused: var(--accent);
   width: 100%;
+}
+.export-options > fieldset > ion-select {
+  margin-bottom: 16px;
 }
 .report-dates {
   display: grid;
@@ -2468,6 +2903,10 @@ ion-popover.work-link-popover {
   align-items: end;
   gap: 12px;
   margin-bottom: 24px;
+}
+.analytics-range > ion-select,
+.analytics-range > app-ionic-date-field {
+  flex: 1 1 150px;
 }
 .native-chart {
   margin: 0;

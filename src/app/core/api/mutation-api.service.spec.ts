@@ -60,16 +60,39 @@ describe('MutationApiService', () => {
     await result;
   });
 
+  it('supports single and bounded bulk deletion', async () => {
+    const deleted = firstValueFrom(service.delete('/api/todos', 'page/id'));
+    const single = http.expectOne(`${environment.apiBaseUrl}/api/todos/page%2Fid`);
+    expect(single.request.method).toBe('DELETE');
+    single.flush(null);
+    await deleted;
+
+    const bulk = firstValueFrom(service.bulkDelete('/api/tasks', ['one', 'two']));
+    const request = http.expectOne(`${environment.apiBaseUrl}/api/tasks/bulk-delete`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ pageIds: ['one', 'two'] });
+    request.flush({ requested: 2, deleted: 1, failed: [{ id: 'two', deleted: false }], allSucceeded: false });
+    expect((await bulk).allSucceeded).toBe(false);
+    expect(() =>
+      service.bulkDelete(
+        '/api/tasks',
+        Array.from({ length: 26 }, (_, index) => String(index)),
+      ),
+    ).toThrow();
+  });
+
   it('invalidates affected resource and summary cache prefixes after a successful write', async () => {
     const cache = TestBed.inject(DataCacheService);
     cache.set('/api/work-logs?page=one', true);
     cache.set('dashboard:summary', true);
+    cache.set('query-cursor:/api/work-logs:filters', true);
     cache.set('unrelated', true);
     const result = firstValueFrom(service.create('/api/work-logs', { update: 'Done' }));
     http.expectOne(`${environment.apiBaseUrl}/api/work-logs`).flush({ data: { id: 'new' } });
     await result;
     expect(cache.get('/api/work-logs?page=one')).toBeNull();
     expect(cache.get('dashboard:summary')).toBeNull();
+    expect(cache.get('query-cursor:/api/work-logs:filters')).toBeNull();
     expect(cache.get('unrelated')).toBe(true);
   });
 });
