@@ -232,6 +232,18 @@ export interface JiraRef {
   summary: string;
 }
 
+export interface JiraOption {
+  id: string;
+  jiraKey: string;
+  summary: string;
+  status: string | null;
+  inActiveSprint: boolean;
+}
+
+export interface JiraOptionQueryFilters {
+  q?: string;
+}
+
 export interface SprintRef extends NamedRef {
   active: boolean;
   startDate: string | null;

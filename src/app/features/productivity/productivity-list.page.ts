@@ -1,9 +1,18 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { IonButton, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar } from '@ionic/angular';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonSelect,
+  IonSelectOption,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { addOutline, createOutline, refreshOutline, trashOutline } from 'ionicons/icons';
+import { addOutline, pencilOutline, refreshOutline, trashOutline } from 'ionicons/icons';
 import { Subject, debounceTime, firstValueFrom } from 'rxjs';
 import { apiError } from '../../core/api/api-error';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
@@ -38,6 +47,8 @@ type View = { label: string; key: string };
     IonContent,
     IonHeader,
     IonIcon,
+    IonSelect,
+    IonSelectOption,
     IonTitle,
     IonToolbar,
     LoadingSkeletonComponent,
@@ -87,9 +98,25 @@ type View = { label: string; key: string };
               <ion-button fill="clear" size="small" (click)="selectVisible()">Select visible</ion-button>
             }
             @if (selectedIds().length) {
+              @if (selectedItem(); as selected) {
+                @if (kind !== 'memos') {
+                  <ion-button fill="outline" size="small" (click)="toggleDone(selected)">
+                    {{ isDone(selected) ? 'Reopen' : 'Complete' }}
+                  </ion-button>
+                }
+              }
               <ion-button fill="clear" size="small" (click)="selectedIds.set([])">Clear</ion-button
-              ><ion-button color="danger" fill="outline" size="small" (click)="deleteSelected()"
-                ><ion-icon name="trash-outline" slot="start" />Delete selected</ion-button
+              ><ion-button
+                color="danger"
+                fill="outline"
+                size="small"
+                (click)="deleteSelected()"
+                [attr.aria-label]="
+                  'Delete ' + selectedIds().length + ' selected item' + (selectedIds().length === 1 ? '' : 's')
+                "
+                ><ion-icon name="trash-outline" slot="start" /><span class="selection-delete-label"
+                  >Delete selected</span
+                ></ion-button
               >
             }
           </span>
@@ -103,7 +130,11 @@ type View = { label: string; key: string };
         } @else {
           <section class="productivity-list" [attr.aria-label]="heading()">
             @for (item of items(); track item.id) {
-              <article class="productivity-row" [class.urgent]="isUrgent(item)">
+              <article
+                class="productivity-row"
+                [class.todo-row]="kind === 'todos'"
+                [class.completed]="isDone(item)"
+                [class.urgent]="isUrgent(item)">
                 <label class="selection-check"
                   ><input
                     type="checkbox"
@@ -129,10 +160,20 @@ type View = { label: string; key: string };
                   }
                 </div>
                 <div class="productivity-actions">
-                  @if (kind !== 'memos') {
-                    <ion-button fill="clear" size="small" (click)="toggleDone(item)">{{
-                      isDone(item) ? 'Reopen' : 'Complete'
-                    }}</ion-button>
+                  @if ('toDo' in item && item.dueDate) {
+                    <span class="productivity-action-date">Due {{ formatDate(item.dueDate) }}</span>
+                  }
+                  @if ('status' in item) {
+                    <ion-select
+                      class="inline-status-select"
+                      interface="popover"
+                      [attr.aria-label]="'Status for ' + title(item)"
+                      [value]="statusOptionId(item)"
+                      (ionChange)="changeStatus(item, $event.detail.value)">
+                      @for (option of statusOptions(); track option.id) {
+                        <ion-select-option [value]="option.id">{{ option.name }}</ion-select-option>
+                      }
+                    </ion-select>
                   }
                   @if (kind === 'memos') {
                     <ion-button fill="clear" size="small" (click)="togglePin(item)">{{
@@ -142,8 +183,15 @@ type View = { label: string; key: string };
                       >Open</ion-button
                     >
                   }
-                  <ion-button fill="clear" size="small" (click)="openEditor(item)"
-                    ><ion-icon name="create-outline" slot="start" />Edit</ion-button
+                  <ion-button
+                    class="productivity-edit-button"
+                    fill="clear"
+                    size="small"
+                    [attr.aria-label]="'Edit ' + title(item)"
+                    (click)="openEditor(item)"
+                    ><ion-icon name="pencil-outline" slot="start" /><span class="productivity-edit-label"
+                      >Edit</span
+                    ></ion-button
                   >
                   <ion-button fill="clear" size="small" color="danger" (click)="deleteOne(item)"
                     ><ion-icon name="trash-outline" slot="icon-only" /><span class="sr-only"
@@ -185,6 +233,10 @@ export class ProductivityListPage {
   readonly selectedView = signal('all');
   readonly search = signal('');
   readonly selectedIds = signal<string[]>([]);
+  readonly selectedItem = computed(() => {
+    const ids = this.selectedIds();
+    return ids.length === 1 ? (this.items().find(item => item.id === ids[0]) ?? null) : null;
+  });
   readonly metadata = signal<ResourceMetadataResponse | null>(null);
   readonly editorOpen = signal(false);
   readonly editing = signal<DomainItem | null>(null);
@@ -231,7 +283,7 @@ export class ProductivityListPage {
   readonly formatDateTime = formatDateTime;
 
   constructor() {
-    addIcons({ addOutline, createOutline, refreshOutline, trashOutline });
+    addIcons({ addOutline, pencilOutline, refreshOutline, trashOutline });
     this.searchChanges.pipe(debounceTime(350), takeUntilDestroyed()).subscribe(() => this.load());
     this.load();
     this.api
@@ -327,10 +379,9 @@ export class ProductivityListPage {
     return 'toDo' in item ? item.toDo : 'task' in item ? item.task : 'memo' in item ? item.memo : '';
   }
   badges(item: DomainItem): string[] {
-    if ('toDo' in item) return item.status ? [item.status] : [];
+    if ('toDo' in item) return [];
     if ('task' in item)
       return [
-        item.status,
         item.priority,
         item.responsibility,
         item.dueDate && item.dueDate < todayIso() && !this.isDone(item) ? 'Overdue' : null,
@@ -361,6 +412,12 @@ export class ProductivityListPage {
   }
   isDone(item: DomainItem): boolean {
     return ('status' in item && item.status?.toLowerCase() === 'done') ?? false;
+  }
+  statusOptions() {
+    return metadataOptions(this.metadata(), 'statusOptionId');
+  }
+  statusOptionId(item: DomainItem): string {
+    return 'status' in item ? optionId(this.metadata(), 'statusOptionId', item.status) : '';
   }
   isPinned(item: DomainItem): item is Memo {
     return 'memo' in item && item.pinned;
@@ -472,6 +529,30 @@ export class ProductivityListPage {
       const response = await firstValueFrom(this.api.patch<DomainItem, typeof body>(this.kind, item.id, body));
       this.items.update(items => items.map(value => (value.id === item.id ? response.data : value)));
       this.snackbar.success(done ? 'Item reopened.' : 'Item completed.');
+    } catch (error) {
+      this.snackbar.error(apiError(error));
+    }
+  }
+  async changeStatus(item: DomainItem, statusOptionId: string | null | undefined): Promise<void> {
+    if (!('status' in item) || !statusOptionId || statusOptionId === this.statusOptionId(item)) return;
+    const selected = this.statusOptions().find(option => option.id === statusOptionId);
+    if (!selected) return;
+    const completed = selected.name.toLowerCase() === 'done';
+    try {
+      const body =
+        this.kind === 'tasks'
+          ? {
+              statusOptionId,
+              completedDate: completed
+                ? 'completedDate' in item && item.completedDate
+                  ? item.completedDate
+                  : todayIso()
+                : null,
+            }
+          : { statusOptionId };
+      const response = await firstValueFrom(this.api.patch<DomainItem, typeof body>(this.kind, item.id, body));
+      this.items.update(items => items.map(value => (value.id === item.id ? response.data : value)));
+      this.snackbar.success('Status updated.');
     } catch (error) {
       this.snackbar.error(apiError(error));
     }
