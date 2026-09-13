@@ -92,7 +92,7 @@ type View = { label: string; key: string };
             (input)="searchChanged($event)"
         /></label>
         <div class="selection-toolbar" aria-live="polite">
-          <span>{{ selectedIds().length ? selectedIds().length + ' selected' : count() + ' loaded' }}</span
+          <span>{{ selectedIds().length ? selectedIds().length + ' / 25 selected' : count() + ' loaded' }}</span
           ><span>
             @if (items().length) {
               <ion-button fill="clear" size="small" (click)="selectVisible()">Select visible</ion-button>
@@ -111,6 +111,7 @@ type View = { label: string; key: string };
                 fill="outline"
                 size="small"
                 (click)="deleteSelected()"
+                [disabled]="selectedIds().length > 25"
                 [attr.aria-label]="
                   'Delete ' + selectedIds().length + ' selected item' + (selectedIds().length === 1 ? '' : 's')
                 "
@@ -139,6 +140,7 @@ type View = { label: string; key: string };
                   ><input
                     type="checkbox"
                     [checked]="selectedIds().includes(item.id)"
+                    [disabled]="selectionLimitReached() && !selectedIds().includes(item.id)"
                     (change)="toggleSelection(item.id)" /><span class="sr-only">Select {{ title(item) }}</span></label
                 >
                 <div class="productivity-copy" [class.clickable]="kind === 'memos'" (click)="openItem(item)">
@@ -233,6 +235,7 @@ export class ProductivityListPage {
   readonly selectedView = signal('all');
   readonly search = signal('');
   readonly selectedIds = signal<string[]>([]);
+  readonly selectionLimitReached = computed(() => this.selectedIds().length >= 25);
   readonly selectedItem = computed(() => {
     const ids = this.selectedIds();
     return ids.length === 1 ? (this.items().find(item => item.id === ids[0]) ?? null) : null;
@@ -461,11 +464,14 @@ export class ProductivityListPage {
     );
   }
   selectVisible(): void {
+    this.selectedIds.set(
+      this.items()
+        .slice(0, 25)
+        .map(item => item.id),
+    );
     if (this.items().length > 25) {
-      this.snackbar.error('Up to 25 items can be deleted at once.');
-      return;
+      this.snackbar.error('Selected the first 25 items. Bulk delete is limited to 25.');
     }
-    this.selectedIds.set(this.items().map(item => item.id));
   }
   async deleteOne(item: DomainItem): Promise<void> {
     const confirmed = await this.confirmation.confirm({
@@ -486,6 +492,10 @@ export class ProductivityListPage {
   async deleteSelected(): Promise<void> {
     const ids = this.selectedIds();
     if (!ids.length) return;
+    if (ids.length > 25) {
+      this.snackbar.error('Up to 25 items can be deleted at once.');
+      return;
+    }
     const confirmed = await this.confirmation.confirm({
       title: `Delete ${ids.length} selected item${ids.length === 1 ? '' : 's'}?`,
       message: `The selected ${this.heading().toLowerCase()} will be permanently deleted. This action cannot be undone.`,

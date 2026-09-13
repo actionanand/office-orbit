@@ -2265,11 +2265,59 @@ ion-popover.work-link-popover {
 .ionic-control-disabled {
   opacity: 0.5;
 }
-ion-datetime-button::part(native) {
+.ionic-date-trigger {
   width: 100%;
-  justify-content: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
   background: transparent;
   color: var(--ion-text-color);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ionic-date-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.ionic-date-trigger:disabled {
+  cursor: default;
+}
+.ionic-date-placeholder {
+  color: var(--muted);
+}
+.ionic-date-modal {
+  --width: min(420px, calc(100vw - 32px));
+  --height: auto;
+  --border-radius: 18px;
+}
+.ionic-date-modal::part(content) {
+  max-height: calc(100dvh - 32px);
+}
+.ionic-date-dialog {
+  padding: 20px;
+  background: var(--surface);
+}
+.ionic-date-dialog h2 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+.ionic-date-dialog ion-datetime {
+  width: 100%;
+  max-width: none;
+  margin-inline: auto;
+  background: transparent;
+}
+.ionic-date-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+}
+.ionic-date-actions > span {
+  display: flex;
+  gap: 4px;
 }
 .jira-picker-field {
   display: grid;

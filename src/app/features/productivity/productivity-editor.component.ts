@@ -35,7 +35,7 @@ import {
 import { metadataOptions, optionId, relationOptions, todayIso } from '../../shared/utils/editor';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
 import { MarkdownViewerComponent } from './markdown-viewer.component';
-import { JiraPickerComponent, JiraPickerSelection } from './jira-picker.component';
+import { JiraPickerComponent, JiraPickerSelection } from '../jiras/jira-picker.component';
 import { ProductivityKind, ProductivityService } from './productivity.service';
 
 @Component({

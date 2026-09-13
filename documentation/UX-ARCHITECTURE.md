@@ -24,7 +24,7 @@ JIRAs use compact rows and a dedicated detail route. JIRA detail presents chrono
 
 ## Editors
 
-Work Logs, Feedback, and Work Links use focused Ionic modal editors with typed Reactive Forms. Reactive Forms are used because the native Ionic modal and native multi-select controls integrate directly with their ControlValueAccessor behavior. Required titles, dates, optional URLs, metadata failures, and server failures have visible accessible states. Save is disabled while invalid or pending, modal dismissal is blocked during submission, changed forms warn before dismissal, and focus moves to the first field when the editor opens.
+Work Logs, Feedback, and Work Links use focused Ionic modal editors with typed Reactive Forms. Optional dates use a shared Ionic calendar control whose trigger remains visibly blank until a date is applied. Save is disabled while invalid or pending, modal dismissal is blocked during submission, changed forms warn before dismissal, and focus moves to the first field when the editor opens.
 
 Select controls display Worker metadata names and submit option IDs. Relation controls display names or JIRA key plus summary and submit Notion page IDs. Relation pagination is completed with opaque cursors and selected values are merged back into the options. Feedback Work Type is shown as derived and cannot be edited; Project is absent from Feedback.
 

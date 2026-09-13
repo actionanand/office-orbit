@@ -71,6 +71,22 @@ describe('JiraPickerComponent', () => {
     expect(fixture.componentInstance.results()).toEqual([current]);
   });
 
+  it.each([
+    ['LSC-84944', current],
+    ['deployment', historical],
+  ])('shows the server result when searching by %s', async (search, match) => {
+    query.mockImplementation((q: string) => of(page(q ? [match] : [current])));
+    const fixture = await create();
+    fixture.componentInstance.openPicker();
+    await vi.runAllTimersAsync();
+
+    fixture.componentInstance.searchChanged(new CustomEvent('ionInput', { detail: { value: search } }));
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(query).toHaveBeenLastCalledWith(search);
+    expect(fixture.componentInstance.results()).toEqual([match]);
+  });
+
   it('keeps a selected historical JIRA when search is cleared and applies only IDs and refs', async () => {
     query.mockImplementation((q: string) => of(page(q ? [historical] : [current])));
     const fixture = await create();
@@ -89,6 +105,24 @@ describe('JiraPickerComponent', () => {
       ids: ['historical'],
       jiras: [{ id: 'historical', key: 'LSDEVOPS-7147', summary: 'Deploying cortellis-frontend' }],
     });
+  });
+
+  it('discards draft changes on Cancel without emitting a selection', async () => {
+    const fixture = await create();
+    fixture.componentRef.setInput('selectedIds', ['current']);
+    fixture.componentRef.setInput('selectedJiras', [
+      { id: current.id, key: current.jiraKey, summary: current.summary },
+    ]);
+    const emitted = vi.fn();
+    fixture.componentInstance.selectionChange.subscribe(emitted);
+    fixture.componentInstance.openPicker();
+    await vi.runAllTimersAsync();
+    fixture.componentInstance.toggle(historical, true);
+
+    fixture.componentInstance.cancel();
+
+    expect(emitted).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.selectedIds()).toEqual(['current']);
   });
 
   it('loads one cursor page, appends unique options, and blocks concurrent load-more requests', async () => {
