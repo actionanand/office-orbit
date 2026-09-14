@@ -41,6 +41,8 @@ When a range is invalid, a valid exact date is used, then a valid month; otherwi
 
 ## Loading and privacy
 
+To Do early reminders reuse `OfficeEventsService.holidayDates()` and the same GViz cache. This narrow method reads only real Holiday events; Important Days and Rota never become non-working days. See [Todo recurrence](TODO-RECURRENCE.md).
+
 Successful sheet responses are cached in a small in-memory map for five minutes. There is no localStorage, sessionStorage, IndexedDB, or DataCacheService storage for sheet data. Refresh clears the map, re-fetches all three sheets, and asks DashboardService to bypass its cache. A late response from an earlier cache generation cannot repopulate the cleared map.
 
 Requests time out after 15 seconds. A failed sheet produces a compact warning while successful sources remain visible. Failed responses are not cached. Sheet contents are not logged. The page uses Ionic segments/buttons and existing theme variables, with wrapping text and a single-column layout on narrow screens.

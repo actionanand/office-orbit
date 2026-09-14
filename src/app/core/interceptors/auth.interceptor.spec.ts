@@ -38,6 +38,7 @@ describe('authInterceptor', () => {
     for (const url of [
       environment.apiBaseUrl + '/api/jiras',
       environment.apiBaseUrl + '/api/auth/renew',
+      environment.apiBaseUrl + '/api/settings/work-calendar',
       environment.apiBaseUrl + '/api/auth/login',
       'https://example.com/api/jiras',
       `https://docs.google.com/spreadsheets/d/${environment.GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&gid=${environment.ROTA_SHEET_GID}`,
@@ -46,7 +47,9 @@ describe('authInterceptor', () => {
       client.get(url).subscribe();
       const request = http.expectOne(url);
       expect(request.request.headers.has('Authorization')).toBe(
-        url === environment.apiBaseUrl + '/api/jiras' || url === environment.apiBaseUrl + '/api/auth/renew',
+        url === environment.apiBaseUrl + '/api/jiras' ||
+          url === environment.apiBaseUrl + '/api/auth/renew' ||
+          url === environment.apiBaseUrl + '/api/settings/work-calendar',
       );
       request.flush({});
     }
