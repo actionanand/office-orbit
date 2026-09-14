@@ -1,6 +1,7 @@
 import { prepareMarkdown, renderMarkdown, safeMarkdownUrl } from './markdown-viewer.component';
 import { MAX_MARKDOWN_BYTES, validateMarkdownFile } from './reference-library.page';
 import { routes } from './productivity.routes';
+import { environment } from '../../../environments/environment';
 
 describe('Productivity feature', () => {
   it('provides every child route and the default To Do redirect', () => {
@@ -92,7 +93,20 @@ describe('Productivity feature', () => {
     expect(validateMarkdownFile(null)).toContain('Choose');
     expect(validateMarkdownFile(new File([], 'empty.md'))).toContain('non-empty');
     expect(validateMarkdownFile(new File(['text'], 'notes.txt'))).toContain('.md');
-    expect(validateMarkdownFile(new File([new Uint8Array(MAX_MARKDOWN_BYTES + 1)], 'large.md'))).toContain('4.5 MB');
+    expect(validateMarkdownFile(new File([new Uint8Array(MAX_MARKDOWN_BYTES + 1)], 'large.md'))).toContain(
+      `${environment.markdownFileMaxBytes.toLocaleString('en-US')} bytes`,
+    );
     expect(validateMarkdownFile(new File(['# Notes'], 'notes.markdown'))).toBe('');
+  });
+
+  it('uses the configured environment limit, including the exact boundary', () => {
+    const original = environment.markdownFileMaxBytes;
+    try {
+      environment.markdownFileMaxBytes = 150;
+      expect(validateMarkdownFile(new File([new Uint8Array(150)], 'limit.md'))).toBe('');
+      expect(validateMarkdownFile(new File([new Uint8Array(151)], 'over.markdown'))).toContain('150 bytes');
+    } finally {
+      environment.markdownFileMaxBytes = original;
+    }
   });
 });

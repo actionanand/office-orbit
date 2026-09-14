@@ -8,5 +8,6 @@ export const navigation = [
   { path: 'feedback', label: 'Feedback', icon: 'chatbubbles-outline' },
   { path: 'productivity', label: 'Productivity', icon: 'list-circle-outline' },
   { path: 'work-links', label: 'Work Links', icon: 'link-outline' },
+  { path: 'office-events', label: 'Office Events', icon: 'calendar-outline' },
   { path: 'settings', label: 'Settings', icon: 'settings-outline' },
 ];

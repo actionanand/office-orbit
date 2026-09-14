@@ -33,13 +33,15 @@ import { formatDateTime } from '../../shared/utils/format';
 import { ProductivityNavComponent } from './productivity-nav.component';
 import { ProductivityService } from './productivity.service';
 import { LocalMarkdownPreviewComponent } from './local-markdown-preview.component';
+import { environment } from '../../../environments/environment';
 
-export const MAX_MARKDOWN_BYTES = 4_500_000;
+export const MAX_MARKDOWN_BYTES = environment.markdownFileMaxBytes;
 export function validateMarkdownFile(file: File | null): string {
   if (!file) return 'Choose a Markdown file.';
   if (file.size === 0) return 'Choose a non-empty Markdown file.';
   if (!/\.(md|markdown)$/i.test(file.name)) return 'Choose a .md or .markdown file.';
-  if (file.size > MAX_MARKDOWN_BYTES) return 'The Markdown file must be 4.5 MB or smaller.';
+  if (file.size > environment.markdownFileMaxBytes)
+    return `The Markdown file must be ${environment.markdownFileMaxBytes.toLocaleString('en-US')} bytes or smaller.`;
   return '';
 }
 
