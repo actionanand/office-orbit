@@ -40,6 +40,7 @@ describe('authInterceptor', () => {
       environment.apiBaseUrl + '/api/auth/renew',
       environment.apiBaseUrl + '/api/auth/login',
       'https://example.com/api/jiras',
+      `https://docs.google.com/spreadsheets/d/${environment.GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&gid=${environment.ROTA_SHEET_GID}`,
       environment.apiBaseUrl + '.example.com/api/jiras',
     ]) {
       client.get(url).subscribe();

@@ -56,6 +56,10 @@ export const routes: Routes = [
       },
       { path: 'more', loadComponent: () => import('./features/more/more.page').then(m => m.MorePage) },
       {
+        path: 'office-events',
+        loadComponent: () => import('./features/office-events/office-events.page').then(m => m.OfficeEventsPage),
+      },
+      {
         path: 'settings',
         loadComponent: () => import('./features/settings/settings.page').then(m => m.SettingsPage),
       },

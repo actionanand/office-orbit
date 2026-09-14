@@ -15,6 +15,7 @@ import {
   ellipsisHorizontalOutline,
   analyticsOutline,
   listCircleOutline,
+  calendarOutline,
 } from 'ionicons/icons';
 import { navigation } from '../navigation';
 import { AppLockService } from '../../core/app-lock/app-lock.service';
@@ -76,6 +77,7 @@ export class ShellComponent {
       ellipsisHorizontalOutline,
       analyticsOutline,
       listCircleOutline,
+      calendarOutline,
     });
   }
 }

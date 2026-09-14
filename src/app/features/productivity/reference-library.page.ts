@@ -14,7 +14,7 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { closeOutline, cloudUploadOutline, refreshOutline } from 'ionicons/icons';
+import { closeOutline, cloudUploadOutline, documentTextOutline, refreshOutline } from 'ionicons/icons';
 import { Subject, debounceTime, firstValueFrom } from 'rxjs';
 import { apiError } from '../../core/api/api-error';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
@@ -32,13 +32,16 @@ import { metadataOptions } from '../../shared/utils/editor';
 import { formatDateTime } from '../../shared/utils/format';
 import { ProductivityNavComponent } from './productivity-nav.component';
 import { ProductivityService } from './productivity.service';
+import { LocalMarkdownPreviewComponent } from './local-markdown-preview.component';
+import { environment } from '../../../environments/environment';
 
-export const MAX_MARKDOWN_BYTES = 4_500_000;
+export const MAX_MARKDOWN_BYTES = environment.markdownFileMaxBytes;
 export function validateMarkdownFile(file: File | null): string {
   if (!file) return 'Choose a Markdown file.';
   if (file.size === 0) return 'Choose a non-empty Markdown file.';
   if (!/\.(md|markdown)$/i.test(file.name)) return 'Choose a .md or .markdown file.';
-  if (file.size > MAX_MARKDOWN_BYTES) return 'The Markdown file must be 4.5 MB or smaller.';
+  if (file.size > environment.markdownFileMaxBytes)
+    return `The Markdown file must be ${environment.markdownFileMaxBytes.toLocaleString('en-US')} bytes or smaller.`;
   return '';
 }
 
@@ -60,6 +63,7 @@ export function validateMarkdownFile(file: File | null): string {
     PageHeaderComponent,
     StatePanelComponent,
     ProductivityNavComponent,
+    LocalMarkdownPreviewComponent,
   ],
   template: `<ion-header class="ion-no-border">
       <ion-toolbar>
@@ -74,9 +78,24 @@ export function validateMarkdownFile(file: File | null): string {
         <app-productivity-nav />
         <div class="page-action-row">
           <app-page-header title="Reference Library" description="Search and organize reusable knowledge." />
-          <ion-button (click)="fileInput.click()">
-            <ion-icon name="cloud-upload-outline" slot="start" />Import Markdown
-          </ion-button>
+          <div class="reference-file-actions">
+            <div class="local-preview-action">
+              <ion-button fill="outline" (click)="previewFileInput.click()">
+                <ion-icon name="document-text-outline" slot="start" />Preview Markdown
+              </ion-button>
+              <span>Local only · no upload</span>
+            </div>
+            <ion-button (click)="fileInput.click()">
+              <ion-icon name="cloud-upload-outline" slot="start" />Import Markdown
+            </ion-button>
+          </div>
+          <input
+            #previewFileInput
+            class="visually-hidden-file"
+            type="file"
+            accept=".md,.markdown,text/markdown"
+            aria-label="Choose a Markdown file to preview locally"
+            (change)="selectPreviewFile($event)" />
           <input
             #fileInput
             class="visually-hidden-file"
@@ -86,6 +105,12 @@ export function validateMarkdownFile(file: File | null): string {
             aria-describedby="reference-file-error"
             (change)="selectFile($event)" />
         </div>
+        @if (previewMarkdown()) {
+          <app-local-markdown-preview
+            [filename]="previewFilename()"
+            [markdown]="previewMarkdown()"
+            (dismissed)="closePreview()" />
+        }
 
         <section class="reference-filters" aria-label="Reference filters">
           <ion-input
@@ -249,6 +274,7 @@ export class ReferenceLibraryPage {
   private readonly searchRequests = new Subject<void>();
   private pollController?: AbortController;
   private requestGeneration = 0;
+  private previewReadGeneration = 0;
 
   readonly items = signal<ReferenceLibraryItem[]>([]);
   readonly metadata = signal<ResourceMetadataResponse | null>(null);
@@ -278,11 +304,16 @@ export class ReferenceLibraryPage {
   readonly fileError = signal('');
   readonly importing = signal(false);
   readonly importStatus = signal('');
+  readonly previewFilename = signal('');
+  readonly previewMarkdown = signal('');
   readonly formatDateTime = formatDateTime;
 
   constructor() {
-    addIcons({ closeOutline, cloudUploadOutline, refreshOutline });
-    this.destroyRef.onDestroy(() => this.pollController?.abort());
+    addIcons({ closeOutline, cloudUploadOutline, documentTextOutline, refreshOutline });
+    this.destroyRef.onDestroy(() => {
+      this.pollController?.abort();
+      this.closePreview();
+    });
     this.searchRequests.pipe(debounceTime(300), takeUntilDestroyed()).subscribe(() => this.load(true));
     this.loadMetadata();
     this.load();
@@ -343,6 +374,33 @@ export class ReferenceLibraryPage {
     this.file.set(error ? null : file);
     if (file && !error) this.importTitle.set(file.name.replace(/\.(md|markdown)$/i, '').replace(/[-_]+/g, ' '));
     input.value = '';
+  }
+  async selectPreviewFile(event: Event): Promise<void> {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    const error = validateMarkdownFile(file);
+    this.fileError.set(error);
+    if (error || !file) return;
+    const generation = ++this.previewReadGeneration;
+    try {
+      const markdown = await file.text();
+      if (generation !== this.previewReadGeneration) return;
+      if (!markdown.length) {
+        this.fileError.set('Choose a non-empty Markdown file.');
+        return;
+      }
+      this.previewFilename.set(file.name);
+      this.previewMarkdown.set(markdown);
+    } catch {
+      this.fileError.set('The Markdown file could not be read.');
+    }
+  }
+  closePreview(): void {
+    this.previewReadGeneration += 1;
+    this.previewFilename.set('');
+    this.previewMarkdown.set('');
   }
   clearFile(): void {
     this.pollController?.abort();
