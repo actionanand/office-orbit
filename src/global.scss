@@ -3116,14 +3116,23 @@ ion-popover.work-link-popover {
   overflow-wrap: anywhere;
 }
 .markdown-mermaid {
+  --markdown-mermaid-max-width: 900px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
-  margin-block: 18px;
+  margin: 1.5rem auto;
+  -webkit-overflow-scrolling: touch;
 }
 .markdown-mermaid svg {
   display: block;
-  min-width: min(100%, 480px);
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(100%, var(--markdown-mermaid-max-width));
   height: auto;
+  margin-inline: auto;
 }
 .markdown-math-block {
   display: block;

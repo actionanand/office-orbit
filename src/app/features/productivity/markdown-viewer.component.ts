@@ -321,7 +321,7 @@ export class MarkdownViewerComponent {
     const value = new DOMParser().parseFromString(source, 'image/svg+xml');
     const svg = value.documentElement;
     if (svg.localName !== 'svg' || svg.querySelector('parsererror')) throw new Error('Invalid Mermaid SVG.');
-    for (const element of [...svg.querySelectorAll('*')]) {
+    for (const element of [svg, ...svg.querySelectorAll('*')]) {
       if (['script', 'iframe', 'object', 'embed'].includes(element.localName)) {
         element.remove();
         continue;
@@ -337,8 +337,17 @@ export class MarkdownViewerComponent {
       }
     }
     svg.removeAttribute('style');
-    svg.setAttribute('width', '100%');
-    svg.setAttribute('height', 'auto');
+    svg.removeAttribute('width');
+    svg.removeAttribute('height');
+    const viewBox = svg
+      .getAttribute('viewBox')
+      ?.trim()
+      .split(/[\s,]+/)
+      .map(Number);
+    if (viewBox?.length === 4 && viewBox.every(Number.isFinite) && viewBox[2] > 0 && viewBox[3] > 0) {
+      // Use natural diagram width; CSS caps it to the article and viewport.
+      svg.setAttribute('width', String(viewBox[2]));
+    }
     return document.importNode(svg, true) as unknown as SVGElement;
   }
 
