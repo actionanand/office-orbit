@@ -53,16 +53,22 @@ export function prepareMarkdown(markdown: string): PreparedMarkdown {
         if ((prefix && next.startsWith(prefix) ? next.slice(prefix.length) : next).trim() === '$$') break;
         value.push(prefix && next.startsWith(prefix) ? next.slice(prefix.length) : next.trimStart());
       }
-      prepared.push(prefix + mathPlaceholder(formulas, value.join('\n').trim(), true));
+      prepared.push(...displayMathBlock(prefix, value.join('\n').trim(), formulas));
       continue;
     }
 
     const block = /^(\s*(?:>\s*)*)\$\$(.+)\$\$\s*$/.exec(line);
-    prepared.push(
-      block ? block[1] + mathPlaceholder(formulas, block[2].trim(), true) : replaceMathOutsideCode(line, formulas),
-    );
+    if (block) prepared.push(...displayMathBlock(block[1], block[2].trim(), formulas));
+    else prepared.push(replaceMathOutsideCode(line, formulas));
   }
   return { source: prepared.join('\n'), formulas };
+}
+
+function displayMathBlock(prefix: string, value: string, formulas: PreparedMarkdown['formulas']): string[] {
+  // End Marked's raw HTML block before the next Markdown block. Preserve the
+  // container prefix so the boundary does not split a surrounding blockquote.
+  const boundary = prefix.trimEnd();
+  return [boundary, prefix + mathPlaceholder(formulas, value, true), boundary];
 }
 
 function replaceMathOutsideCode(line: string, formulas: PreparedMarkdown['formulas']): string {
