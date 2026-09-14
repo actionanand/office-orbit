@@ -74,6 +74,11 @@ export interface BulkDeleteResponse {
 }
 
 export interface TodoQueryFilters {
+  schedules?: string[];
+  recurring?: boolean;
+  showToday?: boolean;
+  workdayAdjust?: boolean;
+  hasSetupIssue?: boolean;
   statuses?: string[];
   dueFrom?: string;
   dueTo?: string;
@@ -208,6 +213,14 @@ export interface WorkLinkCreateRequest {
 export type WorkLinkPatchRequest = Partial<WorkLinkCreateRequest>;
 
 export interface TodoCreateRequest {
+  scheduleOptionId: string | null;
+  repeatOnOptionIds: string[];
+  interval: number | null;
+  repeatDay: number | null;
+  repeatMonthOptionId: string | null;
+  monthEndOptionId: string | null;
+  repeatStart: string | null;
+  workdayAdjust: boolean;
   toDo: string;
   statusOptionId: string | null;
   dueDate: string | null;
@@ -445,6 +458,17 @@ export interface WorkLink {
 }
 
 export interface Todo {
+  schedule: string | null;
+  repeatOn: string[];
+  interval: number | null;
+  repeatDay: number | null;
+  repeatMonth: string | null;
+  monthEnd: string | null;
+  repeatStart: string | null;
+  workdayAdjust: boolean;
+  recurring: boolean;
+  showToday: boolean;
+  setupIssue: string;
   id: string;
   createdTime: string;
   lastEditedTime: string;
@@ -452,6 +476,11 @@ export interface Todo {
   status: string | null;
   dueDate: string | null;
   notes: string;
+}
+
+export type Weekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+export interface WorkCalendarSettings {
+  weekOffDays: Weekday[];
 }
 
 export interface Task {

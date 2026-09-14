@@ -3,6 +3,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   IonButton,
+  IonCheckbox,
+  IonSegment,
+  IonSegmentButton,
+  IonLabel,
   IonContent,
   IonHeader,
   IonIcon,
@@ -12,7 +16,7 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { addOutline, pencilOutline, refreshOutline, trashOutline } from 'ionicons/icons';
+import { addOutline, calendarOutline, pencilOutline, refreshOutline, trashOutline } from 'ionicons/icons';
 import { Subject, debounceTime, firstValueFrom } from 'rxjs';
 import { apiError } from '../../core/api/api-error';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
@@ -36,12 +40,20 @@ import { formatDate, formatDateTime, names, truncate } from '../../shared/utils/
 import { ProductivityEditorComponent } from './productivity-editor.component';
 import { ProductivityNavComponent } from './productivity-nav.component';
 import { ProductivityKind, ProductivityService } from './productivity.service';
+import { TodoComputedService } from './todo-computed.service';
+import { AdjustedReminder, recurrenceSummary, todoViewFilters } from './todo-recurrence';
+import { WorkCalendarComponent } from './work-calendar.component';
 
 type View = { label: string; key: string };
 
 @Component({
   selector: 'app-productivity-list',
   imports: [
+    IonSegment,
+    IonSegmentButton,
+    IonLabel,
+    IonCheckbox,
+    WorkCalendarComponent,
     RouterLink,
     IonButton,
     IonContent,
@@ -67,23 +79,46 @@ type View = { label: string; key: string };
     <ion-content
       ><main class="page-wrap productivity-page">
         <div class="page-action-row">
-          <app-page-header [title]="heading()" [description]="description()" /><ion-button (click)="openEditor(null)"
-            ><ion-icon name="add-outline" slot="start" />Add {{ singular() }}</ion-button
-          >
+          <app-page-header [title]="heading()" [description]="description()" />
+          <div class="todo-header-actions">
+            @if (kind === 'todos') {
+              <ion-button fill="clear" aria-label="Work calendar settings" (click)="calendarOpen.set(true)"
+                ><ion-icon name="calendar-outline" slot="icon-only"
+              /></ion-button>
+            }
+            <ion-button (click)="openEditor(null)"
+              ><ion-icon name="add-outline" slot="start" />Add {{ singular() }}</ion-button
+            >
+          </div>
         </div>
         <app-productivity-nav />
-        <div class="productivity-tabs" role="tablist" [attr.aria-label]="heading() + ' views'">
-          @for (view of views(); track view.key) {
-            <button
-              type="button"
-              role="tab"
-              [attr.aria-selected]="selectedView() === view.key"
-              [class.active]="selectedView() === view.key"
-              (click)="selectView(view.key)">
-              {{ view.label }}
-            </button>
-          }
-        </div>
+        @if (kind === 'todos') {
+          <ion-segment
+            class="todo-view-tabs"
+            [scrollable]="true"
+            [value]="selectedView()"
+            (ionChange)="todoViewChanged($event.detail.value)"
+            aria-label="To Do views">
+            @for (view of views(); track view.key) {
+              <ion-segment-button [value]="view.key"
+                ><ion-label>{{ view.label }}</ion-label></ion-segment-button
+              >
+            }
+          </ion-segment>
+        } @else {
+          <div class="productivity-tabs" role="tablist" [attr.aria-label]="heading() + ' views'">
+            @for (view of views(); track view.key) {
+              <button
+                type="button"
+                role="tab"
+                [attr.aria-selected]="selectedView() === view.key"
+                [class.active]="selectedView() === view.key"
+                (click)="selectView(view.key)">
+                {{ view.label }}
+              </button>
+            }
+          </div>
+        }
         <label class="loaded-search productivity-search"
           >Search<input
             type="search"
@@ -122,6 +157,9 @@ type View = { label: string; key: string };
             }
           </span>
         </div>
+        @for (warning of reminderWarnings(); track warning) {
+          <p class="content-warning" role="status">{{ warning }}</p>
+        }
         @if (loading()) {
           <app-loading-skeleton />
         } @else if (error()) {
@@ -136,13 +174,13 @@ type View = { label: string; key: string };
                 [class.todo-row]="kind === 'todos'"
                 [class.completed]="isDone(item)"
                 [class.urgent]="isUrgent(item)">
-                <label class="selection-check"
-                  ><input
-                    type="checkbox"
+                <span class="selection-check"
+                  ><ion-checkbox
+                    [attr.aria-label]="'Select ' + title(item)"
                     [checked]="selectedIds().includes(item.id)"
                     [disabled]="selectionLimitReached() && !selectedIds().includes(item.id)"
-                    (change)="toggleSelection(item.id)" /><span class="sr-only">Select {{ title(item) }}</span></label
-                >
+                    (ionChange)="toggleSelection(item.id)"
+                /></span>
                 <div class="productivity-copy" [class.clickable]="kind === 'memos'" (click)="openItem(item)">
                   <div class="productivity-row-heading">
                     <strong>{{ title(item) }}</strong
@@ -152,6 +190,9 @@ type View = { label: string; key: string };
                       }
                     </span>
                   </div>
+                  @if (recurrenceLabel(item)) {
+                    <p class="todo-recurrence-summary">{{ recurrenceLabel(item) }}</p>
+                  }
                   <span class="meta-line">
                     @for (meta of metadataLine(item); track meta) {
                       <span>{{ meta }}</span>
@@ -159,6 +200,16 @@ type View = { label: string; key: string };
                   </span>
                   @if (preview(item)) {
                     <span class="preview">{{ preview(item) }}</span>
+                  }
+                  @for (reminder of adjustments()[item.id] ?? []; track reminder.scheduledDate) {
+                    <div class="todo-reminder">
+                      <span>Scheduled: {{ formatDate(reminder.scheduledDate) }}</span
+                      ><span>Reminder: {{ formatDate(reminder.reminderDate) }}</span
+                      ><span>Reason: {{ reminder.reason }}</span>
+                    </div>
+                  }
+                  @if (setupIssue(item)) {
+                    <p class="form-error">{{ setupIssue(item) }}</p>
                   }
                 </div>
                 <div class="productivity-actions">
@@ -215,7 +266,10 @@ type View = { label: string; key: string };
           [kind]="kind"
           [item]="editing()"
           (closed)="closeEditor()"
-          (saved)="saved($event)" /></main
+          (saved)="saved($event)" />
+        @if (kind === 'todos' && calendarOpen()) {
+          <app-work-calendar [open]="true" (closed)="calendarOpen.set(false)" (saved)="load(true)" />
+        }</main
     ></ion-content>`,
 })
 export class ProductivityListPage {
@@ -225,6 +279,11 @@ export class ProductivityListPage {
   private readonly confirmation = inject(ConfirmationService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly computedTodos = inject(TodoComputedService);
+  private requestGeneration = 0;
+  readonly calendarOpen = signal(false);
+  readonly adjustments = signal<Partial<Record<string, AdjustedReminder[]>>>({});
+  readonly reminderWarnings = signal<string[]>([]);
   private readonly searchChanges = new Subject<string>();
   readonly items = signal<DomainItem[]>([]);
   readonly count = signal(0);
@@ -250,7 +309,11 @@ export class ProductivityListPage {
           { label: 'Open', key: 'open' },
           { label: 'Today', key: 'today' },
           { label: 'Upcoming', key: 'upcoming' },
+          { label: 'Special', key: 'special' },
+          { label: 'Recurring', key: 'recurring' },
+          { label: 'Overdue', key: 'overdue' },
           { label: 'Done', key: 'done' },
+          { label: 'Needs Attention', key: 'attention' },
         ]
       : this.kind === 'tasks'
         ? [
@@ -286,7 +349,8 @@ export class ProductivityListPage {
   readonly formatDateTime = formatDateTime;
 
   constructor() {
-    addIcons({ addOutline, pencilOutline, refreshOutline, trashOutline });
+    addIcons({ addOutline, calendarOutline, pencilOutline, refreshOutline, trashOutline });
+    this.destroyRef.onDestroy(() => this.requestGeneration++);
     this.searchChanges.pipe(debounceTime(350), takeUntilDestroyed()).subscribe(() => this.load());
     this.load();
     this.api
@@ -308,16 +372,49 @@ export class ProductivityListPage {
     this.selectedIds.set([]);
     this.load();
   }
+  todoViewChanged(value: unknown): void {
+    if (typeof value === 'string' && this.views().some(view => view.key === value)) this.selectView(value);
+  }
   load(refresh = false, more = false): void {
-    if (this.loadingMore()) return;
+    if (more && this.loadingMore()) return;
+    const generation = ++this.requestGeneration;
+    const view = this.selectedView();
+    this.adjustments.set({});
+    this.reminderWarnings.set([]);
     this.loading.set(!more);
     this.loadingMore.set(more);
     this.error.set('');
+    if (this.kind === 'todos' && (view === 'today' || view === 'special')) {
+      this.hasMore.set(false);
+      this.computedTodos
+        .load(view, todayIso(), this.search(), refresh)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: result => {
+            if (generation !== this.requestGeneration) return;
+            this.items.set(result.data);
+            this.count.set(result.data.length);
+            this.adjustments.set(result.adjustments);
+            this.reminderWarnings.set(result.warnings);
+            this.loading.set(false);
+            this.loadingMore.set(false);
+          },
+          error: error => {
+            if (generation === this.requestGeneration) {
+              this.error.set(apiError(error));
+              this.loading.set(false);
+              this.loadingMore.set(false);
+            }
+          },
+        });
+      return;
+    }
     this.api
       .list(this.kind, this.filters(), refresh, more)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: result => {
+          if (generation !== this.requestGeneration) return;
           this.items.set(result.data);
           this.count.set(result.count);
           this.hasMore.set(result.hasMore);
@@ -325,6 +422,7 @@ export class ProductivityListPage {
           this.loadingMore.set(false);
         },
         error: error => {
+          if (generation !== this.requestGeneration) return;
           this.error.set(apiError(error));
           this.loading.set(false);
           this.loadingMore.set(false);
@@ -335,20 +433,8 @@ export class ProductivityListPage {
     const q = this.search().trim() || undefined;
     const view = this.selectedView();
     const today = todayIso();
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const next = todayIso(tomorrow);
     if ((view === 'all' && !q) || (this.kind === 'memos' && view === 'recent' && !q)) return null;
-    if (this.kind === 'todos')
-      return {
-        ...(view === 'open' || view === 'today' || view === 'upcoming'
-          ? { statuses: ['Not started', 'In progress'] }
-          : view === 'done'
-            ? { statuses: ['Done'] }
-            : {}),
-        ...(view === 'today' ? { dueFrom: today, dueTo: today } : view === 'upcoming' ? { dueFrom: next } : {}),
-        ...(q ? { q } : {}),
-      };
+    if (this.kind === 'todos') return todoViewFilters(view, today, q);
     if (this.kind === 'tasks')
       return {
         ...(view !== 'all' ? { statuses: view === 'done' ? ['Done'] : ['Not started', 'In progress'] } : {}),
@@ -382,7 +468,12 @@ export class ProductivityListPage {
     return 'toDo' in item ? item.toDo : 'task' in item ? item.task : 'memo' in item ? item.memo : '';
   }
   badges(item: DomainItem): string[] {
-    if ('toDo' in item) return [];
+    if ('toDo' in item)
+      return [
+        item.workdayAdjust ? 'Workday adjust' : '',
+        item.setupIssue ? 'Needs attention' : '',
+        this.adjustments()[item.id]?.length ? 'Early reminder' : '',
+      ].filter(Boolean);
     if ('task' in item)
       return [
         item.priority,
@@ -412,6 +503,12 @@ export class ProductivityListPage {
   }
   preview(item: DomainItem): string {
     return 'notes' in item ? truncate(item.notes, 180) : '';
+  }
+  setupIssue(item: DomainItem): string {
+    return 'toDo' in item ? item.setupIssue : '';
+  }
+  recurrenceLabel(item: DomainItem): string {
+    return 'toDo' in item ? recurrenceSummary(item) : '';
   }
   isDone(item: DomainItem): boolean {
     return ('status' in item && item.status?.toLowerCase() === 'done') ?? false;
@@ -485,6 +582,8 @@ export class ProductivityListPage {
       await firstValueFrom(this.api.delete(this.kind, item.id));
       this.items.update(items => items.filter(value => value.id !== item.id));
       this.snackbar.success(`${this.singular()} deleted.`);
+      this.selectedIds.update(ids => ids.filter(id => id !== item.id));
+      if (this.kind === 'todos') this.load(true);
     } catch (error) {
       this.snackbar.error(apiError(error));
     }
@@ -539,6 +638,7 @@ export class ProductivityListPage {
       const response = await firstValueFrom(this.api.patch<DomainItem, typeof body>(this.kind, item.id, body));
       this.items.update(items => items.map(value => (value.id === item.id ? response.data : value)));
       this.snackbar.success(done ? 'Item reopened.' : 'Item completed.');
+      if (this.kind === 'todos') this.load(true);
     } catch (error) {
       this.snackbar.error(apiError(error));
     }
@@ -563,6 +663,7 @@ export class ProductivityListPage {
       const response = await firstValueFrom(this.api.patch<DomainItem, typeof body>(this.kind, item.id, body));
       this.items.update(items => items.map(value => (value.id === item.id ? response.data : value)));
       this.snackbar.success('Status updated.');
+      if (this.kind === 'todos') this.load(true);
     } catch (error) {
       this.snackbar.error(apiError(error));
     }

@@ -43,6 +43,20 @@ export interface OfficeEventsResult {
 @Service()
 export class OfficeEventsService {
   private readonly gviz = inject(GvizService);
+  /** Narrow reuse for To Do: Important Days and Rota never count as holidays. */
+  holidayDates(refresh = false) {
+    if (refresh) this.gviz.clear();
+    return this.gviz.rows(environment.HOLIDAY_SHEET_GID).pipe(
+      map(rows => ({ dates: parseEvents(rows, 'holiday').map(event => event.startDate!), warning: '' })),
+      catchError(() =>
+        of({
+          dates: [] as string[],
+          warning:
+            'Holiday data could not be loaded. Holiday-based early reminders may be incomplete; week-off adjustments still apply.',
+        }),
+      ),
+    );
+  }
   load(refresh = false): Observable<OfficeEventsResult> {
     if (refresh) this.gviz.clear();
     const sources: { type: OfficeEventType; gid: number }[] = [

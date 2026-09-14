@@ -1,4 +1,13 @@
 import { Component, effect, inject, input, output, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  createRecurrenceForm,
+  normalizeRecurrence,
+  recurrenceDraft,
+  recurrenceValidation,
+  recurrenceWrite,
+} from './todo-recurrence-form';
+import { TodoRecurrenceFieldsComponent } from './todo-recurrence-fields.component';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   IonButton,
@@ -41,6 +50,7 @@ import { ProductivityKind, ProductivityService } from './productivity.service';
 @Component({
   selector: 'app-productivity-editor',
   imports: [
+    TodoRecurrenceFieldsComponent,
     ReactiveFormsModule,
     IonButton,
     IonCheckbox,
@@ -60,7 +70,7 @@ import { ProductivityKind, ProductivityService } from './productivity.service';
   ],
   template: `<ion-modal
     class="editor-modal productivity-editor-modal"
-    [class.compact-editor-modal]="kind() === 'todos'"
+    [class.compact-editor-modal]="kind() === 'todos' && !form.controls.recurrence.controls.scheduleOptionId.value"
     [isOpen]="open()"
     [canDismiss]="canDismiss"
     (didPresent)="focusFirst()"
@@ -108,7 +118,16 @@ import { ProductivityKind, ProductivityService } from './productivity.service';
                   <ion-select-option [value]="option.id">{{ option.name }}</ion-select-option>
                 }
               </ion-select>
-              <app-ionic-date-field label="Due date" controlId="todo-due-date" formControlName="dueDate" />
+              @if (!form.controls.recurrence.controls.scheduleOptionId.value) {
+                <app-ionic-date-field label="Due date" controlId="todo-due-date" formControlName="dueDate" />
+              }
+              <app-todo-recurrence-fields
+                class="field-span"
+                [form]="form.controls.recurrence"
+                [metadata]="metadata()" />
+              @if (setupIssue()) {
+                <p class="form-error field-span" role="status">{{ setupIssue() }}</p>
+              }
               <ion-textarea
                 class="field-span"
                 fill="outline"
@@ -290,6 +309,7 @@ export class ProductivityEditorComponent {
   readonly selectedJiras = signal<JiraRef[]>([]);
   readonly firstField = viewChild<IonInput>('firstField');
   readonly form = new FormGroup({
+    recurrence: createRecurrenceForm(),
     title: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     statusOptionId: new FormControl('', { nonNullable: true }),
     dueDate: new FormControl('', { nonNullable: true }),
@@ -317,6 +337,16 @@ export class ProductivityEditorComponent {
 
   constructor() {
     addIcons({ closeOutline, refreshOutline, saveOutline });
+    this.form.setValidators(() =>
+      this.kind() === 'todos' && recurrenceValidation(this.form.controls.recurrence.getRawValue(), this.metadata())
+        ? { recurrence: true }
+        : null,
+    );
+    this.form.controls.recurrence.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      normalizeRecurrence(this.form.controls.recurrence, this.metadata());
+      if (this.form.controls.recurrence.controls.scheduleOptionId.value)
+        this.form.controls.dueDate.setValue('', { emitEvent: false });
+    });
     effect(() => {
       if (this.open()) void this.load();
     });
@@ -358,6 +388,14 @@ export class ProductivityEditorComponent {
   }
 
   async save(): Promise<void> {
+    if (this.kind() === 'todos') {
+      normalizeRecurrence(this.form.controls.recurrence, this.metadata());
+      const issue = recurrenceValidation(this.form.controls.recurrence.getRawValue(), this.metadata());
+      if (issue) {
+        this.saveError.set(issue);
+        return;
+      }
+    }
     if (this.form.invalid || this.submitting()) return;
     this.submitting.set(true);
     this.saveError.set('');
@@ -368,9 +406,10 @@ export class ProductivityEditorComponent {
       let response: DomainItem;
       if (kind === 'todos') {
         const body: TodoCreateRequest = {
+          ...recurrenceWrite(value.recurrence),
           toDo: value.title.trim(),
           statusOptionId: value.statusOptionId || null,
-          dueDate: value.dueDate || null,
+          dueDate: value.recurrence.scheduleOptionId ? null : value.dueDate || null,
           notes: value.notes,
         };
         response = (
@@ -451,27 +490,41 @@ export class ProductivityEditorComponent {
     const todo = this.kind() === 'todos' ? (item as Todo | null) : null;
     const task = this.kind() === 'tasks' ? (item as Task | null) : null;
     const memo = this.kind() === 'memos' ? (item as Memo | null) : null;
-    this.form.reset({
-      title: todo?.toDo ?? task?.task ?? memo?.memo ?? '',
-      statusOptionId: optionId(metadata, 'statusOptionId', todo?.status ?? task?.status ?? null),
-      dueDate: todo?.dueDate ?? task?.dueDate ?? '',
-      notes: todo?.notes ?? task?.notes ?? '',
-      priorityOptionId: optionId(metadata, 'priorityOptionId', task?.priority ?? null),
-      responsibilityOptionId: optionId(metadata, 'responsibilityOptionId', task?.responsibility ?? null),
-      requestedBy: task?.requestedBy ?? '',
-      requestedByTypeOptionId: optionId(metadata, 'requestedByTypeOptionId', task?.requestedByType ?? null),
-      assignedTo: task?.assignedTo ?? '',
-      assignedToTypeOptionId: optionId(metadata, 'assignedToTypeOptionId', task?.assignedToType ?? null),
-      followUpDate: task?.followUpDate ?? '',
-      completedDate: task?.completedDate ?? '',
-      companyId: task?.companyIds[0] ?? '',
-      jiraIds: task?.jiraIds ?? [],
-      outcomeUpdate: task?.outcomeUpdate ?? '',
-      categoryOptionId: optionId(metadata, 'categoryOptionId', memo?.category ?? null),
-      tagOptionIds: (memo?.tags ?? []).map(tag => optionId(metadata, 'tagOptionIds', tag)).filter(Boolean),
-      pinned: memo?.pinned ?? false,
-      markdown,
-    });
+    this.form.reset(
+      {
+        recurrence: recurrenceDraft(todo, metadata),
+        title: todo?.toDo ?? task?.task ?? memo?.memo ?? '',
+        statusOptionId: optionId(metadata, 'statusOptionId', todo?.status ?? task?.status ?? null),
+        dueDate: todo?.dueDate ?? task?.dueDate ?? '',
+        notes: todo?.notes ?? task?.notes ?? '',
+        priorityOptionId: optionId(metadata, 'priorityOptionId', task?.priority ?? null),
+        responsibilityOptionId: optionId(metadata, 'responsibilityOptionId', task?.responsibility ?? null),
+        requestedBy: task?.requestedBy ?? '',
+        requestedByTypeOptionId: optionId(metadata, 'requestedByTypeOptionId', task?.requestedByType ?? null),
+        assignedTo: task?.assignedTo ?? '',
+        assignedToTypeOptionId: optionId(metadata, 'assignedToTypeOptionId', task?.assignedToType ?? null),
+        followUpDate: task?.followUpDate ?? '',
+        completedDate: task?.completedDate ?? '',
+        companyId: task?.companyIds[0] ?? '',
+        jiraIds: task?.jiraIds ?? [],
+        outcomeUpdate: task?.outcomeUpdate ?? '',
+        categoryOptionId: optionId(metadata, 'categoryOptionId', memo?.category ?? null),
+        tagOptionIds: (memo?.tags ?? []).map(tag => optionId(metadata, 'tagOptionIds', tag)).filter(Boolean),
+        pinned: memo?.pinned ?? false,
+        markdown,
+      },
+      { emitEvent: false },
+    );
+    if (todo) {
+      normalizeRecurrence(this.form.controls.recurrence, metadata);
+      if (this.form.controls.recurrence.controls.scheduleOptionId.value)
+        this.form.controls.dueDate.setValue('', { emitEvent: false });
+    }
+    this.form.updateValueAndValidity({ emitEvent: false });
+  }
+  setupIssue(): string {
+    const item = this.item();
+    return item && 'toDo' in item ? item.setupIssue : '';
   }
   private merge(loaded: RelationOption[], selected: RelationOption[]) {
     return [...new Map([...selected, ...loaded].map(option => [option.id, option])).values()];

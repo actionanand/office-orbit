@@ -1,11 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { ConfirmationService } from '../../core/notifications/confirmation.service';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
 import { Todo } from '../../shared/models/api.models';
 import { ProductivityListPage } from './productivity-list.page';
 import { ProductivityService } from './productivity.service';
+import { TodoComputedService } from './todo-computed.service';
+import { todoFixture } from './todo.fixture';
 
 describe('ProductivityListPage bulk selection', () => {
   let bulkDelete: ReturnType<typeof vi.fn>;
@@ -19,14 +21,29 @@ describe('ProductivityListPage bulk selection', () => {
     TestBed.configureTestingModule({
       imports: [ProductivityListPage],
       providers: [
+        provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { data: { kind: 'todos' } } } },
-        { provide: Router, useValue: { navigate: vi.fn() } },
+        {
+          provide: TodoComputedService,
+          useValue: {
+            load: vi.fn(() =>
+              of({
+                data: [todoFixture({ status: 'Done', showToday: true, recurring: true, schedule: 'Daily' })],
+                adjustments: {
+                  todo: [{ scheduledDate: '2026-08-31', reminderDate: '2026-08-28', reason: 'Holiday + week off' }],
+                },
+                warnings: ['Holiday data may be incomplete'],
+              }),
+            ),
+          },
+        },
         {
           provide: ProductivityService,
           useValue: {
             list: vi.fn(() => of({ data: todos(26), count: 26, hasMore: false, nextCursor: null })),
             metadata: vi.fn(() => of({ resource: 'todos', fields: [] })),
             bulkDelete,
+            patch: vi.fn(() => of({ data: todoFixture({ status: 'Done' }) })),
           },
         },
         { provide: SnackbarService, useValue: snackbar },
@@ -46,7 +63,9 @@ describe('ProductivityListPage bulk selection', () => {
     expect(component.selectedIds()).toHaveLength(25);
 
     fixture.detectChanges();
-    const checkboxes = fixture.nativeElement.querySelectorAll('.selection-check input') as NodeListOf<HTMLInputElement>;
+    const checkboxes = fixture.nativeElement.querySelectorAll(
+      '.selection-check ion-checkbox',
+    ) as NodeListOf<HTMLIonCheckboxElement>;
     expect(checkboxes[0].disabled).toBe(false);
     expect(checkboxes[25].disabled).toBe(true);
 
@@ -62,6 +81,39 @@ describe('ProductivityListPage bulk selection', () => {
 
     expect(component.selectedIds()).toEqual(todos(25).map(item => item.id));
     expect(snackbar.error).toHaveBeenCalledWith('Selected the first 25 items. Bulk delete is limited to 25.');
+  });
+  it('renders computed Today with adjusted reasons, Done styling, Ionic views, and recurrence text', () => {
+    const fixture = TestBed.createComponent(ProductivityListPage),
+      component = fixture.componentInstance;
+    component.selectView('today');
+    fixture.detectChanges();
+    expect(TestBed.inject(TodoComputedService).load).toHaveBeenCalledWith('today', expect.any(String), '', false);
+    expect(component.filters()).toEqual({ showToday: true });
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelector('.productivity-row.completed')).not.toBeNull();
+    expect(root.querySelector('.todo-recurrence-summary')?.textContent).toContain('Daily');
+    expect(root.querySelector('.todo-reminder')?.textContent).toContain('Holiday + week off');
+    expect(root.querySelectorAll('.todo-view-tabs ion-segment-button')).toHaveLength(9);
+    expect(root.querySelector('.content-warning')?.textContent).toContain('incomplete');
+    expect(component.hasMore()).toBe(false);
+  });
+  it('recomputes Today after an inline status change', async () => {
+    const component = TestBed.createComponent(ProductivityListPage).componentInstance;
+    component.selectView('today');
+    component.metadata.set({
+      resource: 'todos',
+      fields: [
+        {
+          key: 'statusOptionId',
+          label: 'Status',
+          type: 'status',
+          writable: true,
+          options: [{ id: 'done', name: 'Done', color: '' }],
+        },
+      ],
+    });
+    await component.changeStatus(todoFixture(), 'done');
+    expect(TestBed.inject(TodoComputedService).load).toHaveBeenLastCalledWith('today', expect.any(String), '', true);
   });
 
   it('guards invalid oversized deletion before confirmation or API invocation', async () => {
@@ -95,6 +147,7 @@ describe('ProductivityListPage bulk selection', () => {
 
 function todos(count: number): Todo[] {
   return Array.from({ length: count }, (_, index) => ({
+    ...todoFixture(),
     id: `todo-${index}`,
     createdTime: '',
     lastEditedTime: '',

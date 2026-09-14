@@ -26,6 +26,20 @@ describe('Office Events sheet requests', () => {
     http.verify();
     vi.restoreAllMocks();
   });
+  it('provides only Holidays to recurrence calculations using the existing GViz cache', () => {
+    service.load().subscribe();
+    gids.forEach((gid, index) =>
+      http.expectOne(req => req.params.get('gid') === String(gid)).flush(payload(values[index])),
+    );
+    const result = vi.fn();
+    service.holidayDates().subscribe(result);
+    http.expectNone(() => true);
+    expect(result).toHaveBeenCalledWith({ dates: ['2026-09-14'], warning: '' });
+    service.holidayDates(true).subscribe(result);
+    const request = http.expectOne(req => req.params.get('gid') === String(environment.HOLIDAY_SHEET_GID));
+    request.flush('failed', { status: 503, statusText: 'Unavailable' });
+    expect(result).toHaveBeenLastCalledWith({ dates: [], warning: expect.stringContaining('incomplete') });
+  });
   it.each([0, 1, 2])('preserves the other sources when source %s fails', failed => {
     let result: OfficeEventsResult | undefined;
     service.load().subscribe(value => (result = value));

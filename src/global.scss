@@ -2190,6 +2190,45 @@ ion-popover.work-link-popover {
 .work-link-editor-modal {
   --height: min(660px, calc(100vh - 32px));
 }
+.work-calendar-modal {
+  --width: min(520px, calc(100vw - 24px));
+  --height: min(420px, calc(100dvh - 24px));
+}
+.todo-reminder {
+  display: grid;
+  gap: 3px;
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--accent);
+  font-size: 0.78rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.todo-recurrence-summary {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+.todo-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.todo-view-tabs {
+  margin-bottom: 14px;
+  max-width: 100%;
+  --background: var(--surface);
+}
+.todo-view-tabs ion-segment-button {
+  min-height: 44px;
+  font-size: 0.78rem;
+}
+.selection-check ion-checkbox {
+  --size: 20px;
+  min-height: 44px;
+  min-width: 24px;
+}
 .productivity-editor-modal {
   --width: min(880px, calc(100vw - 32px));
 }
