@@ -93,6 +93,34 @@ describe('MarkdownViewerComponent', () => {
     expect(svg.querySelector('use')?.getAttribute('href')).toBe('#node');
     expect(svg.getAttribute('viewBox')).toBe('0 0 420 700');
   });
+
+  it.each([
+    ['![Sample educational image](https://placehold.co/600x300)', 'Sample educational image', false],
+    ['[![Learning illustration](https://placehold.co/600x300)](https://example.com)', 'Learning illustration', true],
+  ])('uses image alt text as a caption without breaking links', async (markdown, caption, linked) => {
+    const fixture = TestBed.createComponent(MarkdownViewerComponent);
+    fixture.componentRef.setInput('markdown', markdown);
+    fixture.detectChanges();
+    await settleEnhancements();
+    const figure = fixture.nativeElement.querySelector('figure.markdown-image');
+    expect(figure.querySelector('img')?.alt).toBe(caption);
+    expect(figure.querySelector('figcaption')?.textContent).toBe(caption);
+    expect(figure.querySelector('img')?.loading).toBe('lazy');
+    expect(figure.querySelector('img')?.decoding).toBe('async');
+    expect(!!figure.querySelector('a > img')).toBe(linked);
+    fixture.detectChanges();
+    await settleEnhancements();
+    expect(fixture.nativeElement.querySelectorAll('figcaption')).toHaveLength(1);
+  });
+
+  it('does not caption an image with blank alt text', async () => {
+    const fixture = TestBed.createComponent(MarkdownViewerComponent);
+    fixture.componentRef.setInput('markdown', '![](https://placehold.co/600x300)');
+    fixture.detectChanges();
+    await settleEnhancements();
+    expect(fixture.nativeElement.querySelector('img')?.loading).toBe('lazy');
+    expect(fixture.nativeElement.querySelector('figure, figcaption')).toBeNull();
+  });
 });
 
 async function settleEnhancements(): Promise<void> {

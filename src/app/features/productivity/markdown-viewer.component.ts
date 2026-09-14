@@ -230,6 +230,20 @@ export class MarkdownViewerComponent {
     for (const image of host.querySelectorAll('img')) {
       image.loading = 'lazy';
       image.decoding = 'async';
+      const alt = image.alt.trim();
+      if (!alt || image.closest('figure.markdown-image')) continue;
+      const content = image.parentElement?.tagName === 'A' ? image.parentElement : image;
+      const figure = document.createElement('figure');
+      figure.className = 'markdown-image';
+      const caption = document.createElement('figcaption');
+      caption.textContent = alt;
+      const paragraph =
+        content.parentElement?.tagName === 'P' && !content.parentElement.textContent?.trim()
+          ? content.parentElement
+          : null;
+      (paragraph ?? content).before(figure);
+      figure.append(content, caption);
+      paragraph?.remove();
     }
   }
 

@@ -1,4 +1,7 @@
+import { Marked } from 'marked';
+
 const SAFE_INLINE_TAGS = new Set(['strong', 'em', 'mark', 'sub', 'sup', 'details', 'summary', 'kbd', 'br']);
+const blockLexer = new Marked({ gfm: true, breaks: false });
 
 export function normalizeNotionMarkdown(markdown: string): string {
   let value = markdown.replace(/\r\n?/g, '\n');
@@ -9,7 +12,41 @@ export function normalizeNotionMarkdown(markdown: string): string {
   value = normalizeListTabs(value);
   value = normalizeListCodeFences(value);
   value = normalizeNotionFootnoteLinks(value);
-  return prepareExtendedSyntax(value);
+  return normalizePlainBlocks(prepareExtendedSyntax(value));
+}
+
+function normalizePlainBlocks(markdown: string): string {
+  let htmlDepth = 0;
+  let cursor = 0;
+  const output: string[] = [];
+  for (const token of blockLexer.lexer(markdown)) {
+    const start = markdown.indexOf(token.raw, cursor);
+    // Keep source gaps (for example reference-link definitions) that the lexer
+    // records as metadata rather than visible block tokens.
+    if (start < 0) return markdown;
+    output.push(markdown.slice(cursor, start));
+    cursor = start + token.raw.length;
+    // HTML containers may contain blank-separated Markdown tokens. Keep their
+    // complete contents untouched, including details/summary and generated dl.
+    if (token.type === 'html') {
+      for (const tag of token.raw.matchAll(/<(\/?)(details|summary|div|section|dl|table)\b[^>]*>/gi)) {
+        htmlDepth = Math.max(0, htmlDepth + (tag[1] ? -1 : 1));
+      }
+    }
+    if (token.type !== 'paragraph' || htmlDepth || /[$`]|<\/?[a-z]/i.test(token.raw)) {
+      output.push(token.raw);
+      continue;
+    }
+    // Add explicit hard breaks only between unindented lines in a top-level
+    // paragraph. Existing hard breaks and all block structures retain their raw text.
+    output.push(
+      token.raw.replace(/([^\n]+)\n(?=\S)/g, (match, line: string) =>
+        /^\s/.test(line) || /(?: {2}|\\)$/.test(line) ? match : line + '  \n',
+      ),
+    );
+  }
+  output.push(markdown.slice(cursor));
+  return output.join('');
 }
 
 /** Notion packs adjacent blocks together; retain ordinary, blank-separated Setext headings. */
@@ -36,11 +73,16 @@ function normalizeThematicBreaks(markdown: string): string {
     }
     // Require adjoining content on both sides. Blank lines already disambiguate
     // thematic breaks; a blank after the underline conventionally denotes Setext.
+    const multilineText =
+      index > 1 &&
+      !!lines[index - 2].trim() &&
+      !/^[\s#>|*+\-\d]/.test(lines[index - 2]) &&
+      !/^[\s#>|*+\-]/.test(lines[index - 1]);
     const packedSeparator =
-      /^ {0,3}---[ \t]*$/.test(line) &&
+      /^ {0,3}-{3,}[ \t]*$/.test(line) &&
       !!previousMeaningful &&
       !!lines[index - 1]?.trim() &&
-      !!lines[index + 1]?.trim() &&
+      (!!lines[index + 1]?.trim() || (line.trim().length > 3 && multilineText)) &&
       !/^ {4}|^\t/.test(lines[index - 1]);
     if (packedSeparator) output.push('', line, '');
     else output.push(line);

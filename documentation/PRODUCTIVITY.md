@@ -42,6 +42,8 @@ To check the existing **Markdown Feature Demo**, open Productivity → Reference
 
 Reference Library is backed by the Worker's Notion data source and remains read/import only: there is no edit, delete, or bulk delete. Rows use Article as their title and show live Category, Tags, and Last Edited values. Category and Tag controls come from `/api/reference-library/meta`. Unfiltered All uses cursor-paginated GET; Category, Tags, and debounced article search use server-side `QUERY /api/reference-library`, preserving the exact filter set for opaque-cursor Load more. Optional Category grouping applies only to the currently loaded rows.
 
+Preview Markdown reads a validated `.md` or `.markdown` file with `File.text()` and displays it through the same Markdown viewer in a local Ionic modal. Its Source tab shows the exact file contents. The filename and contents remain in page signals only, are cleared when the modal closes or the page is destroyed, and are never uploaded, cached, persisted, or logged. Import Markdown remains the separate upload workflow. Rendered images with non-empty alt text use that text as a caption; blank alt text remains captionless.
+
 Imports accept a non-empty `.md` or `.markdown` file no larger than 4,500,000 bytes. The optional Title, Category, and Tags form sends live Category/Tag option IDs as multipart `FormData`; a cleared title is omitted so the Worker can derive it. The browser or Android WebView supplies the multipart boundary. HTTP 201 completes immediately; HTTP 202 uses `pollAfterSeconds`, reports queued/running/retrying state, and stops on success, failure, navigation/destroy, or the ten-minute safety limit. Successful imports invalidate both GET and filtered QUERY cursor caches.
 
 ## Simple JIRA creation

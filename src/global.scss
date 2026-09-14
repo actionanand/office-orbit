@@ -2906,6 +2906,59 @@ ion-popover.work-link-popover {
   margin-block: 1rem;
   border-radius: 8px;
 }
+.markdown-image {
+  width: fit-content;
+  max-width: 100%;
+  margin: 1rem auto;
+  text-align: center;
+}
+.markdown-image img {
+  margin-block: 0;
+}
+.markdown-image figcaption {
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-size: 0.86em;
+  line-height: 1.4;
+}
+.reference-file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.local-preview-action {
+  display: grid;
+  justify-items: center;
+}
+.local-preview-action span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.local-markdown-preview-modal {
+  --width: min(1100px, 96vw);
+  --height: min(900px, 92vh);
+  --border-radius: 16px;
+}
+.local-markdown-preview {
+  width: min(100%, 1100px);
+  margin-inline: auto;
+  padding: 20px;
+}
+.local-preview-notice {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+@media (max-width: 700px) {
+  .local-markdown-preview-modal {
+    --width: 100%;
+    --height: 100%;
+    --border-radius: 0;
+  }
+  .local-markdown-preview {
+    padding: 14px;
+  }
+}
 .markdown-viewer a {
   color: var(--ion-color-primary);
   text-underline-offset: 0.16em;
