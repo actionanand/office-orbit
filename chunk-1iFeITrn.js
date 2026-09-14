@@ -1,1 +1,0 @@
-import {M as T}from'./main-XYFOMYRV.js';var t=T("Browser",{web:()=>import('./chunk-z3r3803D.js').then(e=>new e.BrowserWeb)});export{t as Browser};
