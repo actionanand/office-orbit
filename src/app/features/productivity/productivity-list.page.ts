@@ -267,8 +267,8 @@ type View = { label: string; key: string };
           [item]="editing()"
           (closed)="closeEditor()"
           (saved)="saved($event)" />
-        @if (kind === 'todos' && calendarOpen()) {
-          <app-work-calendar [open]="true" (closed)="calendarOpen.set(false)" (saved)="load(true)" />
+        @if (kind === 'todos') {
+          <app-work-calendar [open]="calendarOpen()" (closed)="calendarOpen.set(false)" (saved)="load(true)" />
         }</main
     ></ion-content>`,
 })

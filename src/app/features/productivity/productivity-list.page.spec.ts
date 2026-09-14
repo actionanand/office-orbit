@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { ActivatedRoute, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { ConfirmationService } from '../../core/notifications/confirmation.service';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
 import { Todo } from '../../shared/models/api.models';
@@ -8,16 +9,23 @@ import { ProductivityListPage } from './productivity-list.page';
 import { ProductivityService } from './productivity.service';
 import { TodoComputedService } from './todo-computed.service';
 import { todoFixture } from './todo.fixture';
+import { WorkCalendarComponent } from './work-calendar.component';
+import { WorkCalendarService } from './work-calendar.service';
 
 describe('ProductivityListPage bulk selection', () => {
   let bulkDelete: ReturnType<typeof vi.fn>;
   let snackbar: { success: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
   let confirmation: { confirm: ReturnType<typeof vi.fn> };
+  let workCalendar: { get: ReturnType<typeof vi.fn>; save: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     bulkDelete = vi.fn(() => of({ requested: 25, deleted: 25, failed: [], allSucceeded: true }));
     snackbar = { success: vi.fn(), error: vi.fn() };
     confirmation = { confirm: vi.fn(async () => true) };
+    workCalendar = {
+      get: vi.fn(() => of({ weekOffDays: ['Friday', 'Saturday'] })),
+      save: vi.fn(() => of({ weekOffDays: ['Friday', 'Saturday'] })),
+    };
     TestBed.configureTestingModule({
       imports: [ProductivityListPage],
       providers: [
@@ -48,8 +56,71 @@ describe('ProductivityListPage bulk selection', () => {
         },
         { provide: SnackbarService, useValue: snackbar },
         { provide: ConfirmationService, useValue: confirmation },
+        { provide: WorkCalendarService, useValue: workCalendar },
       ],
     });
+  });
+
+  it('keeps the work calendar mounted while its open input toggles', () => {
+    const fixture = TestBed.createComponent(ProductivityListPage);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    const calendar = fixture.debugElement.query(By.directive(WorkCalendarComponent))
+      .componentInstance as WorkCalendarComponent;
+    expect(calendar.open()).toBe(false);
+
+    component.calendarOpen.set(true);
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.directive(WorkCalendarComponent)).componentInstance).toBe(calendar);
+    expect(calendar.open()).toBe(true);
+
+    calendar.closed.emit();
+    fixture.detectChanges();
+    expect(component.calendarOpen()).toBe(false);
+    expect(fixture.debugElement.query(By.directive(WorkCalendarComponent)).componentInstance).toBe(calendar);
+    expect(calendar.open()).toBe(false);
+
+    calendar.closed.emit();
+    fixture.detectChanges();
+    expect(component.calendarOpen()).toBe(false);
+  });
+
+  it('closes through isOpen after save, reloads todos, and reopens with saved settings', async () => {
+    const fixture = TestBed.createComponent(ProductivityListPage);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    const calendar = fixture.debugElement.query(By.directive(WorkCalendarComponent))
+      .componentInstance as WorkCalendarComponent;
+    const response = new Subject<{ weekOffDays: ('Monday' | 'Sunday')[] }>();
+    workCalendar.save.mockReturnValue(response);
+    const reload = vi.spyOn(component, 'load');
+
+    component.calendarOpen.set(true);
+    fixture.detectChanges();
+    calendar.choose(['Sunday', 'Monday']);
+    const save = calendar.save();
+    expect(calendar.saving()).toBe(true);
+    expect(calendar.canDismiss()).toBe(false);
+
+    response.next({ weekOffDays: ['Monday', 'Sunday'] });
+    response.complete();
+    await save;
+    expect(calendar.saving()).toBe(false);
+    expect(calendar.canDismiss()).toBe(true);
+    expect(calendar.days()).toEqual(['Monday', 'Sunday']);
+    expect(reload).toHaveBeenCalledWith(true);
+    expect(component.calendarOpen()).toBe(false);
+
+    fixture.detectChanges();
+    expect(calendar.open()).toBe(false);
+    expect(fixture.debugElement.query(By.directive(WorkCalendarComponent)).componentInstance).toBe(calendar);
+
+    workCalendar.get.mockReturnValue(of({ weekOffDays: ['Monday', 'Sunday'] }));
+    component.calendarOpen.set(true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(calendar.open()).toBe(true);
+    expect(calendar.days()).toEqual(['Monday', 'Sunday']);
   });
 
   it('allows selections 1 through 25, blocks item 26, and still permits deselection', () => {
