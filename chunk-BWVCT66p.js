@@ -1,1 +1,0 @@
-import {o,p as pf}from'./chunk-mNRs8_We.js';var g=o((t,e)=>{let n;return e==="sandbox"&&(n=pf("#i"+t)),(e==="sandbox"?pf(n.nodes()[0].contentDocument.body):pf("body")).select(`[id="${t}"]`)},"getDiagramElement");export{g};

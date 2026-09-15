@@ -1,1 +1,0 @@
-import {o}from'./chunk-mNRs8_We.js';function t(c,e){c.accDescr&&e.setAccDescription?.(c.accDescr),c.accTitle&&e.setAccTitle?.(c.accTitle),c.title&&e.setDiagramTitle?.(c.title);}o(t,"populateCommonDb");export{t};
