@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { WorkCalendarService } from './work-calendar.service';
 import { WEEKDAYS } from './todo-recurrence';
 import { environment } from '../../../environments/environment';
+import { DataCacheService } from '../../core/cache/data-cache.service';
 
 describe('WorkCalendarService', () => {
   let http: HttpTestingController, service: WorkCalendarService;
@@ -24,6 +25,9 @@ describe('WorkCalendarService', () => {
     expect(patch.request.method).toBe('PATCH');
     expect(patch.request.body).toEqual({ weekOffDays: ['Monday', 'Sunday'] });
     patch.flush({ data: { weekOffDays: ['Monday', 'Sunday'] } });
+    expect(TestBed.inject(DataCacheService).get('/api/settings/work-calendar')).toEqual({
+      weekOffDays: ['Monday', 'Sunday'],
+    });
     service.get().subscribe(loaded);
     http.expectNone(url);
     expect(loaded).toHaveBeenLastCalledWith({ weekOffDays: ['Monday', 'Sunday'] });

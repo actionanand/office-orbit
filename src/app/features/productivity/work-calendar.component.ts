@@ -25,7 +25,7 @@ import { WorkCalendarService, validWeekOffDays } from './work-calendar.service';
   template: `<ion-modal
     class="editor-modal work-calendar-modal"
     [isOpen]="open()"
-    [canDismiss]="!saving()"
+    [canDismiss]="canDismiss"
     (didDismiss)="closed.emit()"
     ><ng-template>
       <ion-header
@@ -36,7 +36,7 @@ import { WorkCalendarService, validWeekOffDays } from './work-calendar.service';
             fill="clear"
             aria-label="Close work calendar"
             [disabled]="saving()"
-            (click)="closed.emit()"
+            (click)="requestClose()"
             ><ion-icon name="close-outline" slot="icon-only" /></ion-button></ion-toolbar
       ></ion-header>
       <ion-content
@@ -45,7 +45,7 @@ import { WorkCalendarService, validWeekOffDays } from './work-calendar.service';
             <p role="status">Loading work calendar…</p>
           } @else if (loadError()) {
             <p role="alert">{{ loadError() }}</p>
-            <ion-button (click)="load()">Retry</ion-button>
+            <ion-button (click)="load(true)">Retry</ion-button>
           } @else {
             <ion-select
               class="field-span"
@@ -67,7 +67,7 @@ import { WorkCalendarService, validWeekOffDays } from './work-calendar.service';
               <p class="form-error field-span" role="alert">At least one weekday must remain a working day.</p>
             }
             <div class="editor-actions field-span">
-              <ion-button fill="clear" [disabled]="saving()" (click)="closed.emit()">Cancel</ion-button
+              <ion-button fill="clear" [disabled]="saving()" (click)="requestClose()">Cancel</ion-button
               ><ion-button [disabled]="!valid() || saving()" (click)="save()"
                 ><ion-icon name="save-outline" slot="start" />{{ saving() ? 'Saving…' : 'Save' }}</ion-button
               >
@@ -86,6 +86,7 @@ export class WorkCalendarComponent {
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly loadError = signal('');
+  readonly canDismiss = () => !this.saving();
   readonly weekdays = WEEKDAYS;
   private readonly api = inject(WorkCalendarService);
   private readonly snackbar = inject(SnackbarService);
@@ -106,12 +107,15 @@ export class WorkCalendarComponent {
   choose(value: unknown): void {
     if (Array.isArray(value)) this.days.set(value.filter((day): day is Weekday => WEEKDAYS.includes(day)));
   }
-  async load(): Promise<void> {
+  requestClose(): void {
+    if (this.canDismiss()) this.closed.emit();
+  }
+  async load(refresh = false): Promise<void> {
     const generation = ++this.generation;
     this.loading.set(true);
     this.loadError.set('');
     try {
-      const result = await firstValueFrom(this.api.get(true));
+      const result = await firstValueFrom(this.api.get(refresh));
       if (generation === this.generation) this.days.set(result.weekOffDays);
     } catch (error) {
       if (generation === this.generation) this.loadError.set(apiError(error));
@@ -122,15 +126,20 @@ export class WorkCalendarComponent {
   async save(): Promise<void> {
     if (!this.valid() || this.saving()) return;
     this.saving.set(true);
+    let succeeded = false;
     try {
-      await firstValueFrom(this.api.save(this.days()));
+      const settings = await firstValueFrom(this.api.save(this.days()));
+      this.days.set(settings.weekOffDays);
       this.snackbar.success('Work calendar updated.');
-      this.saved.emit();
-      this.closed.emit();
+      succeeded = true;
     } catch (error) {
       this.snackbar.error(apiError(error));
     } finally {
       this.saving.set(false);
+    }
+    if (succeeded) {
+      this.saved.emit();
+      this.closed.emit();
     }
   }
 }
