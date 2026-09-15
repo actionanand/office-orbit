@@ -18,13 +18,30 @@ describe('Office Events sheet requests', () => {
     [1, 9, '2026-09-14', '', 'Support'],
   ];
   beforeEach(() => {
+    environment.showHoliday = true;
+    environment.showImportantDay = true;
+    environment.showRota = true;
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
     service = TestBed.inject(OfficeEventsService);
   });
   afterEach(() => {
+    environment.showHoliday = true;
+    environment.showImportantDay = true;
+    environment.showRota = true;
     http.verify();
     vi.restoreAllMocks();
+  });
+  it('does not request Office Event sheets when every event type is disabled', () => {
+    environment.showHoliday = false;
+    environment.showImportantDay = false;
+    environment.showRota = false;
+    const result = vi.fn();
+
+    service.load().subscribe(result);
+
+    expect(result).toHaveBeenCalledWith({ events: [], warnings: [] });
+    http.expectNone(() => true);
   });
   it('provides only Holidays to recurrence calculations using the existing GViz cache', () => {
     service.load().subscribe();

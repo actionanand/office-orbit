@@ -4,6 +4,7 @@ import { Observable, catchError, forkJoin, map, of, tap, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { GvizRow, parseGviz } from './gviz';
 import { EVENT_LABELS, OfficeEvent, OfficeEventType, parseEvents } from './office-event';
+import { enabledOfficeEventTypes } from './office-event-visibility';
 
 @Service()
 export class GvizService {
@@ -59,11 +60,14 @@ export class OfficeEventsService {
   }
   load(refresh = false): Observable<OfficeEventsResult> {
     if (refresh) this.gviz.clear();
-    const sources: { type: OfficeEventType; gid: number }[] = [
+    const allSources: { type: OfficeEventType; gid: number }[] = [
       { type: 'holiday', gid: environment.HOLIDAY_SHEET_GID },
       { type: 'important-day', gid: environment.IMP_DAYS_SHEET_GID },
       { type: 'rota', gid: environment.ROTA_SHEET_GID },
     ];
+    const enabled = new Set(enabledOfficeEventTypes());
+    const sources = allSources.filter(({ type }) => enabled.has(type));
+    if (!sources.length) return of({ events: [], warnings: [] });
     return forkJoin(
       sources.map(({ type, gid }) =>
         this.gviz.rows(gid).pipe(
