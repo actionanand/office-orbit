@@ -1,0 +1,24 @@
+import {o,s as st,a1 as a,b as ba,c as ct,_ as _a,E as Ea,q as qa,O as Oa,w as wa,A as Aa,T as Tr,X as Xs,d as va}from'./chunk-BLta1oY3.js';import {t}from'./chunk-Bh7pdqLb.js';import {m}from'./chunk-BDSEy-IT.js';import {aF as r}from'./main-WMGKKZUU.js';var M=Xs.packet,b,W=(b=class{constructor(){this.packet=[],this.setAccTitle=_a,this.getAccTitle=Ea,this.setDiagramTitle=qa,this.getDiagramTitle=Oa,this.getAccDescription=wa,this.setAccDescription=Aa;}getConfig(){let t=st(r(r({},M),Tr().packet));return t.showBits&&(t.paddingY+=10),t}getPacket(){return this.packet}pushWord(t){t.length>0&&this.packet.push(t);}clear(){va(),this.packet=[];}},o(b,"PacketDB"),b),Y=1e4,I=o((e,t$1)=>{t(e,t$1);let a=-1,o=[],n=1,{bitsPerRow:l}=t$1.getConfig();for(let{start:r,end:s,bits:d,label:c}of e.blocks){if(r!==void 0&&s!==void 0&&s<r)throw new Error(`Packet block ${r} - ${s} is invalid. End must be greater than start.`);if(r??=a+1,r!==a+1)throw new Error(`Packet block ${r} - ${s??r} is not contiguous. It should start from ${a+1}.`);if(d===0)throw new Error(`Packet block ${r} is invalid. Cannot have a zero bit field.`);for(s??=r+(d??1)-1,d??=s-r+1,a=s,ct.debug(`Packet block ${r} - ${a} with label ${c}`);o.length<=l+1&&t$1.getPacket().length<Y;){let[p,i]=O({start:r,end:s,bits:d,label:c},n,l);if(o.push(p),p.end+1===n*l&&(t$1.pushWord(o),o=[],n++),!i)break;({start:r,end:s,bits:d,label:c}=i);}}t$1.pushWord(o);},"populate"),O=o((e,t,a)=>{if(e.start===void 0)throw new Error("start should have been set during first phase");if(e.end===void 0)throw new Error("end should have been set during first phase");if(e.start>e.end)throw new Error(`Block start ${e.start} is greater than block end ${e.end}.`);if(e.end+1<=t*a)return [e,void 0];let o=t*a-1,n=t*a;return [{start:e.start,end:o,label:e.label,bits:o-e.start},{start:n,end:e.end,label:e.label,bits:e.end-n}]},"getNextFittingBlock"),_={parser:{yy:void 0},parse:o(async e=>{let t=await m("packet",e),a=_.parser?.yy;if(!(a instanceof W))throw new Error("parser.parser?.yy was not a PacketDB. This is due to a bug within Mermaid, please report this issue at https://github.com/mermaid-js/mermaid/issues.");ct.debug(t),I(t,a);},"parse")},j=o((e,t,a$1,o)=>{let n=o.db,l=n.getConfig(),{rowHeight:r,paddingY:s,bitWidth:d,bitsPerRow:c}=l,p=n.getPacket(),i=n.getDiagramTitle(),f=r+s,g=f*(p.length+1)-(i?0:r),k=d*c+2,m=a(t);m.attr("viewBox",`0 0 ${k} ${g}`),ba(m,g,k,l.useMaxWidth);for(let[N,L]of p.entries())G(m,L,N,l);m.append("text").text(i).attr("x",k/2).attr("y",g-f/2).attr("dominant-baseline","middle").attr("text-anchor","middle").attr("class","packetTitle");},"draw"),G=o((e,t,a,{rowHeight:o,paddingX:n,paddingY:l,bitWidth:r,bitsPerRow:s,showBits:d})=>{let c=e.append("g"),p=a*(o+l)+l;for(let i of t){let f=i.start%s*r+1,g=(i.end-i.start+1)*r-n;if(c.append("rect").attr("x",f).attr("y",p).attr("width",g).attr("height",o).attr("class","packetBlock"),c.append("text").attr("x",f+g/2).attr("y",p+o/2).attr("class","packetLabel").attr("dominant-baseline","middle").attr("text-anchor","middle").text(i.label),!d)continue;let k=i.end===i.start,m=p-2;c.append("text").attr("x",f+(k?g/2:0)).attr("y",m).attr("class","packetByte start").attr("dominant-baseline","auto").attr("text-anchor",k?"middle":"start").text(i.start),k||c.append("text").attr("x",f+g).attr("y",m).attr("class","packetByte end").attr("dominant-baseline","auto").attr("text-anchor","end").text(i.end);}},"drawWord"),H={draw:j},K={byteFontSize:"10px",startByteColor:"black",endByteColor:"black",labelColor:"black",labelFontSize:"12px",titleColor:"black",titleFontSize:"14px",blockStrokeColor:"black",blockStrokeWidth:"1",blockFillColor:"#efefef"},R=o(({packet:e}={})=>{let t=st(K,e);return `
+	.packetByte {
+		font-size: ${t.byteFontSize};
+	}
+	.packetByte.start {
+		fill: ${t.startByteColor};
+	}
+	.packetByte.end {
+		fill: ${t.endByteColor};
+	}
+	.packetLabel {
+		fill: ${t.labelColor};
+		font-size: ${t.labelFontSize};
+	}
+	.packetTitle {
+		fill: ${t.titleColor};
+		font-size: ${t.titleFontSize};
+	}
+	.packetBlock {
+		stroke: ${t.blockStrokeColor};
+		stroke-width: ${t.blockStrokeWidth};
+		fill: ${t.blockFillColor};
+	}
+	`},"styles"),tt={parser:_,get db(){return new W},renderer:H,styles:R};export{tt as diagram};

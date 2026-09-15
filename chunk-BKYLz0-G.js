@@ -1,1 +1,0 @@
-import {M as T}from'./main-MGI2XNFP.js';var t=T("Browser",{web:()=>import('./chunk-B-e57J4N.js').then(e=>new e.BrowserWeb)});export{t as Browser};
