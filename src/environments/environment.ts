@@ -17,4 +17,7 @@ export const environment = {
   HOLIDAY_SHEET_GID: 1338469281,
   IMP_DAYS_SHEET_GID: 1294772822,
   ROTA_SHEET_GID: 381539897,
+  showHoliday: true,
+  showImportantDay: true,
+  showRota: true,
 };

@@ -15,6 +15,9 @@ ion-segment-button {
 ion-label {
   white-space: normal;
 }
+.office-events-page > ion-select {
+  max-width: 360px;
+}
 .office-events-period {
   color: var(--muted);
   margin-block: 18px;
@@ -30,9 +33,6 @@ ion-label {
   background: var(--surface);
 }
 .office-event-row {
-  display: grid;
-  grid-template-columns: minmax(110px, 155px) minmax(0, 1fr);
-  gap: 18px;
   padding: 18px;
 }
 .office-event-row + .office-event-row {
@@ -43,13 +43,52 @@ ion-label {
   color: var(--muted);
   line-height: 1.6;
 }
+.office-event-heading,
+.office-event-badges {
+  display: flex;
+  align-items: center;
+}
+.office-event-heading {
+  justify-content: space-between;
+  gap: 12px;
+}
+.office-event-badges {
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.office-event-type.holiday {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface-soft));
+  color: var(--accent);
+}
+.office-event-type.important-day {
+  border-color: color-mix(in srgb, #2877c7 45%, var(--line));
+  background: color-mix(in srgb, #2877c7 9%, var(--surface-soft));
+  color: #1665b5;
+}
+.office-event-type.rota {
+  border-color: #a5631266;
+  background: color-mix(in srgb, #a56312 10%, var(--surface-soft));
+  color: #8a4e05;
+}
+.office-event-relative {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+  color: var(--accent);
+}
+.ion-palette-dark .office-event-type.important-day {
+  color: #78b8ff;
+}
+.ion-palette-dark .office-event-type.rota {
+  color: #ffc271;
+}
 .office-event-body {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 .office-event-body h2 {
   font-size: 1rem;
-  margin: 6px 0;
+  margin: 8px 0 0;
 }
 .office-event-body p {
   margin: 4px 0 0;
@@ -57,10 +96,40 @@ ion-label {
   color: var(--muted);
   white-space: pre-line;
 }
+.office-event-calendar .tamil-day {
+  color: color-mix(in srgb, var(--muted) 72%, var(--surface));
+}
+.office-event-body p.office-event-with {
+  font-size: 0.84rem;
+}
+.office-event-with span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.office-event-body p.office-event-comments {
+  margin-top: 7px;
+  padding: 5px 8px;
+  border-left: 2px solid var(--line);
+  border-radius: 0 6px 6px 0;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+.office-event-row.past-event {
+  opacity: 0.62;
+}
+.office-event-row.past-event .office-event-body h2 {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
 @media (max-width: 480px) {
+  .office-events-page > ion-select {
+    max-width: none;
+  }
   .office-event-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
     padding: 14px;
   }
   ion-segment-button {
