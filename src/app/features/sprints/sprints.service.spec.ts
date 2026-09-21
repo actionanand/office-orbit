@@ -43,6 +43,10 @@ describe('SprintService and routes', () => {
       sprintIds: ['sprint-id'],
       jiraIds: ['jira-id'],
       sprintActive: true,
+      spillReason: '',
+      spilled: false,
+      sprintStart: null,
+      firstSprintStart: null,
     };
     TestBed.configureTestingModule({
       providers: [

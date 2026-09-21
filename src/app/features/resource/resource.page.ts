@@ -309,6 +309,14 @@ function supportsAllocationDetails(
                       @if (item.notes) {
                         <span class="preview">{{ short(item.notes) }}</span>
                       }
+                      @if (item.spilled) {
+                        <span class="badge-line allocation-badges">
+                          <app-status-badge label="Spilled" />
+                        </span>
+                      }
+                      @if (item.spillReason.trim()) {
+                        <span class="preview allocation-spill-reason">Spill reason: {{ short(item.spillReason) }}</span>
+                      }
                     </span>
                     <span class="planned-days"
                       ><strong>{{ item.plannedDays }}</strong> planned days</span

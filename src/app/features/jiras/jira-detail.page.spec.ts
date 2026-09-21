@@ -34,24 +34,33 @@ const jira: JiraDetail = {
   appraisal: true,
   spillover: true,
   spilloverCount: 2,
-  spilloverReason: 'Legacy duplicate reason',
+  description: 'Move the client to the current JIRA contract.',
+  firstSprintStart: '2026-08-19',
   inActiveSprint: true,
   demoRequired: true,
   demoedDate: null,
   demoNotes: 'Show migration',
   sprintIds: [historical.id, current.id, future.id],
   projectIds: ['hidden-project-id'],
-  blockedByIds: ['hidden-blocker-id'],
+  linkedJiraIds: ['hidden-linked-id'],
+  linkedFromIds: ['hidden-incoming-id'],
+  linkType: 'Blocks',
+  linkReason: 'Historical contract migration',
+  linkedOn: '2026-08-19',
+  resolvedOn: null,
   releaseItemIds: ['hidden-release-id'],
   projects: [{ id: 'hidden-project-id', name: 'Cortellis Regulatory Intelligence' }],
   sprints: [current, historical, future],
-  blockedBy: [{ id: 'hidden-blocker-id', key: 'CRI-1200', summary: 'Platform update' }],
+  linkedJiras: [{ id: 'hidden-linked-id', key: 'CRI-1200', summary: 'Platform update' }],
+  linkedFrom: [{ id: 'hidden-incoming-id', key: 'CRI-1201', summary: 'Incoming relationship' }],
   sprintHistory: [
     {
       sprint: historical,
       allocationId: 'allocation-1',
       plannedDays: 10,
       allocationNotes: '',
+      spillReason: '',
+      spilled: false,
       allocationConflict: false,
       allocationCount: 1,
     },
@@ -60,6 +69,8 @@ const jira: JiraDetail = {
       allocationId: 'allocation-2',
       plannedDays: 2.5,
       allocationNotes: '',
+      spillReason: 'Dependency delay',
+      spilled: true,
       allocationConflict: false,
       allocationCount: 1,
     },
@@ -68,6 +79,8 @@ const jira: JiraDetail = {
       allocationId: null,
       plannedDays: null,
       allocationNotes: '',
+      spillReason: '',
+      spilled: false,
       allocationConflict: true,
       allocationCount: 2,
     },
@@ -77,6 +90,27 @@ const jira: JiraDetail = {
     { number: 2, fromSprint: current, toSprint: future, reason: null },
   ],
   latestSpill: { number: 2, fromSprint: current, toSprint: future, reason: null },
+  relationships: [
+    {
+      direction: 'outgoing',
+      storedType: 'Blocks',
+      displayType: 'Blocks',
+      otherJira: { id: 'hidden-linked-id', key: 'CRI-1200', summary: 'Platform update', status: 'Blocked' },
+      reason: 'Waiting for platform changes.',
+      linkedOn: '2026-08-19',
+      resolvedOn: null,
+    },
+    {
+      direction: 'incoming',
+      storedType: 'Dependency for',
+      displayType: 'Depends on',
+      otherJira: { id: 'hidden-incoming-id', key: 'CRI-1201', summary: 'Service rollout', status: 'Done' },
+      reason: '',
+      linkedOn: '2026-08-20',
+      resolvedOn: '2026-09-01',
+    },
+  ],
+  spillHistoryConsistent: false,
 };
 
 describe('JiraDetailPage', () => {
@@ -123,8 +157,24 @@ describe('JiraDetailPage', () => {
     expect(text).toContain('Spill #1');
     expect(text).toContain('Spill #2');
     expect(text).toContain('Dependency delay');
-    expect(text).not.toContain('Legacy duplicate reason');
     expect(text).not.toContain('No reason');
+    expect(text).toContain('Dependency delay');
+  });
+
+  it('renders server-authoritative relationships, JIRA description, and spill history state', async () => {
+    const fixture = await render();
+    const element = fixture.nativeElement as HTMLElement;
+    const text = element.textContent ?? '';
+    expect(text).toContain('Move the client to the current JIRA contract.');
+    expect(text).toContain('First Sprint Start');
+    expect(text).toContain('Spill history needs review');
+    expect(text).toContain('Spilled');
+    expect(text).toContain('Blocks');
+    expect(text).toContain('CRI-1200');
+    expect(text).toContain('Waiting for platform changes.');
+    expect(text).toContain('Resolved');
+    expect(text).not.toContain('Blocked by');
+    expect(text).not.toContain('Active');
   });
 
   it('finds current Sprint by active flag and never chooses the final relation', async () => {
@@ -142,6 +192,8 @@ describe('JiraDetailPage', () => {
           allocationId: null,
           plannedDays: null,
           allocationNotes: '',
+          spillReason: '',
+          spilled: false,
           allocationConflict: false,
           allocationCount: 0,
         },

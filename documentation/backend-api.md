@@ -70,7 +70,11 @@ ResourceService checks the envelope and tolerates bare arrays and single record 
 
 The Worker's local source and knowledge-base contracts confirm `include=relations` support for JIRAs, Work Logs, Sprints, Releases, Feedback, and Work Links. Office Orbit sends that option for supported collection and JIRA detail requests, then renders only human-readable relation names and keys.
 
-JIRA detail uses `sprintHistory`, server-numbered `spillEvents`, and nullable `latestSpill`. Each history entry carries nullable Planned Days plus `allocationConflict` and `allocationCount`; conflicts are displayed as data-quality warnings without inventing a Planned Days value. The active Sprint is selected only from `Sprint.active === true`, never relation order. Sprint history links internally to `/app/sprints/:sprintId`.
+JIRA detail uses `sprintHistory`, server-numbered `spillEvents`, nullable `latestSpill`, and `spillHistoryConsistent`. Each history entry carries nullable Planned Days, optional `allocationNotes`, `spillReason`, `spilled`, `allocationConflict`, and `allocationCount`; conflicts are displayed as data-quality warnings without inventing a Planned Days value. The active Sprint is selected only from `Sprint.active === true`, never relation order. Sprint history links internally to `/app/sprints/:sprintId`.
+
+JIRAs expose `description`, `firstSprintStart`, `linkedJiraIds`, `linkedFromIds`, `linkType`, `linkReason`, `linkedOn`, and `resolvedOn`. The retired `spilloverReason`, `blockedByIds`, and `blockedBy` fields are not used by the client. Relation-enriched JIRA detail returns server-normalized `relationships`; each item includes its `direction`, `storedType`, `displayType`, `otherJira`, `reason`, `linkedOn`, and `resolvedOn`. The client displays these values as returned and keeps resolved relationships visible. JIRA QUERY filters additionally support `linkedJiraIds`, `linkedFromIds`, `linkTypes`, and `resolved`.
+
+Sprint Allocation records include `spillReason`, `spilled`, `sprintStart`, and `firstSprintStart` in addition to the existing allocation fields. Allocation list views use the server-supplied spill flag and reason; they do not derive spill state from dates or JIRA history.
 
 `GET /api/sprints/:sprintId` returns one Sprint with every assigned JIRA, including Done, Cancelled, and future status values. Sprint detail does not filter this server-authoritative membership. JIRA statuses remain open strings: known statuses receive explicit presentation tones, while an unknown future status remains visible and uses the success tone.
 

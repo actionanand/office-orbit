@@ -17,18 +17,25 @@ const jira: Jira = {
   appraisal: false,
   spillover: false,
   spilloverCount: 0,
-  spilloverReason: '',
+  description: '',
+  firstSprintStart: null,
   inActiveSprint: true,
   demoRequired: false,
   demoedDate: null,
   demoNotes: '',
   sprintIds: [],
   projectIds: [],
-  blockedByIds: [],
+  linkedJiraIds: [],
+  linkedFromIds: [],
+  linkType: null,
+  linkReason: '',
+  linkedOn: null,
+  resolvedOn: null,
   releaseItemIds: [],
   projects: [],
   sprints: [],
-  blockedBy: [],
+  linkedJiras: [],
+  linkedFrom: [],
 };
 
 describe('ResourceService caching', () => {
@@ -49,6 +56,8 @@ describe('ResourceService caching', () => {
         sprintHistory: [],
         spillEvents: [],
         latestSpill: null,
+        relationships: [],
+        spillHistoryConsistent: true,
       });
     expect((await detail).sprintHistory).toEqual([]);
     http.verify();
