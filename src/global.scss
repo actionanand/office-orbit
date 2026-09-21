@@ -1301,6 +1301,13 @@ details > summary {
 .allocation-row .entity-copy {
   flex: 1;
 }
+.allocation-badges {
+  margin-top: 6px;
+}
+.allocation-spill-reason {
+  display: block;
+  margin-top: 4px;
+}
 .allocation-jira-link {
   display: flex;
   align-items: center;
@@ -1572,6 +1579,9 @@ ion-popover.work-link-popover {
 .detail-grid dd {
   margin: 0;
 }
+.detail-description {
+  white-space: pre-wrap;
+}
 .detail-page {
   max-width: 1100px;
 }
@@ -1661,6 +1671,42 @@ ion-popover.work-link-popover {
 }
 .planned-days {
   color: var(--muted);
+}
+.allocation-notes,
+.relationship-reason,
+.relationship-dates {
+  color: var(--muted);
+}
+.relationship-list {
+  display: grid;
+  gap: 10px;
+}
+.relationship-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+.relationship-heading,
+.relationship-jira {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.relationship-heading strong {
+  color: var(--ion-text-color);
+}
+.relationship-jira > span {
+  min-width: 0;
+}
+.relationship-item p {
+  margin: 0;
+}
+.relationship-dates {
+  font-size: 0.78rem;
 }
 .allocation-warning {
   color: #8a4e05;

@@ -94,12 +94,29 @@ import { JiraService } from './jiras.service';
                     </dd>
                   </div>
                 }
+                @if (jira.firstSprintStart) {
+                  <div>
+                    <dt>First Sprint Start</dt>
+                    <dd>{{ date(jira.firstSprintStart) }}</dd>
+                  </div>
+                }
+                @if (jira.description.trim()) {
+                  <div class="wide">
+                    <dt>Description</dt>
+                    <dd class="detail-description">{{ jira.description }}</dd>
+                  </div>
+                }
               </dl>
             </section>
 
             @if (jira.sprintHistory.length > 0) {
               <section class="detail-section sprint-history-section">
-                <h2>Sprint history</h2>
+                <div class="section-title-row">
+                  <h2>Sprint history</h2>
+                  @if (!jira.spillHistoryConsistent) {
+                    <span class="allocation-warning">Spill history needs review</span>
+                  }
+                </div>
                 <div class="sprint-timeline">
                   @for (history of jira.sprintHistory; track history.sprint.id) {
                     <article class="sprint-history-item" [class.current]="history.sprint.active">
@@ -108,6 +125,9 @@ import { JiraService } from './jiras.service';
                           <h3>{{ history.sprint.name }}</h3>
                           @if (history.sprint.active) {
                             <app-status-badge label="Current" kind="success" />
+                          }
+                          @if (history.spilled) {
+                            <app-status-badge label="Spilled" />
                           }
                         </div>
                         <a [routerLink]="['/app/sprints', history.sprint.id]">
@@ -125,6 +145,9 @@ import { JiraService } from './jiras.service';
                         </p>
                       } @else {
                         <p class="planned-days">{{ plannedDays(history) }}</p>
+                      }
+                      @if (history.allocationNotes.trim()) {
+                        <p class="allocation-notes">{{ history.allocationNotes }}</p>
                       }
                     </article>
                     @for (event of eventsFrom(jira, history.sprint.id); track event.number) {
@@ -148,15 +171,44 @@ import { JiraService } from './jiras.service';
               </section>
             }
 
-            @if ((jira.blockedBy?.length ?? 0) > 0) {
-              <section class="detail-section">
-                <h2>Dependency</h2>
-                <p><strong>Blocked by</strong></p>
-                <div class="compact-list">
-                  @for (blocker of jira.blockedBy ?? []; track blocker.id) {
-                    <div class="text-row">
-                      <app-jira-link [jiraKey]="blocker.key" [showExternal]="true" /><span>{{ blocker.summary }}</span>
-                    </div>
+            @if (jira.relationships.length > 0) {
+              <section class="detail-section relationships-section">
+                <h2>Relationships</h2>
+                <div class="relationship-list">
+                  @for (relationship of jira.relationships; track relationship.direction + relationship.otherJira.id) {
+                    <article class="relationship-item">
+                      <div class="relationship-heading">
+                        <strong>{{ relationship.displayType }}</strong>
+                        @if (relationship.resolvedOn) {
+                          <app-status-badge label="Resolved" />
+                        }
+                      </div>
+                      <div class="relationship-jira">
+                        <app-jira-link [jiraKey]="relationship.otherJira.key" [showExternal]="true" />
+                        @if (relationship.otherJira.summary) {
+                          <span>{{ relationship.otherJira.summary }}</span>
+                        }
+                        @if (relationship.otherJira.status) {
+                          <app-status-badge [label]="relationship.otherJira.status" kind="jira-status" />
+                        }
+                      </div>
+                      @if (relationship.reason.trim()) {
+                        <p class="relationship-reason">{{ relationship.reason }}</p>
+                      }
+                      @if (relationship.linkedOn || relationship.resolvedOn) {
+                        <p class="relationship-dates">
+                          @if (relationship.linkedOn) {
+                            Linked {{ date(relationship.linkedOn) }}
+                          }
+                          @if (relationship.linkedOn && relationship.resolvedOn) {
+                            <span aria-hidden="true"> · </span>
+                          }
+                          @if (relationship.resolvedOn) {
+                            Resolved {{ date(relationship.resolvedOn) }}
+                          }
+                        </p>
+                      }
+                    </article>
                   }
                 </div>
               </section>

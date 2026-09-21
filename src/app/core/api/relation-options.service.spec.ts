@@ -20,6 +20,7 @@ describe('RelationOptionsService', () => {
       hasMore: true,
       nextCursor: 'opaque/+cursor',
     });
+    await Promise.resolve();
     http
       .expectOne(request => request.params.get('cursor') === 'opaque/+cursor')
       .flush({ data: [{ id: 'two', jiraKey: 'LSC-2', summary: 'Second task' }], hasMore: false, nextCursor: null });

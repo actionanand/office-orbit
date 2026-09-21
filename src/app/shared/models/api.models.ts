@@ -149,6 +149,10 @@ export interface JiraQueryFilters {
   tags?: string[];
   sprintIds?: string[];
   projectIds?: string[];
+  linkedJiraIds?: string[];
+  linkedFromIds?: string[];
+  linkTypes?: string[];
+  resolved?: boolean;
   inActiveSprint?: boolean;
   spillover?: boolean;
   appraisal?: boolean;
@@ -285,6 +289,8 @@ export interface SprintHistoryItem {
   allocationId: string | null;
   plannedDays: number | null;
   allocationNotes: string;
+  spillReason: string;
+  spilled: boolean;
   allocationConflict: boolean;
   allocationCount: number;
 }
@@ -307,24 +313,50 @@ export interface Jira {
   appraisal: boolean;
   spillover: boolean;
   spilloverCount: number;
-  spilloverReason: string;
+  description: string;
+  firstSprintStart: string | null;
   inActiveSprint: boolean;
   demoRequired: boolean;
   demoedDate: string | null;
   demoNotes: string;
   sprintIds: string[];
   projectIds: string[];
-  blockedByIds: string[];
+  linkedJiraIds: string[];
+  linkedFromIds: string[];
+  linkType: string | null;
+  linkReason: string;
+  linkedOn: string | null;
+  resolvedOn: string | null;
   releaseItemIds: string[];
   projects?: NamedRef[];
   sprints?: SprintRef[];
-  blockedBy?: JiraRef[];
+  linkedJiras?: JiraRef[];
+  linkedFrom?: JiraRef[];
+}
+
+export interface JiraRelationshipJira {
+  id: string;
+  key: string;
+  summary: string;
+  status: string | null;
+}
+
+export interface JiraRelationship {
+  direction: 'incoming' | 'outgoing';
+  storedType: string | null;
+  displayType: string;
+  otherJira: JiraRelationshipJira;
+  reason: string;
+  linkedOn: string | null;
+  resolvedOn: string | null;
 }
 
 export interface JiraDetail extends Jira {
   sprintHistory: SprintHistoryItem[];
   spillEvents: SpillEvent[];
   latestSpill: SpillEvent | null;
+  relationships: JiraRelationship[];
+  spillHistoryConsistent: boolean;
 }
 
 export interface WorkLog {
@@ -380,6 +412,10 @@ export interface SprintAllocation {
   sprintIds: string[];
   jiraIds: string[];
   sprintActive: boolean;
+  spillReason: string;
+  spilled: boolean;
+  sprintStart: string | null;
+  firstSprintStart: string | null;
 }
 
 export interface SprintDetailJira {

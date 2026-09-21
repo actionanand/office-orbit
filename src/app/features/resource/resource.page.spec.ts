@@ -138,14 +138,20 @@ describe('ResourcePage presentation', () => {
       appraisal: false,
       spillover: false,
       spilloverCount: 0,
-      spilloverReason: '',
+      description: '',
+      firstSprintStart: null,
       inActiveSprint: true,
       demoRequired: false,
       demoedDate: null,
       demoNotes: '',
       sprintIds: ['hidden-sprint-id'],
       projectIds: [],
-      blockedByIds: [],
+      linkedJiraIds: [],
+      linkedFromIds: [],
+      linkType: null,
+      linkReason: '',
+      linkedOn: null,
+      resolvedOn: null,
       releaseItemIds: [],
       sprints: [
         { id: 'current-sprint-id', name: 'Sprint 25.17', active: true, startDate: null, endDate: null },
@@ -211,6 +217,10 @@ describe('ResourcePage presentation', () => {
       sprintIds: [sprint.id],
       jiraIds: ['jira-id'],
       sprintActive: true,
+      spillReason: 'Received after a blocked dependency',
+      spilled: true,
+      sprintStart: '2026-09-02',
+      firstSprintStart: '2026-08-19',
     };
     const allocationJira: SprintDetailJira = {
       id: 'jira-id',
@@ -259,6 +269,9 @@ describe('ResourcePage presentation', () => {
     expect(allocationLink?.textContent).toContain('GRC alert migration to first-party services');
     expect(allocationLink?.textContent).toContain('In progress');
     expect(allocationLink?.textContent).toContain('Spilled once');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Spill reason: Received after a blocked dependency',
+    );
     const allocationArrow = fixture.nativeElement.querySelector('.allocation-row > .allocation-arrow');
     expect(allocationArrow).toBeTruthy();
   });
