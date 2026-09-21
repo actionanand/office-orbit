@@ -11,9 +11,12 @@ describe('Local Markdown preview', () => {
     fixture.componentRef.setInput('filename', 'private.md');
     fixture.componentRef.setInput('markdown', '# Private\n\n```typescript\nconst value = 1;\n```');
     fixture.detectChanges();
-    await new Promise(resolve => window.setTimeout(resolve));
+    const modal = fixture.nativeElement.querySelector('ion-modal') as HTMLIonModalElement;
+    await modal.present();
+    await fixture.whenStable();
+    fixture.detectChanges();
     expect(fixture.componentInstance.source()).toBe(false);
-    expect(document.querySelector('app-markdown-viewer')).not.toBeNull();
+    expect(modal.querySelector('app-markdown-viewer')).not.toBeNull();
     fixture.componentInstance.source.set(true);
     expect(fixture.componentInstance.markdown()).toBe('# Private\n\n```typescript\nconst value = 1;\n```');
   });
