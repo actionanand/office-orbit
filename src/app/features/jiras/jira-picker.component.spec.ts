@@ -125,6 +125,20 @@ describe('JiraPickerComponent', () => {
     expect(fixture.componentInstance.selectedIds()).toEqual(['current']);
   });
 
+  it('keeps one selection and omits excluded JIRAs in single-select mode', async () => {
+    const fixture = await create();
+    fixture.componentRef.setInput('multiple', false);
+    fixture.componentRef.setInput('excludeIds', [current.id]);
+    fixture.componentInstance.openPicker();
+    await vi.runAllTimersAsync();
+    fixture.componentInstance.toggle(current, true);
+    expect(fixture.componentInstance.draftSelection()).toEqual([]);
+    fixture.componentInstance.toggle(historical, true);
+    fixture.componentInstance.toggle({ ...historical, id: 'other', jiraKey: 'LSC-2' }, true);
+    expect(fixture.componentInstance.draftSelection()).toHaveLength(1);
+    expect(fixture.componentInstance.draftSelection()[0]?.id).toBe('other');
+  });
+
   it('loads one cursor page, appends unique options, and blocks concurrent load-more requests', async () => {
     const continuation = new Subject<ListResponse<JiraOption>>();
     query.mockImplementation((_q: string, cursor: string | null) =>

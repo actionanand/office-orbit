@@ -357,6 +357,34 @@ export interface JiraDetail extends Jira {
   latestSpill: SpillEvent | null;
   relationships: JiraRelationship[];
   spillHistoryConsistent: boolean;
+  timeline: JiraTimeline;
+  workLogs: WorkLog[];
+  workLogCount: number;
+  releaseItems: ReleaseItem[];
+  releaseItemCount: number;
+}
+
+export interface JiraTimeline {
+  startedDate: string | null;
+  endedDate: string | null;
+}
+
+export interface JiraPatchRequest {
+  summary?: string;
+  descriptionMarkdown?: string;
+  descriptionRichTextHtml?: string;
+  projectId?: string | null;
+  statusOptionId?: string | null;
+  tagOptionIds?: string[];
+  appraisal?: boolean;
+  demoRequired?: boolean;
+  demoedDate?: string | null;
+  demoNotes?: string;
+  linkedJiraId?: string | null;
+  linkTypeOptionId?: string | null;
+  linkReason?: string;
+  linkedOn?: string | null;
+  resolvedOn?: string | null;
 }
 
 export interface WorkLog {

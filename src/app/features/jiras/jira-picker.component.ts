@@ -55,7 +55,7 @@ interface SearchResult {
     StatusBadgeComponent,
   ],
   template: `<div class="jira-picker-field">
-      <span class="ionic-field-label">JIRAs</span>
+      <span class="ionic-field-label">{{ label() }}</span>
       <div class="jira-picker-summary">
         <div class="jira-picker-summary-copy">
           @if (selectedPreview().length) {
@@ -66,11 +66,11 @@ interface SearchResult {
               <span class="jira-picker-more">+{{ selectedPreview().length - 3 }} more</span>
             }
           } @else {
-            <span class="jira-picker-empty-summary">No JIRAs selected</span>
+            <span class="jira-picker-empty-summary">No {{ label() }} selected</span>
           }
         </div>
         <ion-button type="button" fill="outline" size="small" (click)="openPicker()">
-          <ion-icon name="search-outline" slot="start" aria-hidden="true" />Choose JIRAs
+          <ion-icon name="search-outline" slot="start" aria-hidden="true" />Choose {{ label() }}
         </ion-button>
       </div>
     </div>
@@ -79,7 +79,7 @@ interface SearchResult {
       <ng-template>
         <ion-header class="ion-no-border">
           <ion-toolbar>
-            <ion-title>Select JIRAs</ion-title>
+            <ion-title>Select {{ label() }}</ion-title>
             <ion-button slot="end" fill="clear" aria-label="Close JIRA picker" (click)="cancel()">
               <ion-icon name="close-outline" slot="icon-only" aria-hidden="true" />
             </ion-button>
@@ -150,26 +150,28 @@ interface SearchResult {
               } @else {
                 <div class="jira-picker-options">
                   @for (jira of results(); track jira.id) {
-                    <ion-checkbox
-                      class="jira-picker-option"
-                      labelPlacement="end"
-                      justify="start"
-                      [checked]="isSelected(jira.id)"
-                      [attr.aria-label]="'Select ' + jira.jiraKey"
-                      (ionChange)="toggle(jira, $event.detail.checked)">
-                      <span class="jira-picker-option-copy">
-                        <span class="jira-picker-option-heading">
-                          <strong>{{ jira.jiraKey }}</strong>
-                          @if (jira.status) {
-                            <app-status-badge [label]="jira.status" kind="jira-status" />
+                    @if (!excludeIds().includes(jira.id)) {
+                      <ion-checkbox
+                        class="jira-picker-option"
+                        labelPlacement="end"
+                        justify="start"
+                        [checked]="isSelected(jira.id)"
+                        [attr.aria-label]="'Select ' + jira.jiraKey"
+                        (ionChange)="toggle(jira, $event.detail.checked)">
+                        <span class="jira-picker-option-copy">
+                          <span class="jira-picker-option-heading">
+                            <strong>{{ jira.jiraKey }}</strong>
+                            @if (jira.status) {
+                              <app-status-badge [label]="jira.status" kind="jira-status" />
+                            }
+                          </span>
+                          <span>{{ jira.summary || 'No summary' }}</span>
+                          @if (jira.inActiveSprint) {
+                            <small>Current Sprint</small>
                           }
                         </span>
-                        <span>{{ jira.summary || 'No summary' }}</span>
-                        @if (jira.inActiveSprint) {
-                          <small>Current Sprint</small>
-                        }
-                      </span>
-                    </ion-checkbox>
+                      </ion-checkbox>
+                    }
                   }
                 </div>
                 @if (hasMore()) {
@@ -200,6 +202,9 @@ interface SearchResult {
 export class JiraPickerComponent {
   readonly selectedIds = input<string[]>([]);
   readonly selectedJiras = input<JiraRef[]>([]);
+  readonly multiple = input(true);
+  readonly label = input('JIRAs');
+  readonly excludeIds = input<string[]>([]);
   readonly selectionChange = output<JiraPickerSelection>();
   readonly pickerOpen = signal(false);
   readonly search = signal('');
@@ -281,7 +286,8 @@ export class JiraPickerComponent {
   }
 
   toggle(jira: JiraOption, checked: boolean): void {
-    if (checked) this.draftSelection.update(selected => this.unique([...selected, jira]));
+    if (this.excludeIds().includes(jira.id)) return;
+    if (checked) this.draftSelection.set(this.multiple() ? this.unique([...this.draftSelection(), jira]) : [jira]);
     else this.remove(jira.id);
   }
 
@@ -348,7 +354,7 @@ export class JiraPickerComponent {
 
   private seedSelection(): JiraOption[] {
     const refs = new Map(this.selectedJiras().map(jira => [jira.id, jira]));
-    return this.unique(
+    const selection = this.unique(
       this.selectedIds().map((id, index) => {
         const jira = refs.get(id);
         return {
@@ -359,7 +365,8 @@ export class JiraPickerComponent {
           inActiveSprint: false,
         };
       }),
-    );
+    ).filter(jira => !this.excludeIds().includes(jira.id));
+    return this.multiple() ? selection : selection.slice(0, 1);
   }
 
   private unique(items: JiraOption[]): JiraOption[] {
