@@ -1708,6 +1708,86 @@ ion-popover.work-link-popover {
 .relationship-dates {
   font-size: 0.78rem;
 }
+.work-history-section,
+.release-history-section,
+.description-section,
+.record-information {
+  grid-column: 1 / -1;
+}
+.work-history-list,
+.release-history-list {
+  display: grid;
+  gap: 10px;
+}
+.work-history-item,
+.release-history-item {
+  min-width: 0;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+.work-history-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.work-history-heading > div {
+  display: grid;
+  gap: 3px;
+}
+.work-history-heading > div > span,
+.work-history-item details,
+.release-history-item details {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+.work-history-item details,
+.release-history-item details {
+  margin-top: 9px;
+}
+.work-history-item details p,
+.release-history-item details p {
+  white-space: pre-wrap;
+}
+.release-history-item dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 10px 0 0;
+}
+.release-history-item dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.release-history-item dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.rich-text-field {
+  display: grid;
+  gap: 6px;
+}
+.rich-text-editor {
+  min-height: 150px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+.rich-text-editor:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 700px) {
+  .work-history-heading {
+    flex-direction: column;
+  }
+  .release-history-item dl {
+    grid-template-columns: 1fr;
+  }
+}
 .allocation-warning {
   color: #8a4e05;
 }

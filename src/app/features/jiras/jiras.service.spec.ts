@@ -39,16 +39,22 @@ describe('JiraService', () => {
       latestSpill: null,
       relationships: [],
       spillHistoryConsistent: true,
+      timeline: { startedDate: null, endedDate: null },
+      workLogs: [],
+      workLogCount: 0,
+      releaseItems: [],
+      releaseItemCount: 0,
     };
     const detail = vi.fn(() => of(jira));
     const metadata = vi.fn(() => of({ resource: 'jiras', fields: [] }));
     const create = vi.fn(() => of({ data: jira }));
+    const patch = vi.fn(() => of({ data: jira }));
     TestBed.configureTestingModule({
       providers: [
         JiraService,
         { provide: ResourceService, useValue: { detail } },
         { provide: CursorService, useValue: {} },
-        { provide: MutationApiService, useValue: { metadata, create } },
+        { provide: MutationApiService, useValue: { metadata, create, patch } },
       ],
     });
     const result: Observable<JiraDetail> = TestBed.inject(JiraService).detail('CRI/1', true);
@@ -58,6 +64,8 @@ describe('JiraService', () => {
     const service = TestBed.inject(JiraService);
     await firstValueFrom(service.metadata(true));
     expect(metadata).toHaveBeenCalledWith('/api/jiras/meta', true);
+    await firstValueFrom(service.editMetadata());
+    expect(metadata).toHaveBeenCalledWith('/api/jiras/meta?mode=edit', false);
     const body = {
       jiraKey: 'CRI-1',
       summary: 'Summary',
@@ -70,5 +78,7 @@ describe('JiraService', () => {
     };
     await firstValueFrom(service.create(body));
     expect(create).toHaveBeenCalledWith('/api/jiras', body);
+    await firstValueFrom(service.update('CRI/1', { summary: 'Updated summary' }));
+    expect(patch).toHaveBeenCalledWith('/api/jiras', 'CRI/1', { summary: 'Updated summary' });
   });
 });

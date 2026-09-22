@@ -4,7 +4,14 @@ import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { IonButton, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline, arrowForwardOutline, chevronForwardOutline, refreshOutline } from 'ionicons/icons';
+import {
+  arrowBackOutline,
+  arrowForwardOutline,
+  chevronForwardOutline,
+  createOutline,
+  refreshOutline,
+} from 'ionicons/icons';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
 import { apiError } from '../../core/api/api-error';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { StatePanelComponent } from '../../shared/components/state-panel.component';
@@ -13,7 +20,9 @@ import { JiraDetail, SpillEvent, SprintHistoryItem } from '../../shared/models/a
 import { formatDate, formatDateRange, names } from '../../shared/utils/format';
 import { activeSprint, spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from './jira-link.component';
+import { JiraEditComponent } from './jira-edit.component';
 import { JiraService } from './jiras.service';
+import { MarkdownViewerComponent } from '../productivity/markdown-viewer.component';
 
 @Component({
   selector: 'app-jira-detail',
@@ -29,12 +38,16 @@ import { JiraService } from './jiras.service';
     StatePanelComponent,
     StatusBadgeComponent,
     JiraLinkComponent,
+    JiraEditComponent,
+    MarkdownViewerComponent,
   ],
   template: `<ion-header class="ion-no-border"
       ><ion-toolbar
         ><ion-title>JIRA detail</ion-title>
         <ion-button slot="end" fill="clear" aria-label="Refresh JIRA" (click)="load(true)"
-          ><ion-icon slot="icon-only" name="refresh-outline"
+          ><ion-icon slot="icon-only" name="refresh-outline" /></ion-button
+        ><ion-button slot="end" fill="clear" aria-label="Edit JIRA" (click)="editOpen.set(true)"
+          ><ion-icon slot="icon-only" name="create-outline"
         /></ion-button> </ion-toolbar
     ></ion-header>
     <ion-content
@@ -78,6 +91,10 @@ import { JiraService } from './jiras.service';
                     <dd>{{ jira.status }}</dd>
                   </div>
                 }
+                <div>
+                  <dt>JIRA Key</dt>
+                  <dd>{{ jira.jiraKey }}</dd>
+                </div>
                 @if (names(jira.projects)) {
                   <div>
                     <dt>Project</dt>
@@ -100,14 +117,41 @@ import { JiraService } from './jiras.service';
                     <dd>{{ date(jira.firstSprintStart) }}</dd>
                   </div>
                 }
-                @if (jira.description.trim()) {
-                  <div class="wide">
-                    <dt>Description</dt>
-                    <dd class="detail-description">{{ jira.description }}</dd>
+                @if (currentSprint(jira); as sprint) {
+                  <div>
+                    <dt>Current Sprint</dt>
+                    <dd>{{ sprint.name }}</dd>
+                  </div>
+                }
+                <div>
+                  <dt>Spillover</dt>
+                  <dd>{{ jira.spilloverCount }} {{ jira.spilloverCount === 1 ? 'spill' : 'spills' }}</dd>
+                </div>
+                <div>
+                  <dt>Appraisal</dt>
+                  <dd>{{ jira.appraisal ? 'Yes' : 'No' }}</dd>
+                </div>
+                @if (jira.timeline.startedDate) {
+                  <div>
+                    <dt>Work started</dt>
+                    <dd>{{ date(jira.timeline.startedDate) }}</dd>
+                  </div>
+                }
+                @if (jira.timeline.endedDate) {
+                  <div>
+                    <dt>Sprint window through</dt>
+                    <dd>{{ date(jira.timeline.endedDate) }}</dd>
                   </div>
                 }
               </dl>
             </section>
+
+            @if (jira.description.trim()) {
+              <section class="detail-section description-section">
+                <h2>Description</h2>
+                <app-markdown-viewer [markdown]="jira.description" />
+              </section>
+            }
 
             @if (jira.sprintHistory.length > 0) {
               <section class="detail-section sprint-history-section">
@@ -171,6 +215,51 @@ import { JiraService } from './jiras.service';
               </section>
             }
 
+            <section class="detail-section work-history-section">
+              <div class="section-title-row">
+                <h2>Work history</h2>
+                <span>{{ jira.workLogCount }} {{ jira.workLogCount === 1 ? 'log' : 'logs' }}</span>
+              </div>
+              @if (jira.workLogs.length) {
+                <div class="work-history-list">
+                  @for (log of jira.workLogs; track log.id) {
+                    <article class="work-history-item">
+                      <div class="work-history-heading">
+                        <div>
+                          <strong>{{ log.update }}</strong
+                          ><span>{{ date(log.date) }}</span>
+                        </div>
+                        <span class="badge-line">
+                          @if (log.type) {
+                            <app-status-badge [label]="log.type" />
+                          }
+                          @if (log.workMode) {
+                            <app-status-badge [label]="log.workMode" />
+                          }
+                          @if (log.appraisal) {
+                            <app-status-badge label="Appraisal" kind="success" />
+                          }
+                        </span>
+                      </div>
+                      @if (log.comment || log.wentWrong) {
+                        <details>
+                          <summary>Details</summary>
+                          @if (log.comment) {
+                            <p><strong>Comment</strong><br />{{ log.comment }}</p>
+                          }
+                          @if (log.wentWrong) {
+                            <p><strong>Went wrong</strong><br />{{ log.wentWrong }}</p>
+                          }
+                        </details>
+                      }
+                    </article>
+                  }
+                </div>
+              } @else {
+                <p>No Work Logs recorded for this JIRA.</p>
+              }
+            </section>
+
             @if (jira.relationships.length > 0) {
               <section class="detail-section relationships-section">
                 <h2>Relationships</h2>
@@ -214,42 +303,115 @@ import { JiraService } from './jiras.service';
               </section>
             }
 
-            @if (jira.demoRequired || jira.demoedDate || jira.demoNotes) {
-              <section class="detail-section">
-                <h2>Demo</h2>
-                <p>
-                  <strong>State</strong><br />{{
-                    jira.demoedDate ? 'Demoed' : jira.demoRequired ? 'Required' : 'Not required'
-                  }}
-                </p>
-                @if (jira.demoedDate) {
-                  <p><strong>Demoed date</strong><br />{{ date(jira.demoedDate) }}</p>
-                }
-                @if (jira.demoNotes) {
-                  <p><strong>Notes</strong><br />{{ jira.demoNotes }}</p>
-                }
-              </section>
-            }
+            <section class="detail-section release-history-section">
+              <div class="section-title-row">
+                <h2>Release history</h2>
+                <span>{{ jira.releaseItemCount }} {{ jira.releaseItemCount === 1 ? 'release' : 'releases' }}</span>
+              </div>
+              @if (jira.releaseItems.length) {
+                <div class="release-history-list">
+                  @for (release of jira.releaseItems; track release.id) {
+                    <article class="release-history-item">
+                      <strong>{{ release.componentName || release.releaseItem }}</strong>
+                      <dl>
+                        <div>
+                          <dt>Deployment</dt>
+                          <dd>
+                            @if (release.deploymentType) {
+                              <app-status-badge [label]="release.deploymentType" />
+                            } @else {
+                              Not recorded
+                            }
+                          </dd>
+                        </div>
+                        @if (release.versionNumber) {
+                          <div>
+                            <dt>Version</dt>
+                            <dd>{{ release.versionNumber }}</dd>
+                          </div>
+                        }
+                        @if (release.branch) {
+                          <div>
+                            <dt>Branch</dt>
+                            <dd>{{ release.branch }}</dd>
+                          </div>
+                        }
+                        @if (release.formalAnnouncedDate) {
+                          <div>
+                            <dt>Formal announced</dt>
+                            <dd>{{ date(release.formalAnnouncedDate) }}</dd>
+                          </div>
+                        }
+                        @if (release.confirmedReleaseDate) {
+                          <div>
+                            <dt>Confirmed release</dt>
+                            <dd>{{ date(release.confirmedReleaseDate) }}</dd>
+                          </div>
+                        }
+                      </dl>
+                      @if (release.notes) {
+                        <details>
+                          <summary>Notes</summary>
+                          <p>{{ release.notes }}</p>
+                        </details>
+                      }
+                    </article>
+                  }
+                </div>
+              } @else {
+                <p>No release information recorded for this JIRA.</p>
+              }
+            </section>
+
+            <section class="detail-section">
+              <h2>Demo</h2>
+              <p>
+                <strong>State</strong><br />{{
+                  jira.demoedDate ? 'Demoed' : jira.demoRequired ? 'Required' : 'Not required'
+                }}
+              </p>
+              @if (jira.demoedDate) {
+                <p><strong>Demoed date</strong><br />{{ date(jira.demoedDate) }}</p>
+              }
+              @if (jira.demoNotes) {
+                <p><strong>Notes</strong><br />{{ jira.demoNotes }}</p>
+              }
+            </section>
+            <section class="detail-section record-information">
+              <h2>Record information</h2>
+              <dl class="detail-grid">
+                <div>
+                  <dt>Created</dt>
+                  <dd>{{ date(jira.createdTime) }}</dd>
+                </div>
+                <div>
+                  <dt>Last updated</dt>
+                  <dd>{{ date(jira.lastEditedTime) }}</dd>
+                </div>
+              </dl>
+            </section>
           </div>
-        }
-      </main></ion-content
-    >`,
+          <app-jira-edit [open]="editOpen()" [item]="jira" (closed)="editOpen.set(false)" (saved)="edited($event)" />
+        }</main
+    ></ion-content>`,
 })
 export class JiraDetailPage {
   readonly jiraKey = input.required<string>();
   readonly item = signal<JiraDetail | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly editOpen = signal(false);
   readonly names = names;
   readonly date = formatDate;
   readonly dateRange = formatDateRange;
   readonly spilled = spilloverLabel;
   private readonly service = inject(JiraService);
+  private readonly snackbar = inject(SnackbarService);
   private readonly destroyRef = inject(DestroyRef);
   private request?: Subscription;
 
   constructor() {
-    addIcons({ arrowBackOutline, arrowForwardOutline, chevronForwardOutline, refreshOutline });
+    addIcons({ arrowBackOutline, arrowForwardOutline, chevronForwardOutline, createOutline, refreshOutline });
     effect(() => {
       this.jiraKey();
       this.load();
@@ -286,5 +448,10 @@ export class JiraDetailPage {
   plannedDays(history: SprintHistoryItem): string {
     if (history.plannedDays === null) return 'Planned days not recorded';
     return `Planned: ${history.plannedDays} ${history.plannedDays === 1 ? 'day' : 'days'}`;
+  }
+  edited(item: JiraDetail): void {
+    this.item.set(item);
+    this.editOpen.set(false);
+    this.snackbar.success('JIRA updated.');
   }
 }

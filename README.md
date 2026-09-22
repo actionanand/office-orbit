@@ -72,7 +72,7 @@ The `main-android` GitHub workflow auto-bumps versionCode and creates signed or 
 
 The lazy `/app/productivity` workspace contains To Do, Tasks & Follow-ups, Memos, and Reference Library. To Do, Tasks, and Memos use authenticated HTTP `QUERY` requests for server-side search and saved-view filters, opaque cursor pagination with 25 rows per page, metadata option IDs for writes, single deletion, and one-request bulk deletion of up to 25 selected records. Task Company and JIRA choices come from the metadata-provided relation endpoints.
 
-Memos and Reference Library share a sanitized Marked preview with Mermaid diagrams and KaTeX formulas while preserving raw Source views. Reference Library is metadata-driven and read/import only: its Category, Tags, server-side QUERY search, opaque pagination, and enhanced multipart import follow the Worker contract. JIRAs support a focused create-only modal using live Project, Status, and Tag options; complex edits remain in Notion.
+Memos and Reference Library share a sanitized Marked preview with Mermaid diagrams and KaTeX formulas while preserving raw Source views. Reference Library is metadata-driven and read/import only: its Category, Tags, server-side QUERY search, opaque pagination, and enhanced multipart import follow the Worker contract. JIRAs have a detailed historical track-back page for Markdown descriptions, Sprint/spill history, aggregated Work Logs, relationships, releases, demo state, and record information. The focused JIRA editor uses partial PATCH requests with live metadata options.
 
 See [Productivity client guide](documentation/PRODUCTIVITY.md) for views, API behavior, deletion, Markdown, imports, and validation details.
 

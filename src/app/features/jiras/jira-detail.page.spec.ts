@@ -111,6 +111,87 @@ const jira: JiraDetail = {
     },
   ],
   spillHistoryConsistent: false,
+  timeline: { startedDate: '2026-08-19', endedDate: '2026-09-29' },
+  workLogs: [
+    {
+      id: 'log-1',
+      createdTime: '',
+      lastEditedTime: '',
+      update: 'Upgrade Angular runtime',
+      date: '2026-08-20',
+      category: null,
+      type: 'Development',
+      workMode: 'Office',
+      comment: 'Migrated the build.',
+      wentWrong: '',
+      appraisal: false,
+      projectIds: [],
+      jiraIds: [],
+      companyIds: [],
+      teamIds: [],
+      jiraStatuses: [],
+      sprintIds: [],
+      spilloverCount: 0,
+    },
+    {
+      id: 'log-2',
+      createdTime: '',
+      lastEditedTime: '',
+      update: 'Resolved DevOps issue',
+      date: '2026-09-03',
+      category: null,
+      type: 'Support',
+      workMode: 'Remote',
+      comment: '',
+      wentWrong: 'Pipeline was unavailable.',
+      appraisal: true,
+      projectIds: [],
+      jiraIds: [],
+      companyIds: [],
+      teamIds: [],
+      jiraStatuses: [],
+      sprintIds: [],
+      spilloverCount: 0,
+    },
+  ],
+  workLogCount: 9,
+  releaseItems: [
+    {
+      id: 'release-1',
+      createdTime: '',
+      lastEditedTime: '',
+      releaseItem: 'Frontend deployment',
+      componentName: 'cortellis-frontend',
+      deploymentType: 'Backstage',
+      versionNumber: '0d3e3fc-101',
+      branch: 'master',
+      formalAnnouncedDate: '2026-09-20',
+      confirmedReleaseDate: '2026-09-21',
+      notes: 'Verified deployment.',
+      jiraIds: [],
+      jiraStatuses: [],
+      sprintIds: [],
+      spilloverCount: 0,
+    },
+    {
+      id: 'release-2',
+      createdTime: '',
+      lastEditedTime: '',
+      releaseItem: 'Report app',
+      componentName: 'cortellis-nextgen-report-app',
+      deploymentType: 'Spinnaker',
+      versionNumber: '7b773fd-134',
+      branch: 'master-cortellis-report-app',
+      formalAnnouncedDate: null,
+      confirmedReleaseDate: null,
+      notes: '',
+      jiraIds: [],
+      jiraStatuses: [],
+      sprintIds: [],
+      spilloverCount: 0,
+    },
+  ],
+  releaseItemCount: 3,
 };
 
 describe('JiraDetailPage', () => {
@@ -175,6 +256,20 @@ describe('JiraDetailPage', () => {
     expect(text).toContain('Resolved');
     expect(text).not.toContain('Blocked by');
     expect(text).not.toContain('Active');
+  });
+
+  it('renders aggregated timeline, work and release history without raw relation IDs', async () => {
+    const fixture = await render();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Work started');
+    expect(text).toContain('Sprint window through');
+    expect(text).toContain('Work history');
+    expect(text).toContain('Upgrade Angular runtime');
+    expect(text).toContain('Resolved DevOps issue');
+    expect(text).toContain('Release history');
+    expect(text).toContain('cortellis-frontend');
+    expect(text).toContain('Backstage');
+    expect(text).not.toContain('hidden-jira-id');
   });
 
   it('finds current Sprint by active flag and never chooses the final relation', async () => {
