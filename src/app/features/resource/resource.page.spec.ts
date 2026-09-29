@@ -19,24 +19,25 @@ const route = { snapshot: { queryParamMap: convertToParamMap({}) } };
 
 describe('ResourcePage presentation', () => {
   afterEach(() => TestBed.resetTestingModule());
-  it('uses independent sparse release cards and product result counts without an empty expander', async () => {
+  it('renders selectable releases in a compact table and builds copyable release notes', async () => {
     const release: ReleaseItem = {
       id: 'private-release-id',
       createdTime: '',
       lastEditedTime: '',
       releaseItem: 'Delivery',
-      componentName: '',
-      deploymentType: null,
-      versionNumber: '',
-      branch: '',
+      componentName: 'Delivery API',
+      deploymentType: 'Production',
+      versionNumber: '1.2.3',
+      branch: 'main',
       formalAnnouncedDate: null,
       confirmedReleaseDate: null,
-      notes: '',
+      notes: 'Ready for confirmation.',
       jiraIds: [],
       jiraStatuses: [],
       sprintIds: [],
       spilloverCount: 0,
-      jiras: [],
+      jiras: [{ id: 'visible-jira-id', key: 'LSC-84944', summary: 'Visible JIRA' }],
+      sprints: [{ id: 'visible-sprint-id', name: 'Sprint 26' }],
     };
     await TestBed.configureTestingModule({
       imports: [ResourcePage],
@@ -61,8 +62,15 @@ describe('ResourcePage presentation', () => {
     const fixture = TestBed.createComponent(ResourcePage);
     fixture.detectChanges();
     const element: HTMLElement = fixture.nativeElement;
-    expect(element.querySelectorAll('.release-card')).toHaveLength(1);
-    expect(element.querySelector('.release-card details')).toBeNull();
+    const page = fixture.componentInstance;
+    expect(element.querySelectorAll('.release-table tbody > tr:not(.release-details-row)')).toHaveLength(1);
+    expect(element.querySelectorAll('.release-select-column input[type="checkbox"]')).toHaveLength(1);
+    expect(element.querySelector('.release-table details')).toBeTruthy();
+    page.selectVisibleReleases();
+    expect(page.selectedReleaseIds()).toEqual(['private-release-id']);
+    expect(page.releaseNotesText(page.selectedReleases())).toBe(
+      'Delivery API\nDeployment: Production\nVersion: 1.2.3\nJIRAs: LSC-84944\nSprint: Sprint 26\nBranch: main\n\nReady for confirmation.',
+    );
     expect(element.textContent).toContain('1 release');
     expect(element.textContent).not.toContain('private-release-id');
     expect(element.textContent).not.toContain('Load more');

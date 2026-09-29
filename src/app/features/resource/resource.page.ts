@@ -150,7 +150,7 @@ function supportsAllocationDetails(
             <ion-button type="submit" fill="outline">Apply dates</ion-button>
           }
         </form>
-        @if (updatedAt(); as timestamp) {
+        @if (feature.kind !== 'releases' && updatedAt(); as timestamp) {
           <p class="updated-label">{{ relative(timestamp) }}</p>
         }
         @if (notice()) {
@@ -162,7 +162,18 @@ function supportsAllocationDetails(
         } @else if (error() || !visible().length) {
           <app-state-panel [error]="error()" [message]="emptyMessage()" (retry)="load()" />
         } @else {
-          <p class="result-count">{{ visible().length }} {{ resultNoun() }}{{ hasMore() ? ' loaded' : '' }}</p>
+          @if (feature.kind === 'releases') {
+            <div class="release-meta-row">
+              @if (updatedAt(); as timestamp) {
+                <span class="updated-label">{{ relative(timestamp) }}</span>
+              }
+              <span class="result-count"
+                >{{ visible().length }} {{ resultNoun() }}{{ hasMore() ? ' loaded' : '' }}</span
+              >
+            </div>
+          } @else {
+            <p class="result-count">{{ visible().length }} {{ resultNoun() }}{{ hasMore() ? ' loaded' : '' }}</p>
+          }
 
           @if (feature.kind === 'work-logs') {
             <section class="activity-list" aria-label="Work log history">
@@ -329,47 +340,102 @@ function supportsAllocationDetails(
               }
             </section>
           } @else if (feature.kind === 'releases') {
-            <section class="release-cards" aria-label="Releases">
-              @for (item of releases(); track item.id) {
-                <article class="release-card">
-                  <div class="release-card-heading">
-                    <span class="jira-reference-list">
-                      @for (jira of item.jiras; track jira.id) {
-                        <app-jira-link [jiraKey]="jira.key" [showExternal]="true" />
-                      }
-                    </span>
-                    <app-status-badge [label]="releaseState(item)" />
-                  </div>
-                  @if (item.componentName) {
-                    <h2>{{ item.componentName }}</h2>
-                  } @else if (item.releaseItem) {
-                    <h2>{{ item.releaseItem }}</h2>
+            <section class="release-list" aria-label="Releases">
+              <div class="release-selection-toolbar" aria-live="polite">
+                <span>{{
+                  selectedReleaseIds().length ? selectedReleaseIds().length + ' selected' : 'Select releases'
+                }}</span>
+                <span>
+                  <ion-button fill="clear" size="small" (click)="selectVisibleReleases()">Select visible</ion-button>
+                  @if (selectedReleaseIds().length) {
+                    <ion-button fill="clear" size="small" (click)="clearReleaseSelection()">Clear</ion-button>
+                    <ion-button size="small" (click)="copySelectedReleaseNotes()"
+                      ><ion-icon name="copy-outline" slot="start" />Copy release notes</ion-button
+                    >
                   }
-                  @if (item.deploymentType || item.versionNumber) {
-                    <p class="meta-line">
-                      <span>{{ item.deploymentType }}</span
-                      ><span>{{ item.versionNumber }}</span>
-                    </p>
-                  }
-                  @if (item.confirmedReleaseDate || item.formalAnnouncedDate) {
-                    <p>{{ date(item.confirmedReleaseDate || item.formalAnnouncedDate) }}</p>
-                  }
-                  @if (item.branch || item.notes || item.sprints?.length) {
-                    <details>
-                      <summary>Release details <ion-icon name="chevron-down-outline" aria-hidden="true" /></summary>
-                      @if (item.branch) {
-                        <p><strong>Branch</strong><br />{{ item.branch }}</p>
+                </span>
+              </div>
+              <div class="release-table-wrap">
+                <table class="release-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" class="release-select-column" aria-label="Select releases"></th>
+                      <th scope="col">Release</th>
+                      <th scope="col">Delivery</th>
+                      <th scope="col">JIRAs</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of releases(); track item.id) {
+                      <tr [class.release-selected]="isReleaseSelected(item)">
+                        <td class="release-select-column">
+                          <input
+                            type="checkbox"
+                            [checked]="isReleaseSelected(item)"
+                            [attr.aria-label]="'Select release ' + releaseTitle(item)"
+                            (change)="releaseSelectionChanged(item, $event)" />
+                        </td>
+                        <td class="release-name-cell">
+                          <strong>{{ releaseTitle(item) }}</strong>
+                          @if (item.branch) {
+                            <span>{{ item.branch }}</span>
+                          }
+                        </td>
+                        <td>
+                          @if (item.deploymentType || item.versionNumber) {
+                            <span class="release-delivery">
+                              @if (item.deploymentType) {
+                                <span>{{ item.deploymentType }}</span>
+                              }
+                              @if (item.versionNumber) {
+                                <span>{{ item.versionNumber }}</span>
+                              }
+                            </span>
+                          } @else {
+                            <span class="muted-value">Not set</span>
+                          }
+                        </td>
+                        <td>
+                          @if (item.jiras?.length) {
+                            <span class="jira-reference-list">
+                              @for (jira of item.jiras; track jira.id) {
+                                <app-jira-link [jiraKey]="jira.key" [showExternal]="true" />
+                              }
+                            </span>
+                          } @else {
+                            <span class="muted-value">Not linked</span>
+                          }
+                        </td>
+                        <td><app-status-badge [label]="releaseState(item)" /></td>
+                        <td class="release-date-cell">
+                          {{ date(item.confirmedReleaseDate || item.formalAnnouncedDate) }}
+                        </td>
+                      </tr>
+                      @if (item.notes || item.sprints?.length) {
+                        <tr class="release-details-row">
+                          <td colspan="6">
+                            <details>
+                              <summary>
+                                Release details <ion-icon name="chevron-down-outline" aria-hidden="true" />
+                              </summary>
+                              <div class="release-details-content">
+                                @if (item.sprints?.length) {
+                                  <p><strong>Sprint</strong><br />{{ names(item.sprints) }}</p>
+                                }
+                                @if (item.notes) {
+                                  <p class="release-notes">{{ item.notes }}</p>
+                                }
+                              </div>
+                            </details>
+                          </td>
+                        </tr>
                       }
-                      @if (item.sprints?.length) {
-                        <p><strong>Sprint</strong><br />{{ names(item.sprints) }}</p>
-                      }
-                      @if (item.notes) {
-                        <p>{{ item.notes }}</p>
-                      }
-                    </details>
-                  }
-                </article>
-              }
+                    }
+                  </tbody>
+                </table>
+              </div>
             </section>
           } @else if (feature.kind === 'feedback') {
             <section class="entity-list" aria-label="Feedback">
@@ -659,6 +725,7 @@ export class ResourcePage {
   readonly jiraCreateOpen = signal(false);
   readonly editingWorkLink = signal<WorkLink | null>(null);
   readonly allocationDetails = signal<Record<string, SprintDetailJira[]>>({});
+  readonly selectedReleaseIds = signal<string[]>([]);
   readonly filters = new FormGroup({
     from: new FormControl('', { nonNullable: true }),
     to: new FormControl('', { nonNullable: true }),
@@ -680,6 +747,10 @@ export class ResourcePage {
   readonly jiras = computed(() => this.visible() as Jira[]);
   readonly sprintItems = computed(() => this.visible() as Array<Sprint | SprintAllocation>);
   readonly releases = computed(() => this.visible() as ReleaseItem[]);
+  readonly selectedReleases = computed(() => {
+    const selectedIds = new Set(this.selectedReleaseIds());
+    return this.releases().filter(item => selectedIds.has(item.id));
+  });
   readonly feedbackItems = computed(() => this.visible() as Feedback[]);
   readonly workLinks = computed(() => this.visible() as WorkLink[]);
   readonly date = formatDate;
@@ -713,6 +784,7 @@ export class ResourcePage {
   searchChanged(event: Event): void {
     if (event.target instanceof HTMLInputElement) {
       this.search.set(event.target.value);
+      if (this.feature.kind === 'releases') this.clearReleaseSelection();
       this.saveNavigationState();
     }
   }
@@ -752,6 +824,7 @@ export class ResourcePage {
     if (!more && !preserveVisible) {
       this.hasMore.set(false);
       this.items.set([]);
+      if (this.feature.kind === 'releases') this.selectedReleaseIds.set([]);
     }
     this.request = this.feature
       .list(this.selected(), filters, refresh, more)
@@ -887,6 +960,59 @@ export class ResourcePage {
     if (item.confirmedReleaseDate) return 'Confirmed';
     if (item.formalAnnouncedDate) return 'Pending confirmation';
     return 'Not announced';
+  }
+
+  releaseTitle(item: ReleaseItem): string {
+    return item.componentName || item.releaseItem || 'Release';
+  }
+
+  isReleaseSelected(item: ReleaseItem): boolean {
+    return this.selectedReleaseIds().includes(item.id);
+  }
+
+  releaseSelectionChanged(item: ReleaseItem, event: Event): void {
+    if (event.target instanceof HTMLInputElement) this.toggleReleaseSelection(item.id, event.target.checked);
+  }
+
+  selectVisibleReleases(): void {
+    this.selectedReleaseIds.set(this.releases().map(item => item.id));
+  }
+
+  clearReleaseSelection(): void {
+    this.selectedReleaseIds.set([]);
+  }
+
+  async copySelectedReleaseNotes(): Promise<void> {
+    const notes = this.releaseNotesText(this.selectedReleases());
+    if (!notes) return;
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(notes);
+      else this.copyWithSelection(notes);
+      this.snackbar.success('Release notes copied.');
+    } catch {
+      this.snackbar.error('The release notes could not be copied.');
+    }
+  }
+
+  releaseNotesText(releases: ReleaseItem[]): string {
+    return releases
+      .map(item => {
+        const lines = [this.releaseTitle(item)];
+        if (item.deploymentType) lines.push(`Deployment: ${item.deploymentType}`);
+        if (item.versionNumber) lines.push(`Version: ${item.versionNumber}`);
+        if (item.jiras?.length) lines.push(`JIRAs: ${item.jiras.map(jira => jira.key).join(', ')}`);
+        if (item.sprints?.length) lines.push(`Sprint: ${names(item.sprints)}`);
+        if (item.branch) lines.push(`Branch: ${item.branch}`);
+        if (item.notes.trim()) lines.push('', item.notes.trim());
+        return lines.join('\n');
+      })
+      .join('\n\n---\n\n');
+  }
+
+  private toggleReleaseSelection(id: string, selected: boolean): void {
+    this.selectedReleaseIds.update(ids =>
+      selected ? (ids.includes(id) ? ids : [...ids, id]) : ids.filter(currentId => currentId !== id),
+    );
   }
 
   safeLink(item: WorkLink): string | null {
