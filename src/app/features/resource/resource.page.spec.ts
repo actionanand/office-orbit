@@ -19,7 +19,7 @@ const route = { snapshot: { queryParamMap: convertToParamMap({}) } };
 
 describe('ResourcePage presentation', () => {
   afterEach(() => TestBed.resetTestingModule());
-  it('renders selectable releases in a compact table and builds copyable release notes', async () => {
+  it('renders selectable releases in a compact table and formats grouped release notes', async () => {
     const release: ReleaseItem = {
       id: 'private-release-id',
       createdTime: '',
@@ -66,16 +66,75 @@ describe('ResourcePage presentation', () => {
     expect(element.querySelectorAll('.release-table tbody > tr:not(.release-details-row)')).toHaveLength(1);
     expect(element.querySelectorAll('.release-select-column input[type="checkbox"]')).toHaveLength(1);
     expect(element.querySelector('.release-table details')).toBeTruthy();
+    expect(element.querySelector('ion-modal.release-copy-modal')).toBeTruthy();
     page.selectVisibleReleases();
     expect(page.selectedReleaseIds()).toEqual(['private-release-id']);
     expect(page.releaseNotesText(page.selectedReleases())).toBe(
-      'Delivery API\nDeployment: Production\nVersion: 1.2.3\nJIRAs: LSC-84944\nSprint: Sprint 26\nBranch: main\n\nReady for confirmation.',
+      "Title: Visible JIRA\nJIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\n1.\nComponent Name: Delivery API\nDeployment Type: Production\nVersion Number: [1.2.3] from branch 'main'\nComment: Ready for confirmation.",
     );
+    page.openReleaseCopyOptions();
+    expect(page.releaseCopyOpen()).toBe(true);
+    fixture.detectChanges();
+    expect((element.querySelector('ion-modal.release-copy-modal') as HTMLIonModalElement).isOpen).toBe(true);
+    page.closeReleaseCopyOptions();
+    expect(page.releaseCopyOpen()).toBe(false);
     expect(element.textContent).toContain('1 release');
     expect(element.textContent).not.toContain('private-release-id');
     expect(element.textContent).not.toContain('Load more');
     expect(element.textContent).not.toContain('items on this page');
     expect(element.textContent).not.toContain('Add JIRA');
+  });
+
+  it('can copy component names only and optionally uses master for empty branches', async () => {
+    const release: ReleaseItem = {
+      id: 'release-id',
+      createdTime: '',
+      lastEditedTime: '',
+      releaseItem: 'Frontend migration',
+      componentName: 'cortellis-frontend',
+      deploymentType: 'Backstage',
+      versionNumber: '0d3e3fc-101',
+      branch: '',
+      formalAnnouncedDate: null,
+      confirmedReleaseDate: null,
+      notes: '',
+      jiraIds: [],
+      jiraStatuses: [],
+      sprintIds: [],
+      spilloverCount: 0,
+      jiras: [{ id: 'jira-id', key: 'LSC-84944', summary: 'Frontendapp - Angular upgrade' }],
+      sprints: [],
+    };
+    await TestBed.configureTestingModule({
+      imports: [ResourcePage],
+      providers: [
+        provideHttpClient(),
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: route },
+        { provide: LinksService, useValue: {} },
+        {
+          provide: ReadFeatureService,
+          useValue: {
+            heading: 'Releases',
+            description: '',
+            kind: 'releases',
+            views: [{ label: 'All', path: '/api/releases' }],
+            list: () => of({ data: [release], count: 1, hasMore: false, nextCursor: null }),
+            updatedAt: () => Date.now(),
+          },
+        },
+      ],
+    }).compileComponents();
+    const page = TestBed.createComponent(ResourcePage).componentInstance;
+    expect(page.releaseNotesText([release])).toContain('Version Number: 0d3e3fc-101');
+    page.useMasterForEmptyReleaseBranch.set(true);
+    expect(page.releaseNotesText([release])).toContain("Version Number: [0d3e3fc-101] from branch 'master'");
+    const matchingComponent = { ...release, id: 'duplicate-component', versionNumber: '0d3e3fc-102', notes: 'Ready.' };
+    const grouped = page.releaseNotesText([release, matchingComponent]);
+    expect(grouped).toContain("Version Number: [0d3e3fc-101] from branch 'master'; [0d3e3fc-102] from branch 'master'");
+    expect(grouped.match(/Component Name: cortellis-frontend/g)).toHaveLength(1);
+    page.includeReleaseArtifactVersions.set(false);
+    expect(page.releaseNotesText([release])).toBe('cortellis-frontend');
   });
 
   it('renders a compact Work Log and hides empty fields and internal IDs', async () => {

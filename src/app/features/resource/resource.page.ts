@@ -6,8 +6,10 @@ import { Observable, Subscription } from 'rxjs';
 import {
   IonButton,
   IonContent,
+  IonCheckbox,
   IonHeader,
   IonIcon,
+  IonModal,
   IonPopover,
   IonSegment,
   IonSegmentButton,
@@ -65,6 +67,14 @@ interface AllocationDetailSource {
   allocationJiras(allocations: SprintAllocation[], refresh?: boolean): Observable<Record<string, SprintDetailJira[]>>;
 }
 
+interface ReleaseCopyEntity {
+  jiraKey: string | null;
+  jiraSummary: string;
+  releases: ReleaseItem[];
+}
+
+const JIRA_BROWSE_URL = 'https://clarivate.atlassian.net/browse/';
+
 function supportsAllocationDetails(
   service: ReadFeatureService,
 ): service is ReadFeatureService & AllocationDetailSource {
@@ -77,9 +87,11 @@ function supportsAllocationDetails(
     ReactiveFormsModule,
     RouterLink,
     IonButton,
+    IonCheckbox,
     IonContent,
     IonHeader,
     IonIcon,
+    IonModal,
     IonPopover,
     IonSegment,
     IonSegmentButton,
@@ -349,7 +361,7 @@ function supportsAllocationDetails(
                   <ion-button fill="clear" size="small" (click)="selectVisibleReleases()">Select visible</ion-button>
                   @if (selectedReleaseIds().length) {
                     <ion-button fill="clear" size="small" (click)="clearReleaseSelection()">Clear</ion-button>
-                    <ion-button size="small" (click)="copySelectedReleaseNotes()"
+                    <ion-button size="small" (click)="openReleaseCopyOptions()"
                       ><ion-icon name="copy-outline" slot="start" />Copy release notes</ion-button
                     >
                   }
@@ -437,6 +449,61 @@ function supportsAllocationDetails(
                 </table>
               </div>
             </section>
+            <ion-modal class="release-copy-modal" [isOpen]="releaseCopyOpen()" (didDismiss)="closeReleaseCopyOptions()">
+              <ng-template>
+                <ion-header class="ion-no-border">
+                  <ion-toolbar>
+                    <ion-title>Copy release notes</ion-title>
+                    <ion-button
+                      slot="end"
+                      fill="clear"
+                      aria-label="Close copy options"
+                      (click)="closeReleaseCopyOptions()">
+                      <ion-icon slot="icon-only" name="close-outline" />
+                    </ion-button>
+                  </ion-toolbar>
+                </ion-header>
+                <ion-content>
+                  <div class="release-copy-options">
+                    <p>
+                      {{ selectedReleaseIds().length }} selected release{{
+                        selectedReleaseIds().length === 1 ? '' : 's'
+                      }}
+                    </p>
+                    <ion-checkbox
+                      [checked]="groupReleaseCopyByJira()"
+                      (ionChange)="groupReleaseCopyByJira.set($event.detail.checked)">
+                      Show the same JIRA as one release group
+                    </ion-checkbox>
+                    <ion-checkbox
+                      [checked]="combineReleaseCopyComponents()"
+                      (ionChange)="combineReleaseCopyComponents.set($event.detail.checked)">
+                      Combine matching components in the same JIRA group
+                    </ion-checkbox>
+                    <ion-checkbox
+                      [checked]="useMasterForEmptyReleaseBranch()"
+                      (ionChange)="useMasterForEmptyReleaseBranch.set($event.detail.checked)">
+                      Use master when a branch is empty
+                    </ion-checkbox>
+                    <ion-checkbox
+                      [checked]="includeReleaseArtifactVersions()"
+                      (ionChange)="includeReleaseArtifactVersions.set($event.detail.checked)">
+                      Include artifact versions and release details
+                    </ion-checkbox>
+                  </div>
+                  <div class="release-copy-preview">
+                    <span>Preview</span>
+                    <pre>{{ releaseNotesText(selectedReleases()) }}</pre>
+                  </div>
+                  <div class="release-copy-actions">
+                    <ion-button fill="clear" (click)="closeReleaseCopyOptions()">Cancel</ion-button>
+                    <ion-button (click)="copySelectedReleaseNotes()"
+                      ><ion-icon name="copy-outline" slot="start" />Copy</ion-button
+                    >
+                  </div>
+                </ion-content>
+              </ng-template>
+            </ion-modal>
           } @else if (feature.kind === 'feedback') {
             <section class="entity-list" aria-label="Feedback">
               @for (item of feedbackItems(); track item.id) {
@@ -726,6 +793,11 @@ export class ResourcePage {
   readonly editingWorkLink = signal<WorkLink | null>(null);
   readonly allocationDetails = signal<Record<string, SprintDetailJira[]>>({});
   readonly selectedReleaseIds = signal<string[]>([]);
+  readonly releaseCopyOpen = signal(false);
+  readonly groupReleaseCopyByJira = signal(true);
+  readonly combineReleaseCopyComponents = signal(true);
+  readonly useMasterForEmptyReleaseBranch = signal(false);
+  readonly includeReleaseArtifactVersions = signal(true);
   readonly filters = new FormGroup({
     from: new FormControl('', { nonNullable: true }),
     to: new FormControl('', { nonNullable: true }),
@@ -982,6 +1054,14 @@ export class ResourcePage {
     this.selectedReleaseIds.set([]);
   }
 
+  openReleaseCopyOptions(): void {
+    if (this.selectedReleases().length) this.releaseCopyOpen.set(true);
+  }
+
+  closeReleaseCopyOptions(): void {
+    this.releaseCopyOpen.set(false);
+  }
+
   async copySelectedReleaseNotes(): Promise<void> {
     const notes = this.releaseNotesText(this.selectedReleases());
     if (!notes) return;
@@ -989,24 +1069,98 @@ export class ResourcePage {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(notes);
       else this.copyWithSelection(notes);
       this.snackbar.success('Release notes copied.');
+      this.closeReleaseCopyOptions();
     } catch {
       this.snackbar.error('The release notes could not be copied.');
     }
   }
 
   releaseNotesText(releases: ReleaseItem[]): string {
-    return releases
-      .map(item => {
-        const lines = [this.releaseTitle(item)];
-        if (item.deploymentType) lines.push(`Deployment: ${item.deploymentType}`);
-        if (item.versionNumber) lines.push(`Version: ${item.versionNumber}`);
-        if (item.jiras?.length) lines.push(`JIRAs: ${item.jiras.map(jira => jira.key).join(', ')}`);
-        if (item.sprints?.length) lines.push(`Sprint: ${names(item.sprints)}`);
-        if (item.branch) lines.push(`Branch: ${item.branch}`);
-        if (item.notes.trim()) lines.push('', item.notes.trim());
-        return lines.join('\n');
+    const entities = this.releaseCopyEntities(releases);
+    if (!this.includeReleaseArtifactVersions())
+      return entities
+        .map(entity => entity.releases[0].componentName || entity.releases[0].releaseItem)
+        .filter(Boolean)
+        .join('\n');
+
+    if (!this.groupReleaseCopyByJira()) {
+      return entities.map((entity, index) => this.releaseCopyEntry(entity, index + 1, true)).join('\n\n___\n\n');
+    }
+
+    return this.releaseCopyGroups(entities)
+      .map(group => {
+        const heading = this.releaseCopyHeading(group);
+        const entries = group.entities.map((entity, index) => this.releaseCopyEntry(entity, index + 1, false));
+        return `${heading.join('\n')}\n\n${entries.join('\n\n')}`;
       })
-      .join('\n\n---\n\n');
+      .join('\n\n___\n\n');
+  }
+
+  private releaseCopyEntities(releases: ReleaseItem[]): ReleaseCopyEntity[] {
+    const entities: ReleaseCopyEntity[] = [];
+    for (const release of releases) {
+      const jira = release.jiras?.[0];
+      const jiraKey = jira?.key ?? null;
+      const jiraSummary = jira?.summary || release.releaseItem || this.releaseTitle(release);
+      const componentKey = (release.componentName || release.releaseItem || release.id).trim().toLocaleLowerCase();
+      const existing = this.combineReleaseCopyComponents()
+        ? entities.find(
+            entity =>
+              entity.jiraKey === jiraKey &&
+              (entity.releases[0].componentName || entity.releases[0].releaseItem || entity.releases[0].id)
+                .trim()
+                .toLocaleLowerCase() === componentKey,
+          )
+        : undefined;
+      if (existing) existing.releases.push(release);
+      else entities.push({ jiraKey, jiraSummary, releases: [release] });
+    }
+    return entities;
+  }
+
+  private releaseCopyGroups(
+    entities: ReleaseCopyEntity[],
+  ): { jiraKey: string | null; jiraSummary: string; entities: ReleaseCopyEntity[] }[] {
+    const groups: { jiraKey: string | null; jiraSummary: string; entities: ReleaseCopyEntity[] }[] = [];
+    for (const entity of entities) {
+      const existing = groups.find(group => group.jiraKey === entity.jiraKey);
+      if (existing) existing.entities.push(entity);
+      else groups.push({ jiraKey: entity.jiraKey, jiraSummary: entity.jiraSummary, entities: [entity] });
+    }
+    return groups;
+  }
+
+  private releaseCopyHeading(group: { jiraKey: string | null; jiraSummary: string }): string[] {
+    const lines = [`Title: ${group.jiraSummary}`];
+    if (group.jiraKey) lines.push(`JIRA: ${JIRA_BROWSE_URL}${group.jiraKey}`);
+    return lines;
+  }
+
+  private releaseCopyEntry(entity: ReleaseCopyEntity, position: number, includeHeading: boolean): string {
+    const release = entity.releases[0];
+    const lines = [`${position}.`];
+    if (includeHeading) lines.push(...this.releaseCopyHeading(entity));
+    lines.push(`Component Name: ${release.componentName || release.releaseItem || 'Not set'}`);
+    if (release.deploymentType) lines.push(`Deployment Type: ${release.deploymentType}`);
+    const versions = this.releaseCopyVersions(entity.releases);
+    if (versions.length) lines.push(`Version Number: ${versions.join('; ')}`);
+    const comments = [...new Set(entity.releases.map(item => item.notes.trim()).filter(Boolean))];
+    if (comments.length) lines.push(`Comment: ${comments.join('\n')}`);
+    return lines.join('\n');
+  }
+
+  private releaseCopyVersions(releases: ReleaseItem[]): string[] {
+    return [
+      ...new Set(
+        releases
+          .map(release => {
+            if (!release.versionNumber) return '';
+            const branch = release.branch.trim() || (this.useMasterForEmptyReleaseBranch() ? 'master' : '');
+            return branch ? `[${release.versionNumber}] from branch '${branch}'` : release.versionNumber;
+          })
+          .filter(Boolean),
+      ),
+    ];
   }
 
   private toggleReleaseSelection(id: string, selected: boolean): void {

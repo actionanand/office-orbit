@@ -3895,6 +3895,56 @@ ion-popover.work-link-popover {
 .release-details-content .release-notes {
   color: var(--ion-text-color);
 }
+.release-copy-modal {
+  --width: min(680px, calc(100vw - 28px));
+  --height: min(86vh, 760px);
+  --border-radius: 20px;
+}
+.release-copy-options,
+.release-copy-preview {
+  display: grid;
+  gap: 12px;
+  padding: 20px 22px;
+}
+.release-copy-options {
+  border-bottom: 1px solid var(--line);
+}
+.release-copy-options p,
+.release-copy-preview > span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.release-copy-options ion-checkbox {
+  --checkbox-size: 18px;
+  --checkmark-color: #fff;
+  --checkbox-background-checked: var(--accent);
+  --border-color-checked: var(--accent);
+  color: var(--ion-text-color);
+  font-size: 0.9rem;
+}
+.release-copy-preview {
+  padding-top: 16px;
+}
+.release-copy-preview pre {
+  max-height: 280px;
+  margin: 0;
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--ion-text-color);
+  font: 0.78rem/1.55 var(--ion-font-family, sans-serif);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.release-copy-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 22px 20px;
+}
 .export-modal,
 .filter-modal {
   --width: 620px;
