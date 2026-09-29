@@ -32,14 +32,16 @@ import { AuthState } from '../../core/auth/auth-state';
               >Office Orbit<small>Your personal workspace</small></span
             ></a
           >
-          <p class="nav-label">Workspace</p>
-          <nav aria-label="Workspace navigation">
-            @for (item of nav; track item.path) {
-              <a [routerLink]="'/app/' + item.path" routerLinkActive="active" ariaCurrentWhenActive="page"
-                ><ion-icon [name]="item.icon" aria-hidden="true" />{{ item.label }}</a
-              >
-            }
-          </nav>
+          <div class="sidebar-navigation">
+            <p class="nav-label">Workspace</p>
+            <nav aria-label="Workspace navigation">
+              @for (item of nav; track item.path) {
+                <a [routerLink]="'/app/' + item.path" routerLinkActive="active" ariaCurrentWhenActive="page"
+                  ><ion-icon [name]="item.icon" aria-hidden="true" />{{ item.label }}</a
+                >
+              }
+            </nav>
+          </div>
           <div class="sidebar-note">A little clarity. Every day.</div>
         </aside>
         <div id="workspace" class="workspace-content" tabindex="-1"><router-outlet /></div>

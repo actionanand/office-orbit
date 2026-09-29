@@ -176,9 +176,15 @@ ion-app > router-outlet + * {
 .sidebar {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   padding: 32px 20px;
   background: var(--surface);
   border-right: 1px solid var(--line);
+}
+.brand-row,
+.sidebar-note {
+  flex: 0 0 auto;
 }
 .brand-row {
   display: flex;
@@ -205,6 +211,14 @@ ion-app > router-outlet + * {
   letter-spacing: 0.16em;
   margin: 42px 16px 12px;
 }
+.sidebar-navigation {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 8px;
+}
 .sidebar nav {
   display: grid;
   gap: 5px;
@@ -228,7 +242,6 @@ ion-app > router-outlet + * {
   font-size: 21px;
 }
 .sidebar-note {
-  margin-top: auto;
   padding: 40px 6px 0;
   color: var(--muted);
   font-size: 0.72rem;
@@ -701,6 +714,20 @@ details > summary {
     padding: 24px;
   }
   .hero > ion-icon {
+    display: none;
+  }
+}
+@media (min-width: 701px) and (max-height: 840px) {
+  .sidebar {
+    padding-block: 16px;
+  }
+  .nav-label {
+    margin-top: 20px;
+  }
+  .sidebar nav a {
+    padding-block: 9px;
+  }
+  .sidebar-note {
     display: none;
   }
 }
