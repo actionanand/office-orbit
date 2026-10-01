@@ -133,6 +133,15 @@ describe('ResourcePage presentation', () => {
     const grouped = page.releaseNotesText([release, matchingComponent]);
     expect(grouped).toContain("Version Number: [0d3e3fc-101] from branch 'master'; [0d3e3fc-102] from branch 'master'");
     expect(grouped.match(/Component Name: cortellis-frontend/g)).toHaveLength(1);
+    page.useMasterForEmptyReleaseBranch.set(false);
+    const anotherJira = {
+      ...release,
+      id: 'other-jira-release',
+      jiras: [{ id: 'other-jira-id', key: 'LSC-85785', summary: 'Unified Alert Management Console' }],
+    };
+    expect(page.releaseNotesText([release, anotherJira])).toBe(
+      'Title: Frontendapp - Angular upgrade\nJIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\nTitle: Unified Alert Management Console\nJIRA: https://clarivate.atlassian.net/browse/LSC-85785\n\n1.\nComponent Name: cortellis-frontend\nDeployment Type: Backstage\nVersion Number: 0d3e3fc-101',
+    );
     page.includeReleaseArtifactVersions.set(false);
     expect(page.releaseNotesText([release])).toBe('cortellis-frontend');
   });

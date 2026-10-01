@@ -481,6 +481,12 @@ function supportsAllocationDetails(
                       Combine matching components in the same JIRA group
                     </ion-checkbox>
                     <ion-checkbox
+                      [checked]="groupReleaseCopyAcrossJiras()"
+                      [disabled]="!groupReleaseCopyByJira()"
+                      (ionChange)="groupReleaseCopyAcrossJiras.set($event.detail.checked)">
+                      Group identical artifacts across different JIRAs
+                    </ion-checkbox>
+                    <ion-checkbox
                       [checked]="useMasterForEmptyReleaseBranch()"
                       (ionChange)="useMasterForEmptyReleaseBranch.set($event.detail.checked)">
                       Use master when a branch is empty
@@ -796,6 +802,7 @@ export class ResourcePage {
   readonly releaseCopyOpen = signal(false);
   readonly groupReleaseCopyByJira = signal(true);
   readonly combineReleaseCopyComponents = signal(true);
+  readonly groupReleaseCopyAcrossJiras = signal(true);
   readonly useMasterForEmptyReleaseBranch = signal(false);
   readonly includeReleaseArtifactVersions = signal(true);
   readonly filters = new FormGroup({
@@ -1087,13 +1094,10 @@ export class ResourcePage {
       return entities.map((entity, index) => this.releaseCopyEntry(entity, index + 1, true)).join('\n\n___\n\n');
     }
 
-    return this.releaseCopyGroups(entities)
-      .map(group => {
-        const heading = this.releaseCopyHeading(group);
-        const entries = group.entities.map((entity, index) => this.releaseCopyEntry(entity, index + 1, false));
-        return `${heading.join('\n')}\n\n${entries.join('\n\n')}`;
-      })
-      .join('\n\n___\n\n');
+    const blocks = this.groupReleaseCopyAcrossJiras()
+      ? this.releaseCopyArtifactBlocks(entities)
+      : this.releaseCopyJiraBlocks(entities);
+    return blocks.join('\n\n___\n\n');
   }
 
   private releaseCopyEntities(releases: ReleaseItem[]): ReleaseCopyEntity[] {
@@ -1109,7 +1113,8 @@ export class ResourcePage {
               entity.jiraKey === jiraKey &&
               (entity.releases[0].componentName || entity.releases[0].releaseItem || entity.releases[0].id)
                 .trim()
-                .toLocaleLowerCase() === componentKey,
+                .toLocaleLowerCase() === componentKey &&
+              entity.releases[0].deploymentType === release.deploymentType,
           )
         : undefined;
       if (existing) existing.releases.push(release);
@@ -1128,6 +1133,75 @@ export class ResourcePage {
       else groups.push({ jiraKey: entity.jiraKey, jiraSummary: entity.jiraSummary, entities: [entity] });
     }
     return groups;
+  }
+
+  private releaseCopyJiraBlocks(entities: ReleaseCopyEntity[]): string[] {
+    return this.releaseCopyGroups(entities).map(group => this.releaseCopyJiraBlock(group.entities));
+  }
+
+  private releaseCopyArtifactBlocks(entities: ReleaseCopyEntity[]): string[] {
+    const signatures = new Map<string, ReleaseCopyEntity[]>();
+    for (const entity of entities) {
+      const signature = this.releaseCopyArtifactSignature(entity);
+      signatures.set(signature, [...(signatures.get(signature) ?? []), entity]);
+    }
+    const crossJiraSignatures = new Set(
+      [...signatures].flatMap(([signature, matches]) =>
+        new Set(matches.map(entity => entity.jiraKey).filter((key): key is string => Boolean(key))).size > 1
+          ? [signature]
+          : [],
+      ),
+    );
+    const emitted = new Set<ReleaseCopyEntity>();
+    const blocks: string[] = [];
+
+    for (const entity of entities) {
+      if (emitted.has(entity)) continue;
+      const signature = this.releaseCopyArtifactSignature(entity);
+      if (crossJiraSignatures.has(signature)) {
+        const matches = signatures.get(signature) ?? [];
+        matches.forEach(match => emitted.add(match));
+        blocks.push(this.releaseCopyAcrossJiraBlock(matches));
+        continue;
+      }
+      const jiraEntities = entities.filter(
+        candidate =>
+          candidate.jiraKey === entity.jiraKey &&
+          !crossJiraSignatures.has(this.releaseCopyArtifactSignature(candidate)) &&
+          !emitted.has(candidate),
+      );
+      jiraEntities.forEach(candidate => emitted.add(candidate));
+      blocks.push(this.releaseCopyJiraBlock(jiraEntities));
+    }
+    return blocks;
+  }
+
+  private releaseCopyJiraBlock(entities: ReleaseCopyEntity[]): string {
+    const heading = this.releaseCopyHeading(entities[0]);
+    const entries = entities.map((entity, index) => this.releaseCopyEntry(entity, index + 1, false));
+    return `${heading.join('\n')}\n\n${entries.join('\n\n')}`;
+  }
+
+  private releaseCopyAcrossJiraBlock(entities: ReleaseCopyEntity[]): string {
+    const headings = entities
+      .filter((entity, index) => entities.findIndex(match => match.jiraKey === entity.jiraKey) === index)
+      .map(entity => this.releaseCopyHeading(entity).join('\n'));
+    const combined: ReleaseCopyEntity = {
+      ...entities[0],
+      releases: entities.flatMap(entity => entity.releases),
+    };
+    return `${headings.join('\n\n')}\n\n${this.releaseCopyEntry(combined, 1, false)}`;
+  }
+
+  private releaseCopyArtifactSignature(entity: ReleaseCopyEntity): string {
+    const release = entity.releases[0];
+    return [
+      release.componentName || release.releaseItem,
+      release.deploymentType,
+      this.releaseCopyVersions(entity.releases).join('\u0001'),
+    ]
+      .map(value => (value ?? '').trim().toLocaleLowerCase())
+      .join('\u0000');
   }
 
   private releaseCopyHeading(group: { jiraKey: string | null; jiraSummary: string }): string[] {
