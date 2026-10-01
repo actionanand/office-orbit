@@ -1,0 +1,1 @@
+import {M as T}from'./main-WSS7YRNT.js';var t=T("Browser",{web:()=>import('./chunk--58dD7yp.js').then(e=>new e.BrowserWeb)});export{t as Browser};
