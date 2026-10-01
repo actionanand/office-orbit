@@ -1,0 +1,1 @@
+import {M as T}from'./main-OPTA6SPS.js';var t=T("Browser",{web:()=>import('./chunk-DxnUnR-f.js').then(e=>new e.BrowserWeb)});export{t as Browser};

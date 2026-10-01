@@ -1,0 +1,1 @@
+import {o}from'./chunk-DTgo6tT-.js';var t,e=(t=class{constructor(r){this.init=r,this.records=this.init();}reset(){this.records=this.init();}},o(t,"ImperativeState"),t);export{e};
