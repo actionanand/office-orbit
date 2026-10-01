@@ -471,32 +471,44 @@ function supportsAllocationDetails(
                       }}
                     </p>
                     <ion-checkbox
+                      justify="start"
+                      labelPlacement="end"
                       [checked]="groupReleaseCopyByJira()"
                       (ionChange)="groupReleaseCopyByJira.set($event.detail.checked)">
                       Show the same JIRA as one release group
                     </ion-checkbox>
                     <ion-checkbox
+                      justify="start"
+                      labelPlacement="end"
                       [checked]="combineReleaseCopyComponents()"
                       (ionChange)="combineReleaseCopyComponents.set($event.detail.checked)">
                       Combine matching components in the same JIRA group
                     </ion-checkbox>
                     <ion-checkbox
+                      justify="start"
+                      labelPlacement="end"
                       [checked]="groupReleaseCopyAcrossJiras()"
                       [disabled]="!groupReleaseCopyByJira()"
                       (ionChange)="groupReleaseCopyAcrossJiras.set($event.detail.checked)">
                       Group identical artifacts across different JIRAs
                     </ion-checkbox>
                     <ion-checkbox
+                      justify="start"
+                      labelPlacement="end"
                       [checked]="useMasterForEmptyReleaseBranch()"
                       (ionChange)="useMasterForEmptyReleaseBranch.set($event.detail.checked)">
                       Use master when a branch is empty
                     </ion-checkbox>
                     <ion-checkbox
+                      justify="start"
+                      labelPlacement="end"
                       [checked]="includeReleaseArtifactVersions()"
                       (ionChange)="includeReleaseArtifactVersions.set($event.detail.checked)">
                       Include artifact versions and release details
                     </ion-checkbox>
                     <ion-checkbox
+                      justify="start"
+                      labelPlacement="end"
                       [checked]="prefixNumericReleaseVersions()"
                       [disabled]="!includeReleaseArtifactVersions()"
                       (ionChange)="prefixNumericReleaseVersions.set($event.detail.checked)">
@@ -1083,6 +1095,7 @@ export class ResourcePage {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(notes);
       else this.copyWithSelection(notes);
       this.snackbar.success('Release notes copied.');
+      this.clearReleaseSelection();
       this.closeReleaseCopyOptions();
     } catch {
       this.snackbar.error('The release notes could not be copied.');
@@ -1233,7 +1246,7 @@ export class ResourcePage {
   private releaseCopyEntry(entity: ReleaseCopyEntity, position: number | null, includeHeading: boolean): string {
     const release = entity.releases[0];
     const lines = position === null ? [] : [`${position}.`];
-    if (includeHeading) lines.push(...this.releaseCopyHeading(entity));
+    if (includeHeading) lines.push(...this.releaseCopyHeading(entity), '');
     lines.push(`Component Name: ${release.componentName || release.releaseItem || 'Not set'}`);
     if (release.deploymentType) lines.push(`Deployment Type: ${release.deploymentType}`);
     const versions = this.releaseCopyVersions(entity.releases);

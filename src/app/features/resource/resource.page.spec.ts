@@ -67,6 +67,7 @@ describe('ResourcePage presentation', () => {
     expect(element.querySelectorAll('.release-select-column input[type="checkbox"]')).toHaveLength(1);
     expect(element.querySelector('.release-table details')).toBeTruthy();
     expect(element.querySelector('ion-modal.release-copy-modal')).toBeTruthy();
+    expect(element.querySelectorAll('ion-modal.release-copy-modal ion-checkbox')).toHaveLength(6);
     page.selectVisibleReleases();
     expect(page.selectedReleaseIds()).toEqual(['private-release-id']);
     expect(page.releaseNotesText(page.selectedReleases())).toBe(
@@ -155,6 +156,10 @@ describe('ResourcePage presentation', () => {
     };
     expect(page.releaseNotesText([precedingArtifact, release, anotherJira])).toContain(
       '\n\n2.\nComponent Name: cortellis-frontend',
+    );
+    page.groupReleaseCopyByJira.set(false);
+    expect(page.releaseNotesText([release])).toContain(
+      'JIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\nComponent Name: cortellis-frontend',
     );
     page.includeReleaseArtifactVersions.set(false);
     expect(page.releaseNotesText([release])).toBe('cortellis-frontend');
