@@ -3916,12 +3916,24 @@ ion-popover.work-link-popover {
   font-size: 0.82rem;
 }
 .release-copy-options ion-checkbox {
-  --checkbox-size: 18px;
+  --size: 20px;
   --checkmark-color: #fff;
   --checkbox-background-checked: var(--accent);
   --border-color-checked: var(--accent);
+  --border-color: var(--muted);
+  width: 100%;
+  min-height: 38px;
   color: var(--ion-text-color);
   font-size: 0.9rem;
+}
+.release-copy-options ion-checkbox::part(label) {
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.4;
+}
+.release-copy-options ion-checkbox::part(container) {
+  flex: 0 0 auto;
+  margin-top: 1px;
 }
 .release-copy-preview {
   padding-top: 16px;
@@ -3944,6 +3956,150 @@ ion-popover.work-link-popover {
   justify-content: flex-end;
   gap: 8px;
   padding: 0 22px 20px;
+}
+@media (max-width: 700px) {
+  .release-list {
+    gap: 12px;
+  }
+  .release-meta-row {
+    gap: 8px;
+    margin: 0 0 6px;
+  }
+  .release-selection-toolbar {
+    align-items: center;
+    min-height: 40px;
+  }
+  .release-selection-toolbar > span:last-child {
+    margin-left: auto;
+  }
+  .release-table-wrap {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .release-table,
+  .release-table tbody {
+    display: grid;
+    min-width: 0;
+  }
+  .release-table {
+    gap: 12px;
+  }
+  .release-table thead {
+    display: none;
+  }
+  .release-table tbody {
+    gap: 12px;
+  }
+  .release-table tbody > tr:not(.release-details-row) {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 0 10px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+  .release-table tbody > tr.release-selected {
+    border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  }
+  .release-table tbody > tr:not(.release-details-row):has(+ .release-details-row) {
+    border-bottom: 0;
+    border-radius: 14px 14px 0 0;
+  }
+  .release-table td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+  .release-table tbody > tr:not(.release-details-row) td:not(.release-select-column) {
+    grid-column: 2;
+  }
+  .release-table .release-select-column {
+    grid-column: 1;
+    grid-row: 1 / span 6;
+    width: auto;
+    padding-top: 2px;
+  }
+  .release-name-cell {
+    min-width: 0;
+  }
+  .release-name-cell strong {
+    font-size: 0.94rem;
+    line-height: 1.35;
+  }
+  .release-name-cell > span {
+    margin-top: 4px;
+    font-size: 0.78rem;
+  }
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(n + 3) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 12px;
+    color: var(--muted);
+  }
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(3)::before,
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(4)::before,
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(5)::before,
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(6)::before {
+    color: var(--muted);
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(3)::before {
+    content: 'Delivery:';
+  }
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(4)::before {
+    content: 'JIRAs:';
+  }
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(5)::before {
+    content: 'Status:';
+  }
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(6)::before {
+    content: 'Date:';
+  }
+  .release-delivery,
+  .release-table .jira-reference-list {
+    display: inline-flex;
+    gap: 4px;
+  }
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(3) .release-delivery span + span::before {
+    content: '(';
+    margin-right: 0;
+  }
+  .release-table tbody > tr:not(.release-details-row) td:nth-child(3) .release-delivery span + span::after {
+    content: ')';
+  }
+  .release-details-row {
+    display: block;
+    margin-top: -12px;
+    border: 1px solid var(--line);
+    border-top: 0;
+    border-radius: 0 0 14px 14px;
+    background: var(--surface);
+  }
+  .release-details-row td,
+  .release-details-row details {
+    display: block;
+  }
+  .release-details-row details {
+    padding: 0 16px;
+  }
+  .release-details-row summary {
+    min-height: 42px;
+  }
+  .release-copy-modal {
+    --width: 100%;
+    --height: 90%;
+    --border-radius: 20px 20px 0 0;
+    align-items: flex-end;
+  }
 }
 .export-modal,
 .filter-modal {

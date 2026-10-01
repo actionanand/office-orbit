@@ -67,10 +67,11 @@ describe('ResourcePage presentation', () => {
     expect(element.querySelectorAll('.release-select-column input[type="checkbox"]')).toHaveLength(1);
     expect(element.querySelector('.release-table details')).toBeTruthy();
     expect(element.querySelector('ion-modal.release-copy-modal')).toBeTruthy();
+    expect(element.querySelectorAll('ion-modal.release-copy-modal ion-checkbox')).toHaveLength(6);
     page.selectVisibleReleases();
     expect(page.selectedReleaseIds()).toEqual(['private-release-id']);
     expect(page.releaseNotesText(page.selectedReleases())).toBe(
-      "Title: Visible JIRA\nJIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\n1.\nComponent Name: Delivery API\nDeployment Type: Production\nVersion Number: [1.2.3] from branch 'main'\nComment: Ready for confirmation.",
+      "Title: Visible JIRA\nJIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\nComponent Name: Delivery API\nDeployment Type: Production\nVersion Number: [1.2.3] from branch 'main'\nComment: Ready for confirmation.",
     );
     page.openReleaseCopyOptions();
     expect(page.releaseCopyOpen()).toBe(true);
@@ -129,6 +130,11 @@ describe('ResourcePage presentation', () => {
     expect(page.releaseNotesText([release])).toContain('Version Number: 0d3e3fc-101');
     page.useMasterForEmptyReleaseBranch.set(true);
     expect(page.releaseNotesText([release])).toContain("Version Number: [0d3e3fc-101] from branch 'master'");
+    const numericVersion = { ...release, id: 'numeric-version', versionNumber: '9' };
+    expect(page.releaseNotesText([numericVersion])).toContain("Version Number: #9 from branch 'master'");
+    page.prefixNumericReleaseVersions.set(false);
+    expect(page.releaseNotesText([numericVersion])).toContain("Version Number: [9] from branch 'master'");
+    page.prefixNumericReleaseVersions.set(true);
     const matchingComponent = { ...release, id: 'duplicate-component', versionNumber: '0d3e3fc-102', notes: 'Ready.' };
     const grouped = page.releaseNotesText([release, matchingComponent]);
     expect(grouped).toContain("Version Number: [0d3e3fc-101] from branch 'master'; [0d3e3fc-102] from branch 'master'");
@@ -140,7 +146,20 @@ describe('ResourcePage presentation', () => {
       jiras: [{ id: 'other-jira-id', key: 'LSC-85785', summary: 'Unified Alert Management Console' }],
     };
     expect(page.releaseNotesText([release, anotherJira])).toBe(
-      'Title: Frontendapp - Angular upgrade\nJIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\nTitle: Unified Alert Management Console\nJIRA: https://clarivate.atlassian.net/browse/LSC-85785\n\n1.\nComponent Name: cortellis-frontend\nDeployment Type: Backstage\nVersion Number: 0d3e3fc-101',
+      'Title: Frontendapp - Angular upgrade\nJIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\nTitle: Unified Alert Management Console\nJIRA: https://clarivate.atlassian.net/browse/LSC-85785\n\nComponent Name: cortellis-frontend\nDeployment Type: Backstage\nVersion Number: 0d3e3fc-101',
+    );
+    const precedingArtifact = {
+      ...release,
+      id: 'preceding-artifact',
+      componentName: 'cortellis-export-app',
+      versionNumber: '23',
+    };
+    expect(page.releaseNotesText([precedingArtifact, release, anotherJira])).toContain(
+      '\n\n2.\nComponent Name: cortellis-frontend',
+    );
+    page.groupReleaseCopyByJira.set(false);
+    expect(page.releaseNotesText([release])).toContain(
+      'JIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\nComponent Name: cortellis-frontend',
     );
     page.includeReleaseArtifactVersions.set(false);
     expect(page.releaseNotesText([release])).toBe('cortellis-frontend');
