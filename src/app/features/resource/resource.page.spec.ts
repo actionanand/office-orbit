@@ -67,14 +67,20 @@ describe('ResourcePage presentation', () => {
     expect(element.querySelectorAll('.release-select-column input[type="checkbox"]')).toHaveLength(1);
     expect(element.querySelector('.release-table details')).toBeTruthy();
     expect(element.querySelector('ion-modal.release-copy-modal')).toBeTruthy();
-    expect(element.querySelectorAll('ion-modal.release-copy-modal ion-checkbox')).toHaveLength(6);
+    expect(element.querySelectorAll('ion-modal.release-copy-modal ion-checkbox')).toHaveLength(8);
     page.selectVisibleReleases();
     expect(page.selectedReleaseIds()).toEqual(['private-release-id']);
     expect(page.releaseNotesText(page.selectedReleases())).toBe(
       "Title: Visible JIRA\nJIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\nComponent Name: Delivery API\nDeployment Type: Production\nVersion Number: [1.2.3] from branch 'main'\nComment: Ready for confirmation.",
     );
+    page.groupReleaseCopyByJira.set(false);
+    page.useMasterForEmptyReleaseBranch.set(true);
+    page.ignoreReleaseCopyJiras.set(true);
     page.openReleaseCopyOptions();
     expect(page.releaseCopyOpen()).toBe(true);
+    expect(page.groupReleaseCopyByJira()).toBe(true);
+    expect(page.useMasterForEmptyReleaseBranch()).toBe(false);
+    expect(page.ignoreReleaseCopyJiras()).toBe(false);
     fixture.detectChanges();
     expect((element.querySelector('ion-modal.release-copy-modal') as HTMLIonModalElement).isOpen).toBe(true);
     page.closeReleaseCopyOptions();
@@ -161,6 +167,17 @@ describe('ResourcePage presentation', () => {
     expect(page.releaseNotesText([release])).toContain(
       'JIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\nComponent Name: cortellis-frontend',
     );
+    page.groupReleaseCopyByJira.set(true);
+    page.skipReleaseCopyVersions.set(true);
+    const withoutVersion = page.releaseNotesText([release]);
+    expect(withoutVersion).toContain('Component Name: cortellis-frontend\nDeployment Type: Backstage');
+    expect(withoutVersion).not.toContain('Version Number:');
+    page.ignoreReleaseCopyJiras.set(true);
+    const withoutJira = page.releaseNotesText([release, anotherJira]);
+    expect(withoutJira).not.toContain('Title:');
+    expect(withoutJira).not.toContain('JIRA:');
+    expect(withoutJira).toContain('Component Name: cortellis-frontend');
+    expect(withoutJira.match(/Component Name: cortellis-frontend/g)).toHaveLength(1);
     page.includeReleaseArtifactVersions.set(false);
     expect(page.releaseNotesText([release])).toBe('cortellis-frontend');
   });

@@ -509,10 +509,25 @@ function supportsAllocationDetails(
                     <ion-checkbox
                       justify="start"
                       labelPlacement="end"
+                      [checked]="skipReleaseCopyVersions()"
+                      [disabled]="!includeReleaseArtifactVersions()"
+                      (ionChange)="skipReleaseCopyVersions.set($event.detail.checked)">
+                      Copy components without version numbers
+                    </ion-checkbox>
+                    <ion-checkbox
+                      justify="start"
+                      labelPlacement="end"
                       [checked]="prefixNumericReleaseVersions()"
                       [disabled]="!includeReleaseArtifactVersions()"
                       (ionChange)="prefixNumericReleaseVersions.set($event.detail.checked)">
                       Prefix numeric artifact versions with #
+                    </ion-checkbox>
+                    <ion-checkbox
+                      justify="start"
+                      labelPlacement="end"
+                      [checked]="ignoreReleaseCopyJiras()"
+                      (ionChange)="ignoreReleaseCopyJiras.set($event.detail.checked)">
+                      Ignore Title and JIRA details
                     </ion-checkbox>
                   </div>
                   <div class="release-copy-preview">
@@ -818,12 +833,24 @@ export class ResourcePage {
   readonly allocationDetails = signal<Record<string, SprintDetailJira[]>>({});
   readonly selectedReleaseIds = signal<string[]>([]);
   readonly releaseCopyOpen = signal(false);
-  readonly groupReleaseCopyByJira = signal(true);
-  readonly combineReleaseCopyComponents = signal(true);
-  readonly groupReleaseCopyAcrossJiras = signal(true);
-  readonly useMasterForEmptyReleaseBranch = signal(false);
-  readonly includeReleaseArtifactVersions = signal(true);
-  readonly prefixNumericReleaseVersions = signal(true);
+  readonly releaseCopyDefaults = {
+    groupByJira: true,
+    combineComponents: true,
+    groupAcrossJiras: true,
+    useMasterForEmptyBranch: false,
+    includeArtifactVersions: true,
+    skipVersions: false,
+    prefixNumericVersions: true,
+    ignoreTitleAndJira: false,
+  };
+  readonly groupReleaseCopyByJira = signal(this.releaseCopyDefaults.groupByJira);
+  readonly combineReleaseCopyComponents = signal(this.releaseCopyDefaults.combineComponents);
+  readonly groupReleaseCopyAcrossJiras = signal(this.releaseCopyDefaults.groupAcrossJiras);
+  readonly useMasterForEmptyReleaseBranch = signal(this.releaseCopyDefaults.useMasterForEmptyBranch);
+  readonly includeReleaseArtifactVersions = signal(this.releaseCopyDefaults.includeArtifactVersions);
+  readonly skipReleaseCopyVersions = signal(this.releaseCopyDefaults.skipVersions);
+  readonly prefixNumericReleaseVersions = signal(this.releaseCopyDefaults.prefixNumericVersions);
+  readonly ignoreReleaseCopyJiras = signal(this.releaseCopyDefaults.ignoreTitleAndJira);
   readonly filters = new FormGroup({
     from: new FormControl('', { nonNullable: true }),
     to: new FormControl('', { nonNullable: true }),
@@ -1081,11 +1108,25 @@ export class ResourcePage {
   }
 
   openReleaseCopyOptions(): void {
-    if (this.selectedReleases().length) this.releaseCopyOpen.set(true);
+    if (!this.selectedReleases().length) return;
+    this.resetReleaseCopyOptions();
+    this.releaseCopyOpen.set(true);
   }
 
   closeReleaseCopyOptions(): void {
     this.releaseCopyOpen.set(false);
+  }
+
+  private resetReleaseCopyOptions(): void {
+    const defaults = this.releaseCopyDefaults;
+    this.groupReleaseCopyByJira.set(defaults.groupByJira);
+    this.combineReleaseCopyComponents.set(defaults.combineComponents);
+    this.groupReleaseCopyAcrossJiras.set(defaults.groupAcrossJiras);
+    this.useMasterForEmptyReleaseBranch.set(defaults.useMasterForEmptyBranch);
+    this.includeReleaseArtifactVersions.set(defaults.includeArtifactVersions);
+    this.skipReleaseCopyVersions.set(defaults.skipVersions);
+    this.prefixNumericReleaseVersions.set(defaults.prefixNumericVersions);
+    this.ignoreReleaseCopyJiras.set(defaults.ignoreTitleAndJira);
   }
 
   async copySelectedReleaseNotes(): Promise<void> {
@@ -1111,6 +1152,12 @@ export class ResourcePage {
         .join('\n');
 
     const showNumbers = new Set(entities.map(entity => this.releaseCopyArtifactSignature(entity))).size > 1;
+    if (this.ignoreReleaseCopyJiras()) {
+      const uniqueArtifacts = this.releaseCopyUniqueArtifacts(entities);
+      return uniqueArtifacts
+        .map((entity, index) => this.releaseCopyEntry(entity, uniqueArtifacts.length > 1 ? index + 1 : null, false))
+        .join('\n\n');
+    }
     if (!this.groupReleaseCopyByJira()) {
       return entities
         .map((entity, index) => this.releaseCopyEntry(entity, showNumbers ? index + 1 : null, true))
@@ -1237,6 +1284,24 @@ export class ResourcePage {
       .join('\u0000');
   }
 
+  private releaseCopyUniqueArtifacts(entities: ReleaseCopyEntity[]): ReleaseCopyEntity[] {
+    const artifacts = new Map<string, ReleaseCopyEntity>();
+    for (const entity of entities) {
+      const release = entity.releases[0];
+      const signature = [
+        release.componentName || release.releaseItem,
+        release.deploymentType,
+        ...new Set(entity.releases.map(item => item.versionNumber.trim())),
+      ]
+        .map(value => (value ?? '').trim().toLocaleLowerCase())
+        .join('\u0000');
+      const existing = artifacts.get(signature);
+      if (existing) existing.releases.push(...entity.releases);
+      else artifacts.set(signature, { ...entity, releases: [...entity.releases] });
+    }
+    return [...artifacts.values()];
+  }
+
   private releaseCopyHeading(group: { jiraKey: string | null; jiraSummary: string }): string[] {
     const lines = [`Title: ${group.jiraSummary}`];
     if (group.jiraKey) lines.push(`JIRA: ${JIRA_BROWSE_URL}${group.jiraKey}`);
@@ -1250,7 +1315,7 @@ export class ResourcePage {
     lines.push(`Component Name: ${release.componentName || release.releaseItem || 'Not set'}`);
     if (release.deploymentType) lines.push(`Deployment Type: ${release.deploymentType}`);
     const versions = this.releaseCopyVersions(entity.releases);
-    if (versions.length) lines.push(`Version Number: ${versions.join('; ')}`);
+    if (versions.length && !this.skipReleaseCopyVersions()) lines.push(`Version Number: ${versions.join('; ')}`);
     const comments = [...new Set(entity.releases.map(item => item.notes.trim()).filter(Boolean))];
     if (comments.length) lines.push(`Comment: ${comments.join('\n')}`);
     return lines.join('\n');
