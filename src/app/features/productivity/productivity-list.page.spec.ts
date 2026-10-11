@@ -4,7 +4,7 @@ import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { ConfirmationService } from '../../core/notifications/confirmation.service';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
-import { Todo } from '../../shared/models/api.models';
+import { Memo, Todo } from '../../shared/models/api.models';
 import { ProductivityListPage } from './productivity-list.page';
 import { ProductivityService } from './productivity.service';
 import { TodoComputedService } from './todo-computed.service';
@@ -83,6 +83,64 @@ describe('ProductivityListPage bulk selection', () => {
     calendar.closed.emit();
     fixture.detectChanges();
     expect(component.calendarOpen()).toBe(false);
+  });
+
+  it('disables pin while saving, prevents duplicate requests, and shows the returned state', async () => {
+    TestBed.overrideProvider(ActivatedRoute, { useValue: { snapshot: { data: { kind: 'memos' } } } });
+    const memo: Memo = {
+      id: 'memo',
+      memo: 'Note',
+      pinned: false,
+      category: null,
+      tags: [],
+      createdTime: '',
+      lastEditedTime: '',
+    };
+    const pending = new Subject<{ data: Memo }>();
+    const patch = TestBed.inject(ProductivityService).patch as ReturnType<typeof vi.fn>;
+    patch.mockReturnValue(pending);
+    const fixture = TestBed.createComponent(ProductivityListPage);
+    fixture.componentInstance.items.set([memo]);
+    fixture.detectChanges();
+    const saving = fixture.componentInstance.togglePin(memo);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('.memo-controls ion-button') as HTMLIonButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.querySelector('ion-spinner')).not.toBeNull();
+    expect(fixture.componentInstance.items()[0]).toEqual(memo);
+    await fixture.componentInstance.togglePin(memo);
+    expect(patch).toHaveBeenCalledOnce();
+    pending.next({ data: { ...memo, pinned: true } });
+    pending.complete();
+    await saving;
+    fixture.detectChanges();
+    expect(button.disabled).toBe(false);
+    expect(button.querySelector('ion-spinner')).toBeNull();
+    expect(button.querySelector('.memo-pin-icon')).not.toBeNull();
+    expect(fixture.componentInstance.pinUpdatingIds()).toEqual([]);
+  });
+
+  it('restores the pin control after an error without changing the memo state', async () => {
+    const memo: Memo = {
+      id: 'memo',
+      memo: 'Note',
+      pinned: true,
+      category: null,
+      tags: [],
+      createdTime: '',
+      lastEditedTime: '',
+    };
+    const pending = new Subject<{ data: Memo }>();
+    const patch = TestBed.inject(ProductivityService).patch as ReturnType<typeof vi.fn>;
+    patch.mockReturnValue(pending);
+    const component = TestBed.createComponent(ProductivityListPage).componentInstance;
+    component.items.set([memo]);
+    const saving = component.togglePin(memo);
+    pending.error(new Error('Failed'));
+    await saving;
+    expect(component.pinUpdatingIds()).toEqual([]);
+    expect(component.items()).toEqual([memo]);
+    expect(snackbar.error).toHaveBeenCalledOnce();
   });
 
   it('closes through isOpen after save, reloads todos, and reopens with saved settings', async () => {

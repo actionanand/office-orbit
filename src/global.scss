@@ -2906,6 +2906,29 @@ ion-popover.work-link-popover {
   justify-content: flex-end;
   gap: 2px;
 }
+.productivity-controls {
+  display: contents;
+}
+.productivity-controls.memo-controls {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  min-width: 0;
+}
+.memo-controls .productivity-actions {
+  flex-wrap: nowrap;
+}
+.memo-pin-icon {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+}
+.memo-pin-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 .productivity-actions ion-button {
   margin: 0;
 }
@@ -3544,6 +3567,13 @@ ion-popover.work-link-popover {
     width: 100%;
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+  .productivity-controls.memo-controls {
+    grid-column: 2;
+    justify-items: start;
+  }
+  .memo-controls .productivity-actions {
+    grid-column: auto;
   }
   .productivity-actions ion-button {
     --padding-start: 6px;
