@@ -2985,6 +2985,10 @@ ion-popover.work-link-popover {
 .productivity-row:has(.inline-status-select) .productivity-row-heading {
   min-height: 44px;
 }
+.todo-row .selection-check ion-checkbox {
+  // Give Ionic's internal wrapper a height to inherit so the icon is centered.
+  height: 44px;
+}
 .productivity-row .preview {
   max-width: 90ch;
 }
@@ -3676,6 +3680,11 @@ ion-popover.work-link-popover {
   }
   .productivity-row:has(.inline-status-select) .productivity-row-heading {
     min-height: 0;
+  }
+  .todo-row .productivity-row-heading strong {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
   }
   .productivity-actions {
     grid-column: 2;
