@@ -2974,8 +2974,14 @@ ion-popover.work-link-popover {
 .reference-filters {
   display: grid;
   grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(150px, 1fr));
+  align-items: start;
   gap: 12px;
   margin: 18px 0;
+}
+.reference-filters ion-input,
+.reference-filters ion-select {
+  min-width: 0;
+  margin: 0;
 }
 .reference-filters ion-input,
 .reference-filters ion-select,
@@ -3174,6 +3180,7 @@ ion-popover.work-link-popover {
 }
 .reference-file-actions {
   display: flex;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 8px;
 }
