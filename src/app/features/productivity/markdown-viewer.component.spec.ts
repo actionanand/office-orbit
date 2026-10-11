@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { MarkdownViewerComponent } from './markdown-viewer.component';
+import { MarkdownViewerComponent, renderInlineMarkdown, renderMarkdown } from './markdown-viewer.component';
 
 const mermaidMock = vi.hoisted(() => ({
   initialize: vi.fn(),
@@ -15,6 +15,34 @@ describe('MarkdownViewerComponent', () => {
     mermaidMock.render.mockResolvedValue({
       svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50"><text>Diagram</text></svg>',
     });
+  });
+
+  it('renders the reported description link without falling back to raw Markdown', async () => {
+    const source =
+      'This is from LSC-81365. We created this as DB deployment was blocked by other team\n\n[link text](https://google.com)';
+    expect(renderMarkdown(source).failed).toBe(false);
+    const fixture = TestBed.createComponent(MarkdownViewerComponent);
+    fixture.componentRef.setInput('markdown', source);
+    fixture.detectChanges();
+    await settleEnhancements();
+    const element: HTMLElement = fixture.nativeElement;
+    const link = element.querySelector('a');
+    expect(link?.getAttribute('href')).toBe('https://google.com');
+    expect(link?.textContent).toBe('link text');
+    expect(link?.getAttribute('target')).toBe('_blank');
+    expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(element.querySelector('.markdown-source, .content-warning')).toBeNull();
+  });
+
+  it('preserves formatted link labels in full and inline Markdown while rejecting unsafe destinations', () => {
+    for (const source of ['[**Docs**](https://example.com)', '[**Docs**](javascript:alert(1))']) {
+      const full = renderMarkdown(source);
+      expect(full.failed).toBe(false);
+      expect(full.html).toContain('<strong>Docs</strong>');
+      expect(renderInlineMarkdown(source)).toContain('<strong>Docs</strong>');
+    }
+    expect(renderInlineMarkdown('[Docs](https://example.com)')).toContain('href="https://example.com"');
+    expect(renderMarkdown('[Docs](javascript:alert(1))').html).not.toContain('href=');
   });
 
   it('renders multiple strict Mermaid diagrams and replaces their source blocks', async () => {

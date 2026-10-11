@@ -59,8 +59,8 @@ export class ReportOutputService {
         section.rows.push({ state: 'normal', cells: [[record.title, ...record.lines].join('\n')] });
         sections.set(record.date, section);
       }
-      // Styled reports share the exact browser PDF on Android.
-      const pdfBase64 = report.layout ? await blobBase64(await reportPdf(report)) : undefined;
+      // Every Android export shares the formatted browser PDF, including links.
+      const pdfBase64 = await blobBase64(await reportPdf(report));
       const exporting = this.nativeExporter.exportPdf({
         ...(pdfBase64 ? { pdfBase64 } : {}),
         filename,

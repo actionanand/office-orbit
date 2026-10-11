@@ -22,6 +22,7 @@ import { ConfirmationService } from '../../core/notifications/confirmation.servi
 import { RelationOptionsService } from '../../core/api/relation-options.service';
 import { Jira, JiraCreateRequest, RelationOption, ResourceMetadataResponse } from '../../shared/models/api.models';
 import { metadataOptions } from '../../shared/utils/editor';
+import { MarkdownInputComponent } from '../../shared/components/markdown-input.component';
 import { JiraService } from './jiras.service';
 
 const JIRA_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9]+-\d+$/;
@@ -41,6 +42,7 @@ const JIRA_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9]+-\d+$/;
     IonSelectOption,
     IonTitle,
     IonToolbar,
+    MarkdownInputComponent,
   ],
   template: `<ion-modal
     class="editor-modal jira-create-modal"
@@ -96,6 +98,12 @@ const JIRA_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9]+-\d+$/;
             @if (form.controls.summary.touched && form.controls.summary.invalid) {
               <p id="jira-summary-error" class="field-error field-span">Summary is required.</p>
             }
+            <app-markdown-input
+              class="field-span"
+              label="Description"
+              variant="full"
+              [rows]="8"
+              formControlName="descriptionMarkdown" />
             <ion-select
               label="Project"
               labelPlacement="stacked"
@@ -169,6 +177,7 @@ export class JiraCreateComponent {
       validators: [Validators.required, Validators.pattern(JIRA_KEY_PATTERN)],
     }),
     summary: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    descriptionMarkdown: new FormControl('', { nonNullable: true }),
     projectId: new FormControl('', { nonNullable: true }),
     statusOptionId: new FormControl('', { nonNullable: true }),
     tagOptionIds: new FormControl<string[]>([], { nonNullable: true }),
@@ -205,6 +214,7 @@ export class JiraCreateComponent {
       this.form.reset({
         jiraKey: '',
         summary: '',
+        descriptionMarkdown: '',
         projectId: '',
         statusOptionId: '',
         tagOptionIds: [],
@@ -219,6 +229,7 @@ export class JiraCreateComponent {
     }
   }
   async save(): Promise<void> {
+    if (this.submitting()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.focusFirst();
@@ -236,6 +247,7 @@ export class JiraCreateComponent {
       inActiveSprint: value.inActiveSprint,
       demoRequired: value.demoRequired,
       appraisal: value.appraisal,
+      ...(value.descriptionMarkdown.length ? { descriptionMarkdown: value.descriptionMarkdown } : {}),
     };
     try {
       const response = await firstValueFrom(this.api.create(body));

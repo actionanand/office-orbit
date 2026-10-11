@@ -1,6 +1,6 @@
 import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Service, inject } from '@angular/core';
-import { Observable, firstValueFrom, timeout } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   DomainItem,
@@ -15,6 +15,7 @@ import { CursorResult, CursorService } from '../../core/api/cursor.service';
 import { MutationApiService } from '../../core/api/mutation-api.service';
 import { QueryCursorResult, QueryCursorService } from '../../core/api/query-cursor.service';
 import { DataCacheService } from '../../core/cache/data-cache.service';
+import { API_IMPORT_TIMEOUT_MS } from '../../core/api/api-retry-policy';
 
 export type ProductivityKind = 'todos' | 'tasks' | 'memos';
 
@@ -89,21 +90,17 @@ export class ProductivityService {
     if (title.trim()) body.append('title', title.trim());
     if (categoryOptionId) body.append('categoryOptionId', categoryOptionId);
     for (const id of tagOptionIds) body.append('tagOptionIds', id);
-    return this.http
-      .post<{ data: { id: string; article: string } } | ReferenceImportAccepted>(
-        `${environment.apiBaseUrl}/api/reference-library/import`,
-        body,
-        { observe: 'response' },
-      )
-      .pipe(timeout(60000));
+    return this.http.post<{ data: { id: string; article: string } } | ReferenceImportAccepted>(
+      `${environment.apiBaseUrl}/api/reference-library/import`,
+      body,
+      { observe: 'response', timeout: API_IMPORT_TIMEOUT_MS },
+    );
   }
 
   importStatus(taskId: string) {
-    return this.http
-      .get<ReferenceImportStatus>(
-        `${environment.apiBaseUrl}/api/reference-library/imports/${encodeURIComponent(taskId)}`,
-      )
-      .pipe(timeout(15000));
+    return this.http.get<ReferenceImportStatus>(
+      `${environment.apiBaseUrl}/api/reference-library/imports/${encodeURIComponent(taskId)}`,
+    );
   }
 
   async pollImport(
@@ -131,7 +128,7 @@ export class ProductivityService {
   }
 
   private detail<T>(path: string, refresh: boolean) {
-    return this.cache.load(path, () => this.http.get<T>(environment.apiBaseUrl + path).pipe(timeout(15000)), refresh);
+    return this.cache.load(path, () => this.http.get<T>(environment.apiBaseUrl + path), refresh);
   }
 
   private delay(milliseconds: number, signal: AbortSignal): Promise<void> {

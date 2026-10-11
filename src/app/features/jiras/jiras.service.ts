@@ -1,7 +1,14 @@
 import { Service, inject } from '@angular/core';
 import { MutationApiService } from '../../core/api/mutation-api.service';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
-import { Jira, JiraCreateRequest, JiraDetail, JiraPatchRequest } from '../../shared/models/api.models';
+import {
+  Jira,
+  JiraCreateRequest,
+  JiraDetail,
+  JiraPatchRequest,
+  JiraSpillReasonRequest,
+  MutationResponse,
+} from '../../shared/models/api.models';
 @Service()
 export class JiraService extends ReadFeatureService {
   private readonly mutations = inject(MutationApiService);
@@ -31,5 +38,12 @@ export class JiraService extends ReadFeatureService {
   }
   update(jiraKey: string, body: JiraPatchRequest) {
     return this.mutations.patch<JiraDetail, JiraPatchRequest>('/api/jiras', jiraKey, body);
+  }
+  updateSpillReason(jiraKey: string, spillNumber: number, reasonMarkdown: string) {
+    return this.mutations.patchEndpoint<MutationResponse<JiraDetail>, JiraSpillReasonRequest>(
+      `/api/jiras/${encodeURIComponent(jiraKey)}/spills/${spillNumber}/reason`,
+      { reasonMarkdown },
+      '/api/jiras',
+    );
   }
 }

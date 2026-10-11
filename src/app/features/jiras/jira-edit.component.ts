@@ -1,4 +1,4 @@
-import { Component, ElementRef, effect, inject, input, output, signal, viewChild } from '@angular/core';
+import { Component, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   IonButton,
@@ -16,18 +16,16 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { closeOutline, refreshOutline, saveOutline } from 'ionicons/icons';
-import { Marked } from 'marked';
 import { firstValueFrom } from 'rxjs';
 import { RelationOptionsService } from '../../core/api/relation-options.service';
 import { apiError } from '../../core/api/api-error';
 import { ConfirmationService } from '../../core/notifications/confirmation.service';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
+import { MarkdownInputComponent } from '../../shared/components/markdown-input.component';
 import { JiraDetail, JiraPatchRequest, RelationOption, ResourceMetadataResponse } from '../../shared/models/api.models';
 import { metadataOptions, optionId, relationOptions } from '../../shared/utils/editor';
 import { JiraPickerComponent, JiraPickerSelection } from './jira-picker.component';
 import { JiraService } from './jiras.service';
-
-const marked = new Marked({ gfm: true, breaks: false });
 
 @Component({
   selector: 'app-jira-edit',
@@ -47,6 +45,7 @@ const marked = new Marked({ gfm: true, breaks: false });
     IonToolbar,
     IonicDateFieldComponent,
     JiraPickerComponent,
+    MarkdownInputComponent,
   ],
   template: `<ion-modal
     class="editor-modal jira-edit-modal"
@@ -85,17 +84,12 @@ const marked = new Marked({ gfm: true, breaks: false });
               fill="outline"
               formControlName="summary"
               required />
-            <section class="field-span rich-text-field">
-              <span class="ionic-field-label">Description</span>
-              <div
-                class="rich-text-editor"
-                contenteditable="true"
-                role="textbox"
-                aria-multiline="true"
-                aria-label="Description rich text editor"
-                [innerHTML]="descriptionHtml()"
-                (input)="descriptionChanged($event)"></div>
-            </section>
+            <app-markdown-input
+              class="field-span"
+              label="Description"
+              variant="full"
+              [rows]="8"
+              formControlName="descriptionMarkdown" />
             <ion-select
               label="Project"
               labelPlacement="stacked"
@@ -195,7 +189,6 @@ export class JiraEditComponent {
   readonly projects = signal<RelationOption[]>([]);
   readonly linkedIds = signal<string[]>([]);
   readonly linkedJiras = signal([] as Array<{ id: string; key: string; summary: string }>);
-  readonly descriptionHtml = signal('');
   readonly loading = signal(false);
   readonly loadError = signal('');
   readonly saveError = signal('');
@@ -203,6 +196,7 @@ export class JiraEditComponent {
   readonly firstField = viewChild<IonInput>('firstField');
   readonly form = new FormGroup({
     summary: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    descriptionMarkdown: new FormControl('', { nonNullable: true }),
     projectId: new FormControl('', { nonNullable: true }),
     statusOptionId: new FormControl('', { nonNullable: true }),
     tagOptionIds: new FormControl<string[]>([], { nonNullable: true }),
@@ -246,13 +240,13 @@ export class JiraEditComponent {
         ).values(),
       ]);
       this.initialDescription = item.description;
-      this.descriptionHtml.set(String(marked.parse(item.description || '')));
       this.initialLinkedId = item.linkedJiraIds[0] ?? null;
       const linked = item.linkedJiras ?? [];
       this.linkedIds.set(this.initialLinkedId ? [this.initialLinkedId] : []);
       this.linkedJiras.set(linked);
       this.form.reset({
         summary: item.summary,
+        descriptionMarkdown: item.description,
         projectId: item.projectIds[0] ?? '',
         statusOptionId: optionId(metadata, 'statusOptionId', item.status),
         tagOptionIds: item.tags.map(tag => optionId(metadata, 'tagOptionIds', tag)).filter(Boolean),
@@ -270,9 +264,6 @@ export class JiraEditComponent {
     } finally {
       this.loading.set(false);
     }
-  }
-  descriptionChanged(event: Event): void {
-    this.descriptionHtml.set((event.target as HTMLElement).innerHTML);
   }
   linkedChanged(selection: JiraPickerSelection): void {
     this.linkedIds.set(selection.ids);
@@ -320,8 +311,7 @@ export class JiraEditComponent {
     if (dirty.resolvedOn.dirty) body.resolvedOn = value.resolvedOn || null;
     const linked = this.linkedIds()[0] ?? null;
     if (linked !== this.initialLinkedId) body.linkedJiraId = linked;
-    if (this.descriptionHtml() !== String(marked.parse(this.initialDescription || '')))
-      body.descriptionRichTextHtml = this.descriptionHtml();
+    if (value.descriptionMarkdown !== this.initialDescription) body.descriptionMarkdown = value.descriptionMarkdown;
     return body;
   }
   optionWarning(): string {

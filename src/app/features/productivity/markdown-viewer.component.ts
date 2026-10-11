@@ -14,6 +14,12 @@ interface PreparedMarkdown {
 const renderer = new Renderer();
 renderer.checkbox = ({ checked }) =>
   `<span class="markdown-checkbox${checked ? ' checked' : ''}" role="checkbox" aria-checked="${checked}" aria-disabled="true">${checked ? '✓' : ''}</span>`;
+const defaultLink = renderer.link;
+renderer.link = function (token) {
+  const href = safeMarkdownUrl(token.href);
+  // Marked supplies the active parser on this renderer at render time.
+  return href ? defaultLink.call(this, { ...token, href }) : this.parser.parseInline(token.tokens);
+};
 
 const markdownParser = new Marked({
   gfm: true,
@@ -106,6 +112,15 @@ export function renderMarkdown(markdown: string): {
     };
   } catch {
     return { html: '', formulas: [], failed: true };
+  }
+}
+
+/** Renders title-safe Markdown using the same parser and link policy as the full viewer. */
+export function renderInlineMarkdown(markdown: string): string {
+  try {
+    return markdownParser.parseInline(normalizeNotionMarkdown(markdown), { async: false }) as string;
+  } catch {
+    return '';
   }
 }
 

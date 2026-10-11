@@ -1,9 +1,11 @@
-import type { ReportBlock, WorkLogReport } from '../../features/work-logs/work-log-report';
+import type { ReportTextRun, WorkLogReport } from '../../features/work-logs/work-log-report';
 import { formatDate, formatDateRange } from '../../shared/utils/format';
+import { markdownFieldBlocks, markdownInline } from './report-markdown';
 
 interface PdfPage {
   commands: string[];
   y: number;
+  links: { rect: number[]; href: string }[];
 }
 
 const PAGE_WIDTH = 595;
@@ -13,60 +15,7 @@ const CONTENT_BOTTOM = 790;
 
 /** Creates a compact PDF with a real text layer so report content remains selectable and searchable. */
 export async function reportPdf(report: WorkLogReport): Promise<Blob> {
-  if (report.layout) return styledReportPdf(report);
-  const pages: PdfPage[] = [];
-  let page = createPage(pages);
-
-  const ensureSpace = (height: number) => {
-    if (page.y + height <= CONTENT_BOTTOM) return;
-    page = createPage(pages);
-  };
-  const draw = (value: string, options: { bold?: boolean; size?: number; color?: string } = {}) => {
-    const size = options.size ?? 11;
-    const lineHeight = Math.ceil(size * 1.45);
-    const lines = wrapText(value, Math.max(20, Math.floor((PAGE_WIDTH - MARGIN * 2) / (size * 0.52))));
-    for (const line of lines) {
-      ensureSpace(lineHeight);
-      page.commands.push(
-        `BT /${options.bold ? 'F2' : 'F1'} ${size} Tf ${options.color ?? '0.09 0.17 0.13'} rg 1 0 0 1 ${MARGIN} ${PAGE_HEIGHT - page.y} Tm (${pdfText(line)}) Tj ET`,
-      );
-      page.y += lineHeight;
-    }
-  };
-  const gap = (height: number) => {
-    ensureSpace(height);
-    page.y += height;
-  };
-
-  draw('Office Orbit', { bold: true, size: 18, color: '0.09 0.39 0.25' });
-  draw(report.title ?? 'Work Log Report', { size: 13 });
-  gap(8);
-  for (const field of report.summary ?? [
-    { label: 'Period', value: report.period },
-    { label: 'Categories', value: report.categories },
-  ])
-    draw(field.label + ': ' + field.value);
-  draw('Generated: ' + report.generated);
-  gap(14);
-
-  for (const record of report.records) {
-    const estimatedLines = [record.date, record.title, ...record.lines].reduce(
-      (count, value) => count + wrapText(value, 86).length,
-      0,
-    );
-    if (estimatedLines < 36) ensureSpace(estimatedLines * 16 + 14);
-    draw(record.date, { bold: true, size: 10, color: '0.27 0.35 0.30' });
-    draw(record.title, { bold: true, size: 12 });
-    for (const line of record.lines) draw(line);
-    gap(12);
-  }
-
-  pages.forEach((entry, index) => {
-    entry.commands.push(
-      `BT /F1 9 Tf 0.27 0.35 0.30 rg 1 0 0 1 ${MARGIN} 24 Tm (Office Orbit  |  Page ${index + 1}) Tj ET`,
-    );
-  });
-  return pdfBlob(pages);
+  return styledReportPdf(report);
 }
 
 const INK = '0.13 0.18 0.22';
@@ -105,24 +54,57 @@ function styledReportPdf(report: WorkLogReport): Blob {
   };
   const draw = (
     value: string,
-    options: { size?: number; font?: string; color?: string; inset?: number; background?: boolean } = {},
+    options: {
+      size?: number;
+      font?: string;
+      color?: string;
+      inset?: number;
+      background?: boolean;
+      runs?: ReportTextRun[];
+      marker?: string;
+    } = {},
   ) => {
     const size = options.size ?? 10.5;
     const inset = options.inset ?? 0;
     const height = size * 1.5;
-    const lines = wrapMeasured(value, PAGE_WIDTH - MARGIN * 2 - inset - 12, size, options.font === 'F3');
-    for (const line of lines) {
+    const lines = wrapRuns(
+      options.runs ?? [{ text: value, ...(options.font === 'F3' ? { code: true } : {}) }],
+      PAGE_WIDTH - MARGIN * 2 - inset - 12,
+      size,
+      options.font,
+    );
+    for (const [index, line] of lines.entries()) {
       ensure(height + 6);
       if (options.background)
         rect(MARGIN + inset - 6, page.y - size - 2, PAGE_WIDTH - MARGIN * 2 - inset + 6, height, '0.96 0.97 0.98');
-      text(line, MARGIN + inset, page.y, size, options.font ?? 'F1', options.color ?? INK);
+      drawRuns(line, MARGIN + inset, page.y, size, options.font, options.color);
+      if (index === 0 && options.marker) {
+        const markerWidth = glyphWidth(options.marker, size, options.font ?? 'F1');
+        text(options.marker, MARGIN + inset - markerWidth - 5, page.y, size, options.font, options.color);
+      }
       page.y += height;
+    }
+  };
+  const drawRuns = (runs: ReportTextRun[], x: number, y: number, size: number, font = 'F1', color = INK) => {
+    for (const run of runs) {
+      const runFont = runFontName(run, font);
+      const width = glyphWidth(run.text, size, runFont);
+      const href = run.href && /^(https?:\/\/|mailto:)/i.test(run.href) ? run.href : undefined;
+      if (run.code) rect(x, y - size, width, size + 3, '0.94 0.95 0.96');
+      text(run.text, x, y, size, runFont, href ? '0.04 0.30 0.62' : color);
+      if (href) {
+        rect(x, y + 2, width, 0.5, '0.04 0.30 0.62');
+        page.links.push({ rect: [x, PAGE_HEIGHT - y - 3, x + width, PAGE_HEIGHT - y + size], href });
+      }
+      if (run.strike) rect(x, y - size * 0.3, width, 0.6, color);
+      x += width;
     }
   };
   text('OFFICE ORBIT', MARGIN, 47, 11, 'F2', GREEN);
   text(isJira ? 'JIRA DETAIL REPORT' : 'ACTIVITY REPORT', MARGIN, 67, 9, 'F1', MUTED);
   page.y = 100;
-  draw(isJira ? report.records[0]?.title || key : 'Work Log Report', { size: 22, font: 'F2' });
+  const title = isJira ? report.records[0]?.title || key : (report.title ?? 'Work Log Report');
+  draw(title, { size: 22, font: 'F2', runs: markdownInline(title) });
   page.y += 5;
   if (isJira) {
     draw(key + '  |  Generated ' + report.generated, { size: 9, color: MUTED });
@@ -142,7 +124,7 @@ function styledReportPdf(report: WorkLogReport): Blob {
 
   for (const record of report.records) {
     const newSection = section !== record.date || record === report.records[0];
-    const recordBlocks = record.blocks ?? record.lines.map(value => ({ kind: 'text', text: value }) as ReportBlock);
+    const recordBlocks = record.blocks ?? record.lines.flatMap(markdownFieldBlocks);
     const estimatedHeight =
       25 +
       wrapMeasured(record.title, PAGE_WIDTH - MARGIN * 2 - 12, 12).length * 18 +
@@ -182,7 +164,7 @@ function styledReportPdf(report: WorkLogReport): Blob {
     } else {
       if (record.title) {
         ensure(wrapMeasured(record.title, PAGE_WIDTH - MARGIN * 2 - 12, 12).length * 18 + 35);
-        draw(record.title, { size: 12, font: 'F2' });
+        draw(record.title, { size: 12, font: 'F2', runs: markdownInline(record.title) });
         page.y += 5;
       }
       for (const block of recordBlocks) {
@@ -194,15 +176,17 @@ function styledReportPdf(report: WorkLogReport): Blob {
         }
         if (block.kind === 'table' && block.cells?.length) {
           const cellWidth = (PAGE_WIDTH - MARGIN * 2) / block.cells.length;
-          const cells = block.cells.map(cell => wrapMeasured(cell, cellWidth - 16, 9));
+          const cells = block.cells.map((cell, index) =>
+            wrapRuns(block.cellRuns?.[index] ?? [{ text: cell }], cellWidth - 16, 9, block.header ? 'F2' : 'F1'),
+          );
           const count = Math.max(...cells.map(cell => cell.length));
           const height = count * 14 + 12;
           for (let row = 0; row < count; row++) {
             ensure(row === 0 && height < 650 ? height : 20);
             rect(MARGIN, page.y - 10, PAGE_WIDTH - MARGIN * 2, 16, block.header ? SOFT : '0.97 0.98 0.98');
             cells.forEach((cell, column) =>
-              text(
-                cell[row] ?? '',
+              drawRuns(
+                cell[row] ?? [],
                 MARGIN + column * cellWidth + 8,
                 page.y,
                 9,
@@ -215,28 +199,38 @@ function styledReportPdf(report: WorkLogReport): Blob {
         } else if (block.kind === 'heading') {
           ensure(50);
           page.y += 5;
-          draw(block.text, { size: block.level === 1 ? 17 : block.level === 2 ? 14 : 12, font: 'F2', color: GREEN });
+          draw(block.text, {
+            runs: block.runs,
+            size: block.level === 1 ? 17 : block.level === 2 ? 14 : 12,
+            font: 'F2',
+            color: GREEN,
+          });
         } else if (block.kind === 'code') {
           draw(block.text, { size: 9, font: 'F3', inset: 10, background: true });
         } else if (block.kind === 'quote') {
-          draw(block.text, { font: 'F4', color: MUTED, inset: 12, background: true });
+          draw(block.text, { runs: block.runs, font: 'F4', color: MUTED, inset: 12, background: true });
         } else if (block.kind === 'bullet') {
-          draw(block.text, { inset: 10 + (block.level ?? 0) * 10 });
+          const prefix = /^(•|\d+\.|\[[ x]\])\s+/.exec(block.text);
+          const marker = prefix?.[1];
+          const value = block.text.slice(prefix?.[0].length ?? 0);
+          const runs = block.runs?.map((run, index) =>
+            index === 0 ? { ...run, text: run.text.slice(prefix?.[0].length ?? 0) } : run,
+          );
+          draw(value, {
+            runs,
+            marker,
+            inset: 10 + (block.level ?? 0) * 16 + (marker ? Math.max(12, glyphWidth(marker, 10.5, 'F1') + 5) : 0),
+          });
         } else {
-          if (!isJira && /^(Comment|Went wrong):/.test(block.text)) {
-            const colon = block.text.indexOf(':');
-            ensure(45);
-            draw(block.text.slice(0, colon), { size: 9, font: 'F2', color: MUTED });
-            page.y += 3;
-            draw(block.text.slice(colon + 1).trim(), { size: 10, inset: 10, background: true });
-            page.y += 7;
-            continue;
-          }
           const metadata =
             /^(Activity|Work|JIRAs|Date|Status|Deployment|Version|Branch|Linked|Resolved|Created|Last updated|Formal announced|Confirmed release|Planned):/.test(
               block.text,
             );
-          draw(block.text, { color: metadata || !isJira ? MUTED : INK, size: metadata || !isJira ? 9.5 : 10.5 });
+          draw(block.text, {
+            runs: block.runs,
+            color: metadata || !isJira ? MUTED : INK,
+            size: metadata || !isJira ? 9.5 : 10.5,
+          });
         }
         page.y += block.kind === 'bullet' ? 3 : 7;
       }
@@ -261,6 +255,28 @@ const ADVANCES = [
   556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334,
   260, 334, 584,
 ];
+const BOLD_ADVANCES = [
+  278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556,
+  556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833,
+  722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611,
+  556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389,
+  280, 389, 584,
+];
+function glyphWidth(value: string, size: number, font: string): number {
+  const advances = font === 'F2' || font === 'F5' ? BOLD_ADVANCES : ADVANCES;
+  const printable = pdfText(value)
+    .replace(/\\225/g, '•')
+    .replace(/\\([\\()])/g, '$1');
+  return (
+    ([...printable].reduce(
+      (width, character) =>
+        width + (font === 'F3' ? 600 : character === '•' ? 350 : (advances[character.charCodeAt(0) - 32] ?? 600)),
+      0,
+    ) *
+      size) /
+    1000
+  );
+}
 function textWidth(value: string, size: number, mono = false): number {
   return (
     (([...value].reduce(
@@ -289,59 +305,88 @@ function wrapMeasured(value: string, width: number, size: number, mono = false):
   return output;
 }
 
-function createPage(pages: PdfPage[]): PdfPage {
-  const page = { commands: [], y: 48 };
-  pages.push(page);
-  return page;
+/** Wrap styled spans without discarding their formatting or link targets. */
+function runFontName(run: ReportTextRun, fallback: string): string {
+  return run.code ? 'F3' : run.bold && run.italic ? 'F5' : run.bold ? 'F2' : run.italic ? 'F4' : fallback;
 }
-
-function wrapText(value: string, maximumCharacters: number): string[] {
-  const lines: string[] = [];
-  for (const paragraph of value.replace(/\r/g, '').split('\n')) {
-    const words = paragraph.trim().split(/\s+/).filter(Boolean);
-    if (!words.length) {
-      lines.push('');
-      continue;
-    }
-    let line = '';
-    for (const word of words) {
-      const pieces: string[] = [];
-      for (let index = 0; index < word.length; index += maximumCharacters) {
-        pieces.push(word.slice(index, index + maximumCharacters));
+function wrapRuns(runs: ReportTextRun[], width: number, size: number, font = 'F1'): ReportTextRun[][] {
+  const lines: ReportTextRun[][] = [[]];
+  let used = 0;
+  const newline = () => {
+    lines.push([]);
+    used = 0;
+  };
+  const append = (run: ReportTextRun, text: string) => {
+    const line = lines[lines.length - 1];
+    const previous = line.at(-1);
+    if (
+      previous &&
+      previous.bold === run.bold &&
+      previous.italic === run.italic &&
+      previous.code === run.code &&
+      previous.strike === run.strike &&
+      previous.href === run.href
+    )
+      previous.text += text;
+    else line.push({ ...run, text });
+    used += glyphWidth(text, size, runFontName(run, font));
+  };
+  for (const run of runs) {
+    for (const part of run.text
+      .replace(/\r/g, '')
+      .split(/(\n|[^\S\n]+|[^\s]+)/)
+      .filter(Boolean)) {
+      if (part === '\n') {
+        newline();
+        continue;
       }
-      for (const piece of pieces) {
-        const next = line ? `${line} ${piece}` : piece;
-        if (next.length <= maximumCharacters) line = next;
-        else {
-          if (line) lines.push(line);
-          line = piece;
+      if (used > 0 && used + glyphWidth(part, size, runFontName(run, font)) > width) newline();
+      if (!used && /^\s+$/.test(part) && !run.code) continue;
+      // Split unbroken URLs/code tokens so they cannot overflow the page or table cell.
+      let fragment = '';
+      for (const character of part) {
+        if (used + glyphWidth(fragment + character, size, runFontName(run, font)) > width && fragment) {
+          append(run, fragment);
+          newline();
+          fragment = '';
         }
+        fragment += character;
       }
+      if (fragment) append(run, fragment);
     }
-    if (line) lines.push(line);
   }
   return lines;
 }
 
+function createPage(pages: PdfPage[]): PdfPage {
+  const page: PdfPage = { commands: [], links: [], y: 48 };
+  pages.push(page);
+  return page;
+}
+
 function pdfText(value: string): string {
-  return value
-    .replace(/[\u2010-\u2015]/g, '-')
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201c\u201d]/g, '"')
-    .replace(/\u2026/g, '...')
-    .replace(/\u00b7/g, '|')
-    .replace(/\u2022/g, '-')
-    .replace(/\u2192/g, '->')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\x20-\x7e]/g, '?')
-    .replace(/([\\()])/g, '\\$1');
+  return (
+    value
+      .replace(/[\u2010-\u2015]/g, '-')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201c\u201d]/g, '"')
+      .replace(/\u2026/g, '...')
+      .replace(/\u00b7/g, '|')
+      .replace(/\u2192/g, '->')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\x20-\x7e\u2022]/g, '?')
+      .replace(/([\\()])/g, '\\$1')
+      // WinAnsi's bullet is byte 149. Keep the PDF stream ASCII using an octal escape.
+      .replace(/\u2022/g, '\\225')
+  );
 }
 
 function pdfBlob(pages: PdfPage[]): Blob {
   const fontRegular = 3 + pages.length * 2;
   const fontBold = fontRegular + 1;
   const objects: string[] = [];
+  let annotationId = fontRegular + 5;
   objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
   objects[2] =
     `<< /Type /Pages /Count ${pages.length} /Kids [` +
@@ -351,15 +396,25 @@ function pdfBlob(pages: PdfPage[]): Blob {
     const pageId = 3 + index * 2;
     const contentId = pageId + 1;
     const stream = page.commands.join('\n');
+    const annotations = page.links.map(link => {
+      const id = annotationId++;
+      const uri = new TextEncoder().encode(link.href);
+      const hex = [...uri].map(byte => byte.toString(16).padStart(2, '0')).join('');
+      objects[id] =
+        `<< /Type /Annot /Subtype /Link /Rect [${link.rect.join(' ')}] /Border [0 0 0] /A << /S /URI /URI <${hex}> >> >>`;
+      return `${id} 0 R`;
+    });
     objects[pageId] =
       `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] ` +
-      `/Resources << /Font << /F1 ${fontRegular} 0 R /F2 ${fontBold} 0 R /F3 ${fontBold + 1} 0 R /F4 ${fontBold + 2} 0 R >> >> /Contents ${contentId} 0 R >>`;
+      `/Resources << /Font << /F1 ${fontRegular} 0 R /F2 ${fontBold} 0 R /F3 ${fontBold + 1} 0 R /F4 ${fontBold + 2} 0 R /F5 ${fontBold + 3} 0 R >> >> /Contents ${contentId} 0 R /Annots [${annotations.join(' ')}] >>`;
     objects[contentId] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
   });
   objects[fontRegular] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
   objects[fontBold] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
   objects[fontBold + 1] = '<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>';
   objects[fontBold + 2] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>';
+  objects[fontBold + 3] =
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-BoldOblique /Encoding /WinAnsiEncoding >>';
 
   let output = '%PDF-1.4\n%OfficeOrbit\n';
   const offsets = Array<number>(objects.length).fill(0);

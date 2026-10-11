@@ -1,13 +1,18 @@
-import { Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
+import { Component, DestroyRef, SecurityContext, effect, inject, input, signal } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { IonButton, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar } from '@ionic/angular';
+import { IonButton, IonContent, IonHeader, IonIcon, IonPopover, IonTitle, IonToolbar } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   arrowBackOutline,
   arrowForwardOutline,
   chevronForwardOutline,
+  copyOutline,
+  codeSlashOutline,
+  documentTextOutline,
+  textOutline,
   createOutline,
   refreshOutline,
 } from 'ionicons/icons';
@@ -23,8 +28,11 @@ import { formatDate, formatDateRange, names } from '../../shared/utils/format';
 import { activeSprint, spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from './jira-link.component';
 import { JiraEditComponent } from './jira-edit.component';
+import { JiraSpillReasonEditorComponent } from './jira-spill-reason-editor.component';
 import { JiraService } from './jiras.service';
-import { MarkdownViewerComponent } from '../productivity/markdown-viewer.component';
+import { MarkdownViewerComponent, renderMarkdown } from '../productivity/markdown-viewer.component';
+import { markdownBlocks } from '../../core/platform/report-markdown';
+import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
 
 @Component({
   selector: 'app-jira-detail',
@@ -41,6 +49,7 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
     IonContent,
     IonHeader,
     IonIcon,
+    IonPopover,
     IonTitle,
     IonToolbar,
     LoadingSkeletonComponent,
@@ -48,7 +57,9 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
     StatusBadgeComponent,
     JiraLinkComponent,
     JiraEditComponent,
+    JiraSpillReasonEditorComponent,
     MarkdownViewerComponent,
+    InlineMarkdownPipe,
   ],
   template: `<ion-header class="ion-no-border"
       ><ion-toolbar
@@ -213,7 +224,71 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
                     </article>
                     @for (event of eventsFrom(jira, history.sprint.id); track event.number) {
                       <article class="spill-event">
-                        <h3>Spill #{{ event.number }}</h3>
+                        <div class="spill-event-heading">
+                          <h3>Spill #{{ event.number }}</h3>
+                          <div class="spill-reason-actions">
+                            <ion-button
+                              class="spill-reason-action"
+                              size="small"
+                              fill="clear"
+                              [disabled]="!!spillReasonUnavailable(jira, event)"
+                              [attr.aria-describedby]="
+                                spillReasonUnavailable(jira, event) ? 'spill-reason-hint-' + event.number : null
+                              "
+                              (click)="openSpillReasonEditor(event)">
+                              <ion-icon slot="start" name="create-outline" aria-hidden="true" />
+                              {{ event.reason?.trim() ? 'Edit reason' : 'Add reason' }}
+                            </ion-button>
+                            @if (event.reason?.trim()) {
+                              <ion-button
+                                class="spill-reason-copy"
+                                size="small"
+                                fill="clear"
+                                [id]="'spill-reason-copy-' + event.number"
+                                [attr.aria-label]="'Copy reason for spill #' + event.number"
+                                aria-haspopup="dialog"
+                                title="Copy reason"
+                                [disabled]="copyingSpillReason() === event.number"
+                                [attr.aria-busy]="copyingSpillReason() === event.number">
+                                <ion-icon slot="icon-only" name="copy-outline" aria-hidden="true" />
+                              </ion-button>
+                              <ion-popover
+                                #copyPopover
+                                cssClass="spill-copy-popover"
+                                [trigger]="'spill-reason-copy-' + event.number"
+                                side="bottom"
+                                alignment="end">
+                                <ng-template>
+                                  <div class="spill-copy-menu" aria-label="Copy reason format">
+                                    <ion-button
+                                      expand="block"
+                                      fill="clear"
+                                      (click)="copyPopover.dismiss(); copySpillReason(event, 'text')">
+                                      <ion-icon slot="start" name="text-outline" aria-hidden="true" />Normal text
+                                    </ion-button>
+                                    <ion-button
+                                      expand="block"
+                                      fill="clear"
+                                      (click)="copyPopover.dismiss(); copySpillReason(event, 'markdown')">
+                                      <ion-icon slot="start" name="code-slash-outline" aria-hidden="true" />Markdown
+                                    </ion-button>
+                                    @if (richCopySupported) {
+                                      <ion-button
+                                        expand="block"
+                                        fill="clear"
+                                        (click)="copyPopover.dismiss(); copySpillReason(event, 'formatted')">
+                                        <ion-icon
+                                          slot="start"
+                                          name="document-text-outline"
+                                          aria-hidden="true" />Formatted text
+                                      </ion-button>
+                                    }
+                                  </div>
+                                </ng-template>
+                              </ion-popover>
+                            }
+                          </div>
+                        </div>
                         <p class="spill-route">
                           <a [routerLink]="['/app/sprints', event.fromSprint.id]">{{ event.fromSprint.name }}</a>
                           <ion-icon name="arrow-forward-outline" aria-label="to" />
@@ -222,8 +297,13 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
                         @if (event.reason?.trim()) {
                           <div class="spill-reason">
                             <strong>Reason</strong>
-                            <p>{{ event.reason }}</p>
+                            <app-markdown-viewer class="compact-markdown" [markdown]="event.reason ?? ''" />
                           </div>
+                        } @else {
+                          <p>No spill reason recorded.</p>
+                        }
+                        @if (spillReasonUnavailable(jira, event); as hint) {
+                          <p class="allocation-warning" [id]="'spill-reason-hint-' + event.number">{{ hint }}</p>
                         }
                       </article>
                     }
@@ -243,8 +323,8 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
                     <article class="work-history-item">
                       <div class="work-history-heading">
                         <div>
-                          <strong>{{ log.update }}</strong
-                          ><span>{{ date(log.date) }}</span>
+                          <strong class="inline-markdown" [innerHTML]="log.update | inlineMarkdown"></strong>
+                          <span>{{ date(log.date) }}</span>
                         </div>
                         <span class="badge-line">
                           @if (log.type) {
@@ -262,10 +342,12 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
                         <details>
                           <summary>Details</summary>
                           @if (log.comment) {
-                            <p><strong>Comment</strong><br />{{ log.comment }}</p>
+                            <h4>Comment</h4>
+                            <app-markdown-viewer class="compact-markdown" [markdown]="log.comment" />
                           }
                           @if (log.wentWrong) {
-                            <p><strong>Went wrong</strong><br />{{ log.wentWrong }}</p>
+                            <h4>Went wrong</h4>
+                            <app-markdown-viewer class="compact-markdown" [markdown]="log.wentWrong" />
                           }
                         </details>
                       }
@@ -409,6 +491,14 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
             </section>
           </div>
           <app-jira-edit [open]="editOpen()" [item]="jira" (closed)="editOpen.set(false)" (saved)="edited($event)" />
+          @if (selectedSpillEvent(); as event) {
+            <app-jira-spill-reason-editor
+              [open]="true"
+              [jiraKey]="jira.jiraKey"
+              [event]="event"
+              (closed)="selectedSpillEvent.set(null)"
+              (saved)="spillReasonSaved($event)" />
+          }
         }</main
     ></ion-content>`,
 })
@@ -418,6 +508,12 @@ export class JiraDetailPage {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly editOpen = signal(false);
+  readonly selectedSpillEvent = signal<SpillEvent | null>(null);
+  readonly copyingSpillReason = signal<number | null>(null);
+  readonly richCopySupported =
+    typeof ClipboardItem !== 'undefined' &&
+    typeof navigator.clipboard?.write === 'function' &&
+    (typeof ClipboardItem.supports !== 'function' || ClipboardItem.supports('text/html'));
   readonly exporting = signal(false);
   readonly names = names;
   readonly date = formatDate;
@@ -425,12 +521,23 @@ export class JiraDetailPage {
   readonly spilled = spilloverLabel;
   private readonly service = inject(JiraService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly sanitizer = inject(DomSanitizer);
   private readonly reportOutput = inject(ReportOutputService);
   private readonly destroyRef = inject(DestroyRef);
   private request?: Subscription;
 
   constructor() {
-    addIcons({ arrowBackOutline, arrowForwardOutline, chevronForwardOutline, createOutline, refreshOutline });
+    addIcons({
+      arrowBackOutline,
+      arrowForwardOutline,
+      chevronForwardOutline,
+      copyOutline,
+      codeSlashOutline,
+      documentTextOutline,
+      textOutline,
+      createOutline,
+      refreshOutline,
+    });
     effect(() => {
       this.jiraKey();
       this.load();
@@ -478,6 +585,76 @@ export class JiraDetailPage {
 
   eventsFrom(jira: JiraDetail, sprintId: string): SpillEvent[] {
     return jira.spillEvents.filter(event => event.fromSprint.id === sprintId);
+  }
+
+  spillReasonUnavailable(jira: JiraDetail, event: SpillEvent): string {
+    const receiving = jira.sprintHistory.find(history => history.sprint.id === event.toSprint.id);
+    if (receiving?.allocationConflict) return 'Resolve the Sprint Allocation conflict before editing this reason.';
+    if (!receiving?.allocationId) return 'Add a Sprint Allocation for the receiving Sprint before editing this reason.';
+    return '';
+  }
+
+  openSpillReasonEditor(event: SpillEvent): void {
+    const jira = this.item();
+    if (jira && !this.spillReasonUnavailable(jira, event)) this.selectedSpillEvent.set(event);
+  }
+
+  async copySpillReason(event: SpillEvent, format: 'text' | 'markdown' | 'formatted' = 'markdown'): Promise<void> {
+    const reason = event.reason;
+    if (!reason?.trim() || this.copyingSpillReason() !== null) return;
+    this.copyingSpillReason.set(event.number);
+    try {
+      const text =
+        format === 'markdown'
+          ? reason
+          : markdownBlocks(reason)
+              .map(
+                block =>
+                  '  '.repeat(block.level && block.kind === 'bullet' ? block.level : 0) +
+                  (block.cells?.join('\t') ?? block.text),
+              )
+              .join('\n\n');
+      if (format === 'formatted') {
+        const html = this.sanitizer.sanitize(SecurityContext.HTML, renderMarkdown(reason).html) ?? '';
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([html], { type: 'text/html' }),
+            'text/plain': new Blob([text], { type: 'text/plain' }),
+          }),
+        ]);
+      } else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      else this.copyReasonWithSelection(text);
+      this.snackbar.success('Spill reason copied.');
+    } catch {
+      this.snackbar.error('Unable to copy spill reason. Please try again.');
+    } finally {
+      this.copyingSpillReason.set(null);
+    }
+  }
+
+  private copyReasonWithSelection(reason: string): void {
+    const previousFocus = document.activeElement;
+    const field = document.createElement('textarea');
+    field.value = reason;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.opacity = '0';
+    document.body.appendChild(field);
+    try {
+      field.select();
+      if (!document.execCommand('copy')) throw new Error('Copy was not available.');
+    } finally {
+      field.remove();
+      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    }
+  }
+
+  spillReasonSaved(item: JiraDetail): void {
+    const number = this.selectedSpillEvent()?.number;
+    const reason = item.spillEvents.find(event => event.number === number)?.reason;
+    this.item.set(item);
+    this.selectedSpillEvent.set(null);
+    this.snackbar.success(reason?.length ? 'Spill reason updated.' : 'Spill reason cleared.');
   }
 
   plannedDays(history: SprintHistoryItem): string {

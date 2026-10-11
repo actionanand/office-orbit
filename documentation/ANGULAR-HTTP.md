@@ -164,7 +164,23 @@ searchTerms
   .subscribe(response => results.set(response.data));
 ```
 
-Handle errors with the shared `apiError()` mapper and show an inline retry state or `SnackbarService` message as appropriate. Do not retry mutations automatically.
+Handle the final error with the shared `apiError()` mapper and show an inline retry action or `SnackbarService` message as appropriate. Do not implement retry loops in components or feature services.
+
+## Common Worker timeout and retry policy
+
+Production registers functional interceptors in this order: `authInterceptor`, then `apiRetryInterceptor`. The retry interceptor parses URLs and applies only to `/api/*` on the exact `environment.apiBaseUrl` origin. All `/api/auth/*` endpoints (login, renewal, logout, sessions and status) retain the existing auth/session policy. External requests, including Google Sheets, keep their own timeouts and receive no generic retries.
+
+Policy constants live in `core/api/api-retry-policy.ts`. A normal Worker request has a **15-second per-attempt deadline**, including progress events. Eligible requests have **3 total attempts**: the original request plus two retries, waiting **1500 ms**, then **3000 ms**. Each attempt receives a fresh deadline; there is no outer timeout on the whole retry sequence. Markdown import POSTs preserve their existing 60-second budget through Angular's request `timeout` option and remain single-attempt.
+
+Only network status **0**, **408**, **425**, **429**, **500**, **502**, **503**, **504**, and the transport's RxJS `TimeoutError` can trigger retries. A valid `Retry-After` on 429 replaces the configured wait with its seconds or HTTP-date duration, capped at **30 seconds**. Missing, invalid or expired values fall back to the normal delay. Domain/input failures such as **400**, **401**, **403**, **404**, **405**, **409**, **413**, **415**, **422**, and all other unlisted statuses propagate immediately. In particular, Spill Reason allocation conflicts are never delayed, and 401 still reaches authentication for session/cache cleanup and login navigation.
+
+- `GET` and read-only `QUERY` automatically qualify, including QUERY's unchanged JSON body.
+- `MutationApiService.patch()` and `patchEndpoint()` mark set-style, idempotent updates with the internal `API_RETRY_SAFE_MUTATION` HTTP context token. Work Calendar saves use `patchEndpoint()` for their set-style `weekOffDays` update; the service caches the returned settings after the core API invalidates once. Other PATCH calls are single-attempt unless explicitly opted in by the core API layer. Features do not construct context tokens.
+- Create POSTs, command POSTs (imports, bulk delete, logout), and DELETE are **not retried**, even if a mutation marker is accidentally attached. A write may succeed on the Worker while its response is lost: repeating creation can duplicate records, and repeating deletion can return 404 after a successful delete. Safe retries for these writes require a future server idempotency contract.
+
+Internal failures never reach component error handlers, `apiError()`, snackbars or error panels. From the UI, this remains one logical call; loading/saving stays active until success or final failure. A success on attempt 2 or 3 returns normally. After the third transient failure, exactly one final error reaches the caller. A final TimeoutError still maps to “The request took too long. Check your connection and try again.” No global retry UI is added.
+
+The same immutable HTTP request (method, URL, params, body, headers and context) is reused. Direct unsubscription cancels the active request, its deadline and pending retry timers. Existing cache sharing is unchanged: DataCacheService intentionally holds in-flight reads with `shareReplay({ refCount: false })`, so detaching one component does not cancel a shared read. Retries occur below that shared Observable; only success is cached, and a final error is not cached. Mutation cache invalidation runs only after logical success, never on internal failures. This uses Angular/RxJS transport APIs on both web and Capacitor Android, with no platform-specific retry loops.
 
 ## Testing requests
 

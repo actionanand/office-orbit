@@ -539,8 +539,8 @@ describe('ResourcePage presentation', () => {
       context: 'Appraisal',
       feedbackType: 'Positive',
       workType: 'Office Work',
-      details: '',
-      actionFollowUp: '',
+      details: 'Discussed the rollout.\n\n- Cache issue identified\n- Security group updated',
+      actionFollowUp: 'Verify in **production**.',
       companyIds: ['company-id'],
       teamIds: ['team-id'],
       companies: [{ id: 'company-id', name: 'Clarivate' }],
@@ -574,5 +574,9 @@ describe('ResourcePage presentation', () => {
     expect(text).toContain('Clarivate');
     expect(text).not.toContain('Project');
     expect((fixture.nativeElement as HTMLElement).querySelector('[aria-label^="Edit feedback"]')).not.toBeNull();
+    const markdown = (fixture.nativeElement as HTMLElement).querySelectorAll('app-markdown-viewer');
+    expect(markdown).toHaveLength(2);
+    expect(markdown[0].querySelector('ul')).not.toBeNull();
+    expect(markdown[1].querySelector('strong')?.textContent).toBe('production');
   });
 });
