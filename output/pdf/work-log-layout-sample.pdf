@@ -1,0 +1,192 @@
+%PDF-1.4
+%OfficeOrbit
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 3 /Kids [3 0 R 5 0 R 7 0 R] >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R /F2 10 0 R /F3 11 0 R /F4 12 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 3271 >>
+stream
+BT /F2 11 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 795 Tm (OFFICE ORBIT) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 775 Tm (ACTIVITY REPORT) Tj ET
+BT /F2 22 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 742 Tm (Work Log Report) Tj ET
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 704 Tm (Sep 1 - Oct 31, 2026) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 682 Tm (6 entries  |  5 days with activity) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 667.75 Tm (Categories: Office Work, Freelancing, Grooming) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 654.25 Tm (Generated: Oct 11, 2026) Tj ET
+0.93 0.96 0.94 rg 42 606.75 511 27 re f
+0.09 0.39 0.25 rg 42 606.75 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 616.75 Tm (Oct 8, 2026) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 588.75 Tm (Update bumble bee script) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 565.75 Tm (Activity: Work | Office Work | WFH \(Home\)) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 544.5 Tm (Organization: Cortellis Regulatory Intelligence \(CRI\) | Clarivate | Jupiter \(Cortellis Team 1\)) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 523.25 Tm (JIRAs: LSC-86139) Tj ET
+0.93 0.96 0.94 rg 42 475 511 27 re f
+0.09 0.39 0.25 rg 42 475 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 485 Tm (Oct 7, 2026) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 457 Tm (Frontend bug fixed) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 434 Tm (Activity: Work | Office Work | WFH \(Home\)) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 412.75 Tm (Organization: Cortellis Regulatory Intelligence \(CRI\) | Clarivate | Jupiter \(Cortellis Team 1\)) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 391.5 Tm (JIRAs: LSC-86112) Tj ET
+BT /F2 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 370.25 Tm (Comment) Tj ET
+0.96 0.97 0.98 rg 46 350.75 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 353.75 Tm (The frontend issue was reproduced, fixed, and validated in the test environment.) Tj ET
+0.93 0.96 0.94 rg 42 304.75 511 27 re f
+0.09 0.39 0.25 rg 42 304.75 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 314.75 Tm (Sep 22, 2026) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 286.75 Tm (JWT inserted at email chips at edit alert) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 263.75 Tm (Activity: Office Work | WFO \(Office\)) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 242.5 Tm (Organization: Cortellis Regulatory Intelligence \(CRI\)) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 221.25 Tm (JIRAs: LSC-84944) Tj ET
+BT /F2 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 200 Tm (Comment) Tj ET
+0.96 0.97 0.98 rg 46 180.5 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 183.5 Tm (The token was inserted into the recipients field as an email chip. The update now retrieves the email) Tj ET
+0.96 0.97 0.98 rg 46 165.5 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 168.5 Tm (value and validates it before adding the recipient. Changes have been carefully tested in the stable) Tj ET
+0.96 0.97 0.98 rg 46 150.5 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 153.5 Tm (environment.) Tj ET
+0.93 0.96 0.94 rg 42 36.4 511 0.6 re f
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 19 Tm (Office Orbit  |  Work Log Report) Tj ET
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 536.18656 19 Tm (1 / 3) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R /F2 10 0 R /F3 11 0 R /F4 12 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 6405 >>
+stream
+BT /F2 8 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 814 Tm (OFFICE ORBIT  /  WORK LOG) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 479.53624 814 Tm (Work Log Report) Tj ET
+0.93 0.96 0.94 rg 42 805 511 1 re f
+0.93 0.96 0.94 rg 42 762 511 27 re f
+0.09 0.39 0.25 rg 42 762 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 772 Tm (Sep 22, 2026 \(continued\)) Tj ET
+0.85 0.89 0.87 rg 42 748.4 511 0.6 re f
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 732 Tm (Fixing font issue at Helix style based in rare scenario) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 709 Tm (Activity: Office Work | WFO \(Office\)) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 687.75 Tm (JIRAs: LSC-84944) Tj ET
+BT /F2 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 666.5 Tm (Comment) Tj ET
+0.96 0.97 0.98 rg 46 647 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 650 Tm (The issue was reproduced and the CSS changes were validated across supported views. The issue) Tj ET
+0.96 0.97 0.98 rg 46 632 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 635 Tm (was reproduced and the CSS changes were validated across supported views. The issue was) Tj ET
+0.96 0.97 0.98 rg 46 617 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 620 Tm (reproduced and the CSS changes were validated across supported views. The issue was reproduced) Tj ET
+0.96 0.97 0.98 rg 46 602 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 605 Tm (and the CSS changes were validated across supported views. The issue was reproduced and the) Tj ET
+0.96 0.97 0.98 rg 46 587 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 590 Tm (CSS changes were validated across supported views. The issue was reproduced and the CSS) Tj ET
+0.96 0.97 0.98 rg 46 572 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 575 Tm (changes were validated across supported views. The issue was reproduced and the CSS changes) Tj ET
+0.96 0.97 0.98 rg 46 557 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 560 Tm (were validated across supported views. The issue was reproduced and the CSS changes were) Tj ET
+0.96 0.97 0.98 rg 46 542 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 545 Tm (validated across supported views. The issue was reproduced and the CSS changes were validated) Tj ET
+0.96 0.97 0.98 rg 46 527 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 530 Tm (across supported views. The issue was reproduced and the CSS changes were validated across) Tj ET
+0.96 0.97 0.98 rg 46 512 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 515 Tm (supported views. The issue was reproduced and the CSS changes were validated across supported) Tj ET
+0.96 0.97 0.98 rg 46 497 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 500 Tm (views. The issue was reproduced and the CSS changes were validated across supported views. The) Tj ET
+0.96 0.97 0.98 rg 46 482 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 485 Tm (issue was reproduced and the CSS changes were validated across supported views. The issue was) Tj ET
+0.96 0.97 0.98 rg 46 467 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 470 Tm (reproduced and the CSS changes were validated across supported views. The issue was reproduced) Tj ET
+0.96 0.97 0.98 rg 46 452 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 455 Tm (and the CSS changes were validated across supported views. The issue was reproduced and the) Tj ET
+0.96 0.97 0.98 rg 46 437 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 440 Tm (CSS changes were validated across supported views. The issue was reproduced and the CSS) Tj ET
+0.96 0.97 0.98 rg 46 422 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 425 Tm (changes were validated across supported views. The issue was reproduced and the CSS changes) Tj ET
+0.96 0.97 0.98 rg 46 407 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 410 Tm (were validated across supported views. The issue was reproduced and the CSS changes were) Tj ET
+0.96 0.97 0.98 rg 46 392 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 395 Tm (validated across supported views. The issue was reproduced and the CSS changes were validated) Tj ET
+0.96 0.97 0.98 rg 46 377 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 380 Tm (across supported views. The issue was reproduced and the CSS changes were validated across) Tj ET
+0.96 0.97 0.98 rg 46 362 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 365 Tm (supported views. The issue was reproduced and the CSS changes were validated across supported) Tj ET
+0.96 0.97 0.98 rg 46 347 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 350 Tm (views. The issue was reproduced and the CSS changes were validated across supported views. The) Tj ET
+0.96 0.97 0.98 rg 46 332 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 335 Tm (issue was reproduced and the CSS changes were validated across supported views. The issue was) Tj ET
+0.96 0.97 0.98 rg 46 317 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 320 Tm (reproduced and the CSS changes were validated across supported views. The issue was reproduced) Tj ET
+0.96 0.97 0.98 rg 46 302 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 305 Tm (and the CSS changes were validated across supported views. The issue was reproduced and the) Tj ET
+0.96 0.97 0.98 rg 46 287 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 290 Tm (CSS changes were validated across supported views. The issue was reproduced and the CSS) Tj ET
+0.96 0.97 0.98 rg 46 272 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 275 Tm (changes were validated across supported views.) Tj ET
+BT /F2 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 253 Tm (Went wrong) Tj ET
+0.96 0.97 0.98 rg 46 233.5 507 15 re f
+BT /F1 10 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 236.5 Tm (Dependency changes required additional review before release.) Tj ET
+0.93 0.96 0.94 rg 42 187.5 511 27 re f
+0.09 0.39 0.25 rg 42 187.5 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 197.5 Tm (Sep 21, 2026) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 169.5 Tm (Preparing for prod deployment - frontend angular upgrade) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 146.5 Tm (Activity: Office Work | WFO \(Office\)) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 125.25 Tm (JIRAs: LSC-84944) Tj ET
+0.93 0.96 0.94 rg 42 36.4 511 0.6 re f
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 19 Tm (Office Orbit  |  Work Log Report) Tj ET
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 536.18656 19 Tm (2 / 3) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R /F2 10 0 R /F3 11 0 R /F4 12 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 791 >>
+stream
+BT /F2 8 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 814 Tm (OFFICE ORBIT  /  WORK LOG) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 479.53624 814 Tm (Work Log Report) Tj ET
+0.93 0.96 0.94 rg 42 805 511 1 re f
+0.93 0.96 0.94 rg 42 762 511 27 re f
+0.09 0.39 0.25 rg 42 762 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 772 Tm (Sep 18, 2026) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 744 Tm (M3 issue fixed completely) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 721 Tm (Activity: Office Work | WFO \(Office\)) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 699.75 Tm (JIRAs: LSC-84944) Tj ET
+0.93 0.96 0.94 rg 42 36.4 511 0.6 re f
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 19 Tm (Office Orbit  |  Work Log Report) Tj ET
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 536.18656 19 Tm (3 / 3) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+10 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+11 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+12 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000022 00000 n 
+0000000071 00000 n 
+0000000140 00000 n 
+0000000299 00000 n 
+0000003622 00000 n 
+0000003781 00000 n 
+0000010238 00000 n 
+0000010397 00000 n 
+0000011239 00000 n 
+0000011336 00000 n 
+0000011439 00000 n 
+0000011535 00000 n 
+trailer
+<< /Size 13 /Root 1 0 R >>
+startxref
+11641
+%%EOF

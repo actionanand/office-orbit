@@ -5,7 +5,12 @@ import { reportHtml, WorkLogReport } from '../../features/work-logs/work-log-rep
 import { reportPdf } from './report-pdf';
 
 interface NativeReportExporter {
-  exportPdf(options: { filename: string; content: string; title: string }): Promise<{ path: string }>;
+  exportPdf(options: {
+    filename: string;
+    content: string;
+    title: string;
+    pdfBase64?: string;
+  }): Promise<{ path: string }>;
 }
 
 export const NATIVE_REPORT_EXPORTER = new InjectionToken<NativeReportExporter>('Office Orbit native report exporter', {
@@ -54,17 +59,20 @@ export class ReportOutputService {
         section.rows.push({ state: 'normal', cells: [[record.title, ...record.lines].join('\n')] });
         sections.set(record.date, section);
       }
+      // Styled reports share the exact browser PDF on Android.
+      const pdfBase64 = report.layout ? await blobBase64(await reportPdf(report)) : undefined;
       const exporting = this.nativeExporter.exportPdf({
+        ...(pdfBase64 ? { pdfBase64 } : {}),
         filename,
-        title: 'Office Orbit Work Log Report',
+        title: 'Office Orbit ' + (report.title ?? 'Work Log Report'),
         content: JSON.stringify({
-          title: 'Office Orbit · Work Log Report',
+          title: 'Office Orbit · ' + (report.title ?? 'Work Log Report'),
           generatedOn: report.generated,
-          summary: [
+          summary: report.summary ?? [
             { label: 'Period', value: report.period },
             { label: 'Categories', value: report.categories },
           ],
-          headers: ['Work Log'],
+          headers: [report.title ? 'Details' : 'Work Log'],
           sections: [...sections.values()],
         }),
       });
@@ -94,4 +102,13 @@ export class ReportOutputService {
     anchor.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+}
+
+async function blobBase64(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+  }
+  return btoa(binary);
 }

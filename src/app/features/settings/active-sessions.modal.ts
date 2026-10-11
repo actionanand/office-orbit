@@ -110,7 +110,7 @@ import { ConfirmationService } from '../../core/notifications/confirmation.servi
                     size="small"
                     color="danger"
                     [attr.aria-label]="'Log out ' + deviceName(session)"
-                    [disabled]="isRevoking(session.id) || loggingOutOthers()"
+                    [disabled]="session.current || isRevoking(session.id) || loggingOutOthers()"
                     (click)="logoutSession(session)">
                     @if (isRevoking(session.id)) {
                       <ion-spinner name="crescent" />
@@ -184,6 +184,7 @@ export class ActiveSessionsModalComponent {
   }
 
   async logoutSession(session: ActiveSession): Promise<void> {
+    if (session.current || this.loggingOutOthers()) return;
     if (this.isRevoking(session.id) || !(await this.confirmSessionLogout(session))) return;
     this.revokingSessionIds.update(ids => [...ids, session.id]);
     this.error.set('');

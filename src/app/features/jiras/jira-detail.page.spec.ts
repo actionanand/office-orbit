@@ -2,6 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { LinksService } from '../../core/platform/links.service';
+import { ReportOutputService } from '../../core/platform/report-output.service';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
+import { reportPdf } from '../../core/platform/report-pdf';
+import { jiraPdfFilename, jiraReport } from './jira-report';
 import { JiraDetail, SprintRef } from '../../shared/models/api.models';
 import { JiraDetailPage } from './jira-detail.page';
 import { JiraLinkService } from './jira-link.service';
@@ -195,11 +199,15 @@ const jira: JiraDetail = {
 };
 
 describe('JiraDetailPage', () => {
+  const output = { android: false, pdf: vi.fn<ReportOutputService['pdf']>() };
+  const snackbar = { success: vi.fn(), error: vi.fn() };
   async function render(value = jira) {
     await TestBed.configureTestingModule({
       imports: [JiraDetailPage],
       providers: [
         provideRouter([]),
+        { provide: ReportOutputService, useValue: output },
+        { provide: SnackbarService, useValue: snackbar },
         { provide: JiraService, useValue: { detail: () => of(value) } },
         { provide: JiraLinkService, useValue: { externalUrl: () => of(null) } },
         { provide: LinksService, useValue: { open: vi.fn() } },
@@ -211,7 +219,80 @@ describe('JiraDetailPage', () => {
     return fixture;
   }
 
-  afterEach(() => TestBed.resetTestingModule());
+  afterEach(() => {
+    vi.resetAllMocks();
+    TestBed.resetTestingModule();
+  });
+
+  it('exports the loaded JIRA and prevents repeated clicks while exporting', async () => {
+    const fixture = await render();
+    let complete!: () => void;
+    output.pdf.mockImplementation(
+      () =>
+        new Promise<void>(resolve => {
+          complete = resolve;
+        }),
+    );
+    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.jira-pdf-export');
+    button?.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.exporting()).toBe(true);
+    expect(button?.getAttribute('aria-busy')).toBe('true');
+    await fixture.componentInstance.exportPdf();
+    expect(output.pdf).toHaveBeenCalledOnce();
+    expect(output.pdf).toHaveBeenCalledWith(jiraReport(jira), 'office-orbit-jira-CRI-1234.pdf');
+    complete();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.exporting()).toBe(false);
+    expect(snackbar.success).toHaveBeenCalledWith('JIRA PDF downloaded.');
+  });
+
+  it('reports export failures and allows another attempt', async () => {
+    const fixture = await render();
+    output.pdf.mockRejectedValueOnce(new Error('Native export unavailable'));
+    await fixture.componentInstance.exportPdf();
+    expect(snackbar.error).toHaveBeenCalledWith('Unable to export JIRA PDF. Please try again.');
+    expect(fixture.componentInstance.exporting()).toBe(false);
+    output.pdf.mockResolvedValueOnce();
+    await fixture.componentInstance.exportPdf();
+    expect(output.pdf).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not export stale data while a refresh is loading', async () => {
+    const fixture = await render();
+    fixture.componentInstance.loading.set(true);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.jira-pdf-export')).toBeNull();
+    await fixture.componentInstance.exportPdf();
+    expect(output.pdf).not.toHaveBeenCalled();
+  });
+
+  it('includes all histories and collapsed content in a real PDF without internal IDs', async () => {
+    const report = jiraReport(jira);
+    const text = JSON.stringify(report);
+    for (const section of [
+      'Overview',
+      'Description',
+      'Sprint history',
+      'Spill history',
+      'Work history',
+      'Relationships',
+      'Release history',
+      'Demo',
+      'Record information',
+    ]) {
+      expect(report.records.some(record => record.date === section)).toBe(true);
+    }
+    expect(text).toContain(jira.description);
+    expect(text).toContain(jira.relationships[0].otherJira.key);
+    expect(text).toContain(jira.releaseItems[0].versionNumber);
+    expect(text).not.toContain('hidden-');
+    const blob = await reportPdf(report);
+    expect(blob.type).toBe('application/pdf');
+    expect(await blob.text()).toContain('%PDF-1.4');
+    expect(await blob.text()).toContain('JIRA Detail');
+    expect(jiraPdfFilename('../CRI/123')).toBe('office-orbit-jira----CRI-123.pdf');
+  });
 
   it('renders every Sprint history entry with planned days, internal links, and the active marker', async () => {
     const fixture = await render();
@@ -246,12 +327,20 @@ describe('JiraDetailPage', () => {
     const fixture = await render();
     const element = fixture.nativeElement as HTMLElement;
     const text = element.textContent ?? '';
+    const relationships = element.querySelector('.relationships-section');
+    const cards = relationships?.querySelectorAll('.relationship-grid > .relationship-item');
+
+    expect(relationships).toBeTruthy();
+    expect(relationships?.querySelector('.relationship-grid')).toBeTruthy();
+    expect(cards).toHaveLength(2);
     expect(text).toContain('Move the client to the current JIRA contract.');
     expect(text).toContain('First Sprint Start');
     expect(text).toContain('Spill history needs review');
     expect(text).toContain('Spilled');
     expect(text).toContain('Blocks');
+    expect(text).toContain('Depends on');
     expect(text).toContain('CRI-1200');
+    expect(text).toContain('CRI-1201');
     expect(text).toContain('Waiting for platform changes.');
     expect(text).toContain('Resolved');
     expect(text).not.toContain('Blocked by');

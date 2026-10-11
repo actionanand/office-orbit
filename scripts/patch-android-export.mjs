@@ -24,6 +24,7 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
+import android.util.Base64;
 
 import androidx.core.content.FileProvider;
 
@@ -55,6 +56,7 @@ public class OfficeOrbitExportPlugin extends Plugin {
   public void exportPdf(PluginCall call) {
     String filename = call.getString("filename");
     String content = call.getString("content");
+    String pdfBase64 = call.getString("pdfBase64");
     String title = call.getString("title", "Office Orbit PDF Export");
 
     if (filename == null || filename.trim().isEmpty()) {
@@ -79,7 +81,18 @@ public class OfficeOrbitExportPlugin extends Plugin {
       }
 
       File outputFile = new File(exportDir, outputName);
-      writePdf(outputFile, title, content);
+      if (pdfBase64 != null && !pdfBase64.isEmpty()) {
+        byte[] pdf = Base64.decode(pdfBase64, Base64.DEFAULT);
+        if (pdf.length < 5 || pdf[0] != '%' || pdf[1] != 'P' || pdf[2] != 'D' || pdf[3] != 'F' || pdf[4] != '-') {
+          call.reject("Invalid PDF content.");
+          return;
+        }
+        try (FileOutputStream output = new FileOutputStream(outputFile, false)) {
+          output.write(pdf);
+        }
+      } else {
+        writePdf(outputFile, title, content);
+      }
       shareFile(outputFile, "application/pdf", title);
 
       JSObject result = new JSObject();
@@ -165,7 +178,7 @@ public class OfficeOrbitExportPlugin extends Plugin {
 
     ensureSpace(document, state, 28);
     state.y += 12;
-    state.canvas.drawText("Office Orbit - Work Log Report", PAGE_MARGIN, state.y, subtitlePaint);
+    state.canvas.drawText(title, PAGE_MARGIN, state.y, subtitlePaint);
 
     drawFooter(state);
     document.finishPage(state.page);

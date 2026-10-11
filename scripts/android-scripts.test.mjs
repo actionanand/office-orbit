@@ -105,6 +105,8 @@ test('Android patch is idempotent and restricts permissions and backup', () =>
     assert.match(exporter, /FLAG_GRANT_READ_URI_PERMISSION/);
     assert.match(exporter, /getPackageName\(\) \+ "\.fileprovider"/);
     assert.match(exporter, /application\/pdf/);
+    assert.match(exporter, /Base64.decode\(pdfBase64, Base64.DEFAULT\)/);
+    assert.match(exporter, /output.write\(pdf\)/);
     const credentials = readFileSync(
       path.join(root, 'android/app/src/main/java/com/example/officeorbit/OfficeOrbitCredentialsPlugin.java'),
       'utf8',
