@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { LinksService } from '../../core/platform/links.service';
@@ -10,6 +11,7 @@ import { JiraDetail, SprintRef } from '../../shared/models/api.models';
 import { JiraDetailPage } from './jira-detail.page';
 import { JiraLinkService } from './jira-link.service';
 import { JiraService } from './jiras.service';
+import { JiraSpillReasonEditorComponent } from './jira-spill-reason-editor.component';
 
 const historical: SprintRef = {
   id: 'sprint-5',
@@ -321,6 +323,190 @@ describe('JiraDetailPage', () => {
     expect(text).toContain('Dependency delay');
     expect(text).not.toContain('No reason');
     expect(text).toContain('Dependency delay');
+  });
+
+  it('renders Markdown spill reasons and exposes Add/Edit using the supplied event numbers', async () => {
+    const value: JiraDetail = {
+      ...jira,
+      sprintHistory: jira.sprintHistory.map(history => ({
+        ...history,
+        allocationId: 'allocation',
+        allocationConflict: false,
+        allocationCount: 1,
+      })),
+      // Deliberately reorder events: the event number must never come from array position.
+      spillEvents: [
+        { ...jira.spillEvents[1], reason: null },
+        { ...jira.spillEvents[0], reason: 'Blocked by **DevOps**\n\n- Pipeline\n- Deployment' },
+      ],
+    };
+    const fixture = await render(value);
+    const element = fixture.nativeElement as HTMLElement;
+    const viewer = element.querySelector('.spill-reason app-markdown-viewer');
+    expect(viewer?.querySelector('strong')?.textContent).toBe('DevOps');
+    expect(viewer?.querySelectorAll('li')).toHaveLength(2);
+    expect(viewer?.textContent).not.toContain('**');
+    const cards = element.querySelectorAll<HTMLElement>('.spill-event');
+    expect(cards[0].querySelector('.spill-reason-action')?.textContent).toContain('Edit reason');
+    expect(cards[0].querySelector('.spill-reason-action ion-icon')?.getAttribute('name')).toBe('create-outline');
+    expect(cards[0].querySelector('.spill-reason-copy')?.getAttribute('aria-label')).toBe('Copy reason for spill #1');
+    expect(cards[1].querySelector('.spill-reason-copy')).toBeNull();
+    expect(cards[1].querySelector('.spill-reason-action')?.textContent).toContain('Add reason');
+    expect(cards[1].textContent).toContain('No spill reason recorded.');
+    cards[0].querySelector<HTMLElement>('.spill-reason-action')!.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.selectedSpillEvent()?.number).toBe(1);
+    const editor = fixture.debugElement.query(By.directive(JiraSpillReasonEditorComponent))
+      .componentInstance as JiraSpillReasonEditorComponent;
+    expect(editor.event().number).toBe(1);
+    fixture.componentInstance.selectedSpillEvent.set(null);
+    fixture.detectChanges();
+    cards[1].querySelector<HTMLElement>('.spill-reason-action')!.click();
+    expect(fixture.componentInstance.selectedSpillEvent()?.number).toBe(2);
+  });
+
+  it('copies only the exact reason source, preserving Markdown and whitespace without editing the spill', async () => {
+    const fixture = await render();
+    const reason = '  **Dependency**\n\n- Pipeline\n  - [Deployment](https://example.com)\n';
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const original = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    try {
+      await fixture.componentInstance.copySpillReason({ ...jira.spillEvents[0], reason });
+      expect(writeText).toHaveBeenCalledExactlyOnceWith(reason);
+      expect(fixture.componentInstance.item()).toBe(jira);
+      expect(fixture.componentInstance.selectedSpillEvent()).toBeNull();
+      expect(TestBed.inject(SnackbarService).success).toHaveBeenCalledWith('Spill reason copied.');
+      expect(fixture.componentInstance.copyingSpillReason()).toBeNull();
+    } finally {
+      if (original) Object.defineProperty(navigator, 'clipboard', original);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+    }
+  });
+
+  it('reports clipboard failure and resets the copy control for retry', async () => {
+    const fixture = await render();
+    const writeText = vi.fn().mockRejectedValue(new Error('Permission denied'));
+    const original = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    try {
+      await fixture.componentInstance.copySpillReason(jira.spillEvents[0]);
+      expect(TestBed.inject(SnackbarService).error).toHaveBeenCalledWith(
+        'Unable to copy spill reason. Please try again.',
+      );
+      expect(fixture.componentInstance.copyingSpillReason()).toBeNull();
+      expect(TestBed.inject(SnackbarService).success).not.toHaveBeenCalled();
+    } finally {
+      if (original) Object.defineProperty(navigator, 'clipboard', original);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+    }
+  });
+
+  it('copies normal text without Markdown markers while retaining readable list structure', async () => {
+    const fixture = await render();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const original = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    try {
+      await fixture.componentInstance.copySpillReason(
+        {
+          ...jira.spillEvents[0],
+          reason: '## Delay\n\n**Blocked** by [DevOps](https://example.com)\n\n- Pipeline\n- Deployment',
+        },
+        'text',
+      );
+      expect(writeText).toHaveBeenCalledExactlyOnceWith('Delay\n\nBlocked by DevOps\n\n• Pipeline\n\n• Deployment');
+    } finally {
+      if (original) Object.defineProperty(navigator, 'clipboard', original);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+    }
+  });
+
+  it('copies formatted text as safe HTML and a plain text fallback', async () => {
+    const write = vi.fn().mockResolvedValue(undefined);
+    const original = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { write } });
+    class TestClipboardItem {
+      constructor(readonly data: Record<string, Blob>) {}
+      static supports(type: string): boolean {
+        return type === 'text/html';
+      }
+    }
+    vi.stubGlobal('ClipboardItem', TestClipboardItem);
+    try {
+      const fixture = await render();
+      expect(fixture.componentInstance.richCopySupported).toBe(true);
+      await fixture.componentInstance.copySpillReason(
+        { ...jira.spillEvents[0], reason: '**Blocked**\n\n- Pipeline\n\n[DevOps](https://example.com)' },
+        'formatted',
+      );
+      const item = (write.mock.calls[0][0] as TestClipboardItem[])[0];
+      const readText = (blob: Blob) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(reader.error);
+          reader.readAsText(blob);
+        });
+      const html = await readText(item.data['text/html']);
+      expect(html).toContain('<strong>Blocked</strong>');
+      expect(html).toContain('<li>Pipeline</li>');
+      expect(html).toContain('href="https://example.com"');
+      expect(await readText(item.data['text/plain'])).toBe('Blocked\n\n• Pipeline\n\nDevOps');
+    } finally {
+      vi.unstubAllGlobals();
+      if (original) Object.defineProperty(navigator, 'clipboard', original);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+    }
+  });
+
+  it('replaces the detail with the saved response, closes the editor and avoids another GET', async () => {
+    const fixture = await render();
+    const page = fixture.componentInstance;
+    page.openSpillReasonEditor(jira.spillEvents[0]);
+    fixture.detectChanges();
+    const editor = fixture.debugElement.query(By.directive(JiraSpillReasonEditorComponent))
+      .componentInstance as JiraSpillReasonEditorComponent;
+    const detail = vi.spyOn(TestBed.inject(JiraService), 'detail');
+    const refreshed = {
+      ...jira,
+      spillEvents: [{ ...jira.spillEvents[0], reason: '**Updated** reason' }, jira.spillEvents[1]],
+    };
+    editor.saved.emit(refreshed);
+    fixture.detectChanges();
+    expect(page.item()).toBe(refreshed);
+    expect(page.selectedSpillEvent()).toBeNull();
+    expect(detail).not.toHaveBeenCalled();
+    expect(snackbar.success).toHaveBeenCalledWith('Spill reason updated.');
+    page.openSpillReasonEditor(refreshed.spillEvents[0]);
+    page.spillReasonSaved({ ...refreshed, spillEvents: [{ ...refreshed.spillEvents[0], reason: '' }] });
+    expect(snackbar.success).toHaveBeenLastCalledWith('Spill reason cleared.');
+    page.editOpen.set(true);
+    page.edited(refreshed);
+    expect(page.editOpen()).toBe(false);
+    expect(page.item()).toBe(refreshed);
+  });
+
+  it.each([
+    [false, 'Add a Sprint Allocation'],
+    [true, 'Resolve the Sprint Allocation conflict'],
+  ])('disables editing with a helpful hint for missing/conflicting allocations (%s)', async (conflict, message) => {
+    const value: JiraDetail = {
+      ...jira,
+      sprintHistory: jira.sprintHistory.map(history => ({
+        ...history,
+        allocationId: null,
+        allocationConflict: conflict,
+      })),
+    };
+    const fixture = await render(value);
+    const button = (fixture.nativeElement as HTMLElement).querySelector('ion-button.spill-reason-action');
+    expect(button?.getAttribute('disabled')).not.toBeNull();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.spill-event .allocation-warning')?.textContent,
+    ).toContain(message);
+    fixture.componentInstance.openSpillReasonEditor(value.spillEvents[0]);
+    expect(fixture.componentInstance.selectedSpillEvent()).toBeNull();
   });
 
   it('renders Work History comments and issues through the shared Markdown viewer', async () => {

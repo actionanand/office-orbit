@@ -169,12 +169,17 @@ export interface ReferenceLibraryQueryFilters {
 export interface JiraCreateRequest {
   jiraKey: string;
   summary: string;
+  descriptionMarkdown?: string;
   projectId: string | null;
   statusOptionId: string | null;
   tagOptionIds: string[];
   inActiveSprint: boolean;
   demoRequired: boolean;
   appraisal: boolean;
+}
+
+export interface JiraSpillReasonRequest {
+  reasonMarkdown: string;
 }
 
 export interface WorkLogCreateRequest {

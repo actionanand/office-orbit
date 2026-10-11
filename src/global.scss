@@ -1735,8 +1735,42 @@ ion-popover.work-link-popover {
 .spill-reason {
   margin-top: 10px;
 }
-.spill-reason p {
-  white-space: pre-wrap;
+.spill-event-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.spill-reason-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.spill-reason-action,
+.spill-reason-copy {
+  min-height: 44px;
+  margin: 0;
+}
+.spill-reason-copy {
+  min-width: 44px;
+}
+.spill-copy-popover {
+  --width: 210px;
+}
+.spill-copy-menu {
+  padding: 8px;
+}
+.spill-copy-menu ion-button {
+  min-height: 44px;
+  margin: 0;
+  justify-content: flex-start;
+}
+.spill-copy-menu ion-button::part(native) {
+  justify-content: flex-start;
+}
+.spill-reason-editor-modal {
+  --height: min(580px, calc(100dvh - 32px));
 }
 .planned-days {
   color: var(--muted);

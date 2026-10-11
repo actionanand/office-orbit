@@ -49,12 +49,13 @@ describe('JiraService', () => {
     const metadata = vi.fn(() => of({ resource: 'jiras', fields: [] }));
     const create = vi.fn(() => of({ data: jira }));
     const patch = vi.fn(() => of({ data: jira }));
+    const patchEndpoint = vi.fn(() => of({ data: jira }));
     TestBed.configureTestingModule({
       providers: [
         JiraService,
         { provide: ResourceService, useValue: { detail } },
         { provide: CursorService, useValue: {} },
-        { provide: MutationApiService, useValue: { metadata, create, patch } },
+        { provide: MutationApiService, useValue: { metadata, create, patch, patchEndpoint } },
       ],
     });
     const result: Observable<JiraDetail> = TestBed.inject(JiraService).detail('CRI/1', true);
@@ -80,5 +81,18 @@ describe('JiraService', () => {
     expect(create).toHaveBeenCalledWith('/api/jiras', body);
     await firstValueFrom(service.update('CRI/1', { summary: 'Updated summary' }));
     expect(patch).toHaveBeenCalledWith('/api/jiras', 'CRI/1', { summary: 'Updated summary' });
+    const reason = 'Blocked by **DevOps**\n\n- deployment issue';
+    await expect(firstValueFrom(service.updateSpillReason('LSC-84944', 2, reason))).resolves.toEqual({ data: jira });
+    expect(patchEndpoint).toHaveBeenLastCalledWith(
+      '/api/jiras/LSC-84944/spills/2/reason',
+      { reasonMarkdown: reason },
+      '/api/jiras',
+    );
+    await firstValueFrom(service.updateSpillReason('CRI/1', 7, ''));
+    expect(patchEndpoint).toHaveBeenLastCalledWith(
+      '/api/jiras/CRI%2F1/spills/7/reason',
+      { reasonMarkdown: '' },
+      '/api/jiras',
+    );
   });
 });
