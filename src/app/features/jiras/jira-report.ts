@@ -1,7 +1,7 @@
 import { JiraDetail } from '../../shared/models/api.models';
 import { formatDate, formatDateRange, names } from '../../shared/utils/format';
 import { activeSprint } from '../../shared/utils/jira';
-import { markdownBlocks } from '../../core/platform/report-markdown';
+import { markdownFieldBlocks } from '../../core/platform/report-markdown';
 import { ReportRecord, WorkLogReport } from '../work-logs/work-log-report';
 
 /** Export the loaded detail, including collapsed histories, without internal relation IDs. */
@@ -13,7 +13,7 @@ export function jiraReport(jira: JiraDetail): WorkLogReport {
       date: section,
       title,
       lines: lines.filter(Boolean),
-      blocks: lines.filter(Boolean).flatMap(markdownBlocks),
+      blocks: lines.filter(Boolean).flatMap(markdownFieldBlocks),
     });
 
   add('Overview', jira.summary || jira.jiraKey, [

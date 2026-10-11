@@ -26,6 +26,7 @@ import {
 } from '../../shared/models/api.models';
 import { metadataOptions, optionId, relationOptions, todayIso } from '../../shared/utils/editor';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
+import { MarkdownInputComponent } from '../../shared/components/markdown-input.component';
 
 @Component({
   selector: 'app-feedback-editor',
@@ -41,6 +42,7 @@ import { IonicDateFieldComponent } from '../../shared/components/ionic-date-fiel
     IonTitle,
     IonToolbar,
     IonicDateFieldComponent,
+    MarkdownInputComponent,
   ],
   template: `<ion-modal
     class="editor-modal"
@@ -151,10 +153,12 @@ import { IonicDateFieldComponent } from '../../shared/components/ionic-date-fiel
                 ><small>Automatically derived from Company</small>
               </div>
             }
-            <label class="field-span">Details<textarea rows="4" formControlName="details"></textarea></label>
-            <label class="field-span"
-              >Action / Follow-up<textarea rows="3" formControlName="actionFollowUp"></textarea>
-            </label>
+            <app-markdown-input class="field-span" label="Details" [rows]="5" formControlName="details" />
+            <app-markdown-input
+              class="field-span"
+              label="Action / Follow-up"
+              [rows]="4"
+              formControlName="actionFollowUp" />
             @if (optionWarning()) {
               <p class="field-error field-span" role="alert">{{ optionWarning() }}</p>
             }

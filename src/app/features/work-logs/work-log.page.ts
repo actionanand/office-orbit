@@ -44,6 +44,8 @@ import { calendarDays, currentMonth } from './calendar';
 import { WorkLogFilters, WorkLogStore, WorkLogViewMode } from './work-log.store';
 import { WorkLogService } from './work-logs.service';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
+import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
+import { MarkdownViewerComponent } from '../productivity/markdown-viewer.component';
 
 @Component({
   selector: 'app-work-log',
@@ -69,6 +71,8 @@ import { IonicDateFieldComponent } from '../../shared/components/ionic-date-fiel
     StatePanelComponent,
     StatusBadgeComponent,
     IonicDateFieldComponent,
+    InlineMarkdownPipe,
+    MarkdownViewerComponent,
   ],
   template: `<ion-header class="ion-no-border">
       <ion-toolbar>
@@ -246,7 +250,7 @@ import { IonicDateFieldComponent } from '../../shared/components/ionic-date-fiel
               }
               <article class="activity-row print-record">
                 <button class="activity-main" type="button" (click)="openDetail(item)">
-                  <strong>{{ item.update || 'Work update' }}</strong>
+                  <strong class="inline-markdown" [innerHTML]="item.update || 'Work update' | inlineMarkdown"></strong>
                   <span class="meta-line">
                     @if (item.type) {
                       <span>{{ item.type }}</span>
@@ -295,7 +299,10 @@ import { IonicDateFieldComponent } from '../../shared/components/ionic-date-fiel
             ><ion-icon slot="icon-only" name="close-outline"
           /></ion-button>
           <p class="eyebrow">Work log · {{ date(item.date) }}</p>
-          <h2 id="work-log-detail-title">{{ item.update || 'Work update' }}</h2>
+          <h2
+            id="work-log-detail-title"
+            class="inline-markdown"
+            [innerHTML]="item.update || 'Work update' | inlineMarkdown"></h2>
           <ion-button fill="outline" (click)="openEditor(item)">
             <ion-icon name="pencil-outline" slot="start" />Edit work log
           </ion-button>
@@ -360,11 +367,11 @@ import { IonicDateFieldComponent } from '../../shared/components/ionic-date-fiel
               <h3>Notes</h3>
               @if (item.comment) {
                 <h4>Comment</h4>
-                <p>{{ item.comment }}</p>
+                <app-markdown-viewer class="compact-markdown" [markdown]="item.comment" />
               }
               @if (item.wentWrong) {
                 <h4>Went wrong</h4>
-                <p>{{ item.wentWrong }}</p>
+                <app-markdown-viewer class="compact-markdown" [markdown]="item.wentWrong" />
               }
             </section>
           }

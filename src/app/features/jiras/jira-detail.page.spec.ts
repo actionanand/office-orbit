@@ -323,6 +323,16 @@ describe('JiraDetailPage', () => {
     expect(text).toContain('Dependency delay');
   });
 
+  it('renders Work History comments and issues through the shared Markdown viewer', async () => {
+    const fixture = await render();
+    const history = (fixture.nativeElement as HTMLElement).querySelector('.work-history-list');
+    const markdown = history?.querySelectorAll('app-markdown-viewer');
+
+    expect(markdown).toHaveLength(2);
+    expect(markdown?.[0].textContent).toContain('Migrated the build.');
+    expect(markdown?.[1].textContent).toContain('Pipeline was unavailable.');
+  });
+
   it('renders server-authoritative relationships, JIRA description, and spill history state', async () => {
     const fixture = await render();
     const element = fixture.nativeElement as HTMLElement;

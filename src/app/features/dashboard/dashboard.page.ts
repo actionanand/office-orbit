@@ -14,6 +14,7 @@ import { formatDate, formatRelativeTime, formatShortDate, formatTodayLabel, trun
 import { spilloverLabel } from '../../shared/utils/jira';
 import { JiraLinkComponent } from '../jiras/jira-link.component';
 import { DashboardService } from './dashboard.service';
+import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
 
 interface AttentionItem {
   jira: Jira;
@@ -36,6 +37,7 @@ interface AttentionItem {
     LoadingSkeletonComponent,
     StatePanelComponent,
     StatusBadgeComponent,
+    InlineMarkdownPipe,
   ],
   template: `<ion-header class="ion-no-border">
       <ion-toolbar><ion-title>Dashboard</ion-title></ion-toolbar>
@@ -188,7 +190,9 @@ interface AttentionItem {
                     <div class="recent-row">
                       <time [attr.datetime]="log.date">{{ date(log.date) }}</time>
                       <span class="entity-copy"
-                        ><strong>{{ log.update || 'Work update' }}</strong
+                        ><strong
+                          class="inline-markdown"
+                          [innerHTML]="log.update || 'Work update' | inlineMarkdown"></strong
                         ><span class="meta-line">
                           @if (log.type) {
                             <span>{{ log.type }}</span>

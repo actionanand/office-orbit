@@ -67,6 +67,8 @@ import { WorkLinkEditorComponent } from '../work-links/work-link-editor.componen
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
 import { ReleaseDateEditorComponent } from '../releases/release-date-editor.component';
 import { ReleaseCalendarComponent } from '../releases/release-calendar.component';
+import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
+import { MarkdownViewerComponent } from '../productivity/markdown-viewer.component';
 
 interface AllocationDetailSource {
   allocationJiras(allocations: SprintAllocation[], refresh?: boolean): Observable<Record<string, SprintDetailJira[]>>;
@@ -113,6 +115,8 @@ function supportsAllocationDetails(
     IonicDateFieldComponent,
     ReleaseDateEditorComponent,
     ReleaseCalendarComponent,
+    InlineMarkdownPipe,
+    MarkdownViewerComponent,
   ],
   template: `<ion-header class="ion-no-border">
       <ion-toolbar>
@@ -206,7 +210,9 @@ function supportsAllocationDetails(
                 }
                 <button class="activity-row" type="button" (click)="openWorkLog(item)">
                   <span class="activity-main">
-                    <strong>{{ item.update || 'Work update' }}</strong>
+                    <strong
+                      class="inline-markdown"
+                      [innerHTML]="item.update || 'Work update' | inlineMarkdown"></strong>
                     <span class="meta-line">
                       @if (item.type) {
                         <span>{{ item.type }}</span>
@@ -623,10 +629,13 @@ function supportsAllocationDetails(
                       }
                     </span>
                     @if (item.details) {
-                      <span class="preview">{{ item.details }}</span>
+                      <app-markdown-viewer class="compact-markdown" [markdown]="item.details" />
                     }
                     @if (item.actionFollowUp) {
-                      <span class="follow-up"><strong>Follow-up:</strong> {{ item.actionFollowUp }}</span>
+                      <div class="follow-up">
+                        <strong>Follow-up:</strong>
+                        <app-markdown-viewer class="compact-markdown" [markdown]="item.actionFollowUp" />
+                      </div>
                     }
                   </div>
                 </article>
@@ -749,7 +758,10 @@ function supportsAllocationDetails(
             <ion-icon name="close-outline" />
           </button>
           <p class="eyebrow">Work log · {{ date(item.date) }}</p>
-          <h2 id="work-log-title">{{ item.update || 'Work update' }}</h2>
+          <h2
+            id="work-log-title"
+            class="inline-markdown"
+            [innerHTML]="item.update || 'Work update' | inlineMarkdown"></h2>
           <section class="detail-section">
             <h3>Overview</h3>
             <dl class="detail-grid">
@@ -811,11 +823,11 @@ function supportsAllocationDetails(
               <h3>Notes</h3>
               @if (item.comment) {
                 <h4>Comment</h4>
-                <p>{{ item.comment }}</p>
+                <app-markdown-viewer class="compact-markdown" [markdown]="item.comment" />
               }
               @if (item.wentWrong) {
                 <h4>Went wrong</h4>
-                <p>{{ item.wentWrong }}</p>
+                <app-markdown-viewer class="compact-markdown" [markdown]="item.wentWrong" />
               }
             </section>
           }

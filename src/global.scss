@@ -91,6 +91,15 @@ ion-segment-button {
 ion-content {
   --background: var(--ion-background-color);
 }
+// Restore depth for stacked dialogs; Ionic removes their backdrop and shadow by default.
+ion-modal.modal-default.show-modal ~ ion-modal.modal-default {
+  --backdrop-opacity: 0.22;
+  --box-shadow: 0 20px 56px rgb(0 0 0 / 28%), 0 6px 20px rgb(0 0 0 / 16%), 0 0 0 1px rgb(0 0 0 / 6%);
+}
+ion-modal.modal-default.show-modal ~ ion-modal.modal-default::part(backdrop) {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
 .confirmation-modal {
   --width: min(440px, calc(100vw - 32px));
   --height: auto;
@@ -113,8 +122,8 @@ ion-content {
 .confirmation-icon {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 14px;
   background: var(--surface-soft);
   color: var(--accent);
@@ -127,10 +136,13 @@ ion-content {
   font-size: 25px;
 }
 .confirmation-heading {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+}
+.confirmation-heading h2 {
+  overflow-wrap: anywhere;
 }
 .confirmation-heading h2,
 .confirmation-card p {
@@ -138,7 +150,8 @@ ion-content {
 }
 .confirmation-heading ion-button {
   min-width: 44px;
-  margin: -10px -10px -10px 0;
+  min-height: 44px;
+  margin: 0;
 }
 .confirmation-actions {
   display: flex;
@@ -1824,21 +1837,91 @@ ion-popover.work-link-popover {
   margin: 2px 0 0;
   overflow-wrap: anywhere;
 }
-.rich-text-field {
+.markdown-input {
   display: grid;
+  min-width: 0;
   gap: 6px;
 }
-.rich-text-editor {
-  min-height: 150px;
-  padding: 12px;
+.markdown-input > label {
+  color: var(--ion-text-color);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+.markdown-input-frame {
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--surface);
-  overflow-wrap: anywhere;
 }
-.rich-text-editor:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.markdown-input-controls,
+.markdown-input-modes,
+.markdown-input-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.markdown-input-controls {
+  padding: 4px;
+  border-bottom: 1px solid var(--line);
+  border-radius: 9px 9px 0 0;
+  background: var(--surface-soft);
+}
+.markdown-input-controls button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.markdown-input-modes button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--surface);
+}
+.markdown-input-tools button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.markdown-input-tools ion-icon,
+.markdown-input-tools svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+.markdown-input-controls button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.markdown-input-tools[hidden],
+.markdown-input textarea[hidden] {
+  display: none;
+}
+.markdown-input .markdown-input-frame textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 0;
+  border-radius: 0 0 9px 9px;
+  background: var(--surface);
+  color: var(--ion-text-color);
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.markdown-input .markdown-input-frame textarea[hidden] {
+  display: none;
+}
+.markdown-input-preview {
+  min-height: 120px;
+  padding: 12px;
+  overflow-wrap: anywhere;
 }
 @media (max-width: 700px) {
   .work-history-heading {
@@ -2762,6 +2845,8 @@ ion-popover.work-link-popover {
 }
 .editor-actions {
   position: sticky;
+  // Ionic outlined fields use z-index: 2 inside their Shadow DOM.
+  z-index: 3;
   bottom: 0;
   display: flex;
   justify-content: flex-end;
@@ -3116,6 +3201,23 @@ ion-popover.work-link-popover {
 }
 .markdown-viewer > :last-child {
   margin-bottom: 0;
+}
+.compact-markdown .markdown-viewer {
+  max-width: none;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.compact-markdown .markdown-viewer p,
+.compact-markdown .markdown-viewer ul,
+.compact-markdown .markdown-viewer ol,
+.compact-markdown .markdown-viewer dl,
+.compact-markdown .markdown-viewer blockquote,
+.compact-markdown .markdown-viewer details,
+.compact-markdown .markdown-viewer .markdown-table-scroll {
+  margin-bottom: 0.65rem;
+}
+.inline-markdown {
+  display: inline;
 }
 .markdown-viewer h1,
 .markdown-viewer h2,

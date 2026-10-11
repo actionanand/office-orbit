@@ -28,6 +28,7 @@ import {
 } from '../../shared/models/api.models';
 import { metadataOptions, optionId, relationOptions, todayIso } from '../../shared/utils/editor';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
+import { MarkdownInputComponent } from '../../shared/components/markdown-input.component';
 import { JiraPickerComponent, JiraPickerSelection } from '../jiras/jira-picker.component';
 
 @Component({
@@ -45,6 +46,7 @@ import { JiraPickerComponent, JiraPickerSelection } from '../jiras/jira-picker.c
     IonToolbar,
     IonicDateFieldComponent,
     JiraPickerComponent,
+    MarkdownInputComponent,
   ],
   template: `<ion-modal
     class="editor-modal"
@@ -140,8 +142,8 @@ import { JiraPickerComponent, JiraPickerSelection } from '../jiras/jira-picker.c
               [selectedIds]="form.controls.jiraIds.value"
               [selectedJiras]="selectedJiras()"
               (selectionChange)="jirasChanged($event)" />
-            <label class="field-span">Comment<textarea rows="3" formControlName="comment"></textarea></label>
-            <label class="field-span">Went wrong<textarea rows="3" formControlName="wentWrong"></textarea></label>
+            <app-markdown-input class="field-span" label="Comment" formControlName="comment" />
+            <app-markdown-input class="field-span" label="Went wrong" formControlName="wentWrong" />
             <label class="check-field"><input type="checkbox" formControlName="appraisal" />Appraisal</label>
             @if (optionWarning()) {
               <p class="field-error field-span" role="alert">{{ optionWarning() }}</p>

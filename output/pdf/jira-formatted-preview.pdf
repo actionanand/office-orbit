@@ -1,0 +1,116 @@
+%PDF-1.4
+%OfficeOrbit
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 1 /Kids [3 0 R] >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R /F4 8 0 R /F5 9 0 R >> >> /Contents 4 0 R /Annots [10 0 R 11 0 R 12 0 R] >>
+endobj
+4 0 obj
+<< /Length 3885 >>
+stream
+BT /F2 11 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 795 Tm (OFFICE ORBIT) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 775 Tm (JIRA DETAIL REPORT) Tj ET
+BT /F2 22 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 742 Tm (RIR prod deployment) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 704 Tm (LSC-86139  |  Generated Oct 11, 2026) Tj ET
+0.93 0.96 0.94 rg 42 656.5 511 27 re f
+0.09 0.39 0.25 rg 42 656.5 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 666.5 Tm (Overview) Tj ET
+BT /F1 8.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 638.5 Tm (Status) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 621.5 Tm (Done) Tj ET
+BT /F1 8.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 309.5 638.5 Tm (Project) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 309.5 621.5 Tm (Cortellis Regulatory Intelligence \(CRI\)) Tj ET
+0.93 0.96 0.94 rg 42 567.5 511 27 re f
+0.09 0.39 0.25 rg 42 567.5 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 577.5 Tm (Description) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 549.5 Tm (This is from LSC-81365. We created this as DB deployment was blocked by other team) Tj ET
+BT /F1 10.5 Tf 0.04 0.30 0.62 rg 1 0 0 1 42 526.75 Tm (link text) Tj ET
+0.04 0.30 0.62 rg 42 524.25 35.595 0.5 re f
+BT /F2 14 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 499 Tm (Deployment checklist) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 471 Tm (Bold emphasis) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 116.6865 471 Tm (, ) Tj ET
+BT /F4 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 122.52449999999999 471 Tm (italic text) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 163.3695 471 Tm (, ) Tj ET
+BT /F5 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 169.20749999999998 471 Tm (both styles) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 224.63699999999997 471 Tm (, ) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 230.47499999999997 471 Tm (obsolete steps) Tj ET
+0.13 0.18 0.22 rg 230.47499999999997 473.54999999999995 67.704 0.6 re f
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 298.179 471 Tm ( and ) Tj ET
+0.94 0.95 0.96 rg 321.53099999999995 468 69.3 13.5 re f
+BT /F3 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 321.53099999999995 471 Tm (inline code) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 390.83099999999996 471 Tm (.) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 65.757 448.25 Tm (Review the build) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 52.00000000000001 448.25 Tm (1.) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 65.757 429.5 Tm (Confirm the release) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 52.00000000000001 429.5 Tm (2.) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 80 410.75 Tm (Nested check) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 147.6935 410.75 Tm ( with ) Tj ET
+BT /F1 10.5 Tf 0.04 0.30 0.62 rg 1 0 0 1 172.2005 410.75 Tm (deployment guide) Tj ET
+0.04 0.30 0.62 rg 172.2005 408.25 82.8765 0.5 re f
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 71.325 410.75 Tm (\225) Tj ET
+0.96 0.97 0.98 rg 48 388.75 505 15.75 re f
+BT /F4 10.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 54 392 Tm (A readable note with ) Tj ET
+BT /F2 10.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 152.637 392 Tm (important details) Tj ET
+BT /F4 10.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 237.2355 392 Tm (.) Tj ET
+0.93 0.96 0.94 rg 42 363.25 511 16 re f
+BT /F2 9 Tf 0.09 0.39 0.25 rg 1 0 0 1 50 369.25 Tm (Task) Tj ET
+BT /F2 9 Tf 0.09 0.39 0.25 rg 1 0 0 1 305.5 369.25 Tm (Reference) Tj ET
+0.97 0.98 0.98 rg 42 342.25 511 16 re f
+BT /F2 9 Tf 0.13 0.18 0.22 rg 1 0 0 1 50 348.25 Tm (Review) Tj ET
+BT /F1 9 Tf 0.04 0.30 0.62 rg 1 0 0 1 305.5 348.25 Tm (Documentation) Tj ET
+0.04 0.30 0.62 rg 305.5 345.75 60.525 0.5 re f
+0.96 0.97 0.98 rg 46 324.75 507 13.5 re f
+0.94 0.95 0.96 rg 52 324.25 129.6 12 re f
+BT /F3 9 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 327.25 Tm (const release = "ready";) Tj ET
+0.93 0.96 0.94 rg 42 36.4 511 0.6 re f
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 19 Tm (Office Orbit  |  LSC-86139) Tj ET
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 536.18656 19 Tm (1 / 1) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+8 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-BoldOblique /Encoding /WinAnsiEncoding >>
+endobj
+10 0 obj
+<< /Type /Annot /Subtype /Link /Rect [42 523.75 77.595 537.25] /Border [0 0 0] /A << /S /URI /URI <68747470733a2f2f676f6f676c652e636f6d> >> >>
+endobj
+11 0 obj
+<< /Type /Annot /Subtype /Link /Rect [172.2005 407.75 255.077 421.25] /Border [0 0 0] /A << /S /URI /URI <68747470733a2f2f6578616d706c652e636f6d2f6775696465> >> >>
+endobj
+12 0 obj
+<< /Type /Annot /Subtype /Link /Rect [305.5 345.25 366.025 357.25] /Border [0 0 0] /A << /S /URI /URI <68747470733a2f2f6578616d706c652e636f6d2f646f6373> >> >>
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000022 00000 n 
+0000000071 00000 n 
+0000000128 00000 n 
+0000000325 00000 n 
+0000004262 00000 n 
+0000004359 00000 n 
+0000004461 00000 n 
+0000004556 00000 n 
+0000004661 00000 n 
+0000004770 00000 n 
+0000004929 00000 n 
+0000005109 00000 n 
+trailer
+<< /Size 13 /Root 1 0 R >>
+startxref
+5284
+%%EOF

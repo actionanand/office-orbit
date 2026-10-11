@@ -25,6 +25,7 @@ import { JiraLinkComponent } from './jira-link.component';
 import { JiraEditComponent } from './jira-edit.component';
 import { JiraService } from './jiras.service';
 import { MarkdownViewerComponent } from '../productivity/markdown-viewer.component';
+import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
 
 @Component({
   selector: 'app-jira-detail',
@@ -49,6 +50,7 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
     JiraLinkComponent,
     JiraEditComponent,
     MarkdownViewerComponent,
+    InlineMarkdownPipe,
   ],
   template: `<ion-header class="ion-no-border"
       ><ion-toolbar
@@ -243,8 +245,8 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
                     <article class="work-history-item">
                       <div class="work-history-heading">
                         <div>
-                          <strong>{{ log.update }}</strong
-                          ><span>{{ date(log.date) }}</span>
+                          <strong class="inline-markdown" [innerHTML]="log.update | inlineMarkdown"></strong>
+                          <span>{{ date(log.date) }}</span>
                         </div>
                         <span class="badge-line">
                           @if (log.type) {
@@ -262,10 +264,12 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
                         <details>
                           <summary>Details</summary>
                           @if (log.comment) {
-                            <p><strong>Comment</strong><br />{{ log.comment }}</p>
+                            <h4>Comment</h4>
+                            <app-markdown-viewer class="compact-markdown" [markdown]="log.comment" />
                           }
                           @if (log.wentWrong) {
-                            <p><strong>Went wrong</strong><br />{{ log.wentWrong }}</p>
+                            <h4>Went wrong</h4>
+                            <app-markdown-viewer class="compact-markdown" [markdown]="log.wentWrong" />
                           }
                         </details>
                       }

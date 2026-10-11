@@ -6,7 +6,7 @@ import { PrintService } from '../../core/platform/print.service';
 import { provideHttpClient } from '@angular/common/http';
 import { WorkLog } from '../../shared/models/api.models';
 import { WorkLogPage } from './work-log.page';
-import { WorkLogStore } from './work-log.store';
+import { WorkLogStore, WorkLogViewMode } from './work-log.store';
 import { WorkLogExportService } from './work-log-export.service';
 import { WorkLogService } from './work-logs.service';
 
@@ -124,5 +124,52 @@ describe('WorkLogPage calendar', () => {
     fixture.componentInstance.print();
     expect(fixture.componentInstance.exportOpen()).toBe(true);
     expect(print).not.toHaveBeenCalled();
+  });
+
+  it('renders full comments and issues with the shared Markdown viewer in the detail sheet', async () => {
+    const item = {
+      ...log('one', '2026-09-12'),
+      comment: 'Investigated the failure.\n\n- Checked logs\n- Updated configuration',
+      wentWrong: 'The **pipeline** was unavailable.',
+    };
+    const items = signal<WorkLog[]>([item]);
+    const store = {
+      mode: signal<WorkLogViewMode>('list'),
+      selectedPath: signal('/api/work-logs'),
+      filters: signal({ from: '', to: '', categories: [], types: [], workModes: [] }),
+      search: signal(''),
+      month: signal('2026-09'),
+      selectedDate: signal<string | null>(null),
+      items,
+      visible: computed(() => items()),
+      count: signal(1),
+      hasMore: signal(false),
+      loading: signal(false),
+      error: signal(''),
+      notice: signal(''),
+      lastUpdated: signal<number | null>(null),
+      load: vi.fn().mockResolvedValue(undefined),
+      setMode: vi.fn(),
+      moveMonth: vi.fn(),
+    };
+    await TestBed.configureTestingModule({
+      imports: [WorkLogPage],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        { provide: WorkLogStore, useValue: store },
+        { provide: PrintService, useValue: { supported: true, print: vi.fn() } },
+        { provide: WorkLogExportService, useValue: exporter },
+        { provide: WorkLogService, useValue: { metadata: () => of({ resource: 'work-logs', fields: [] }) } },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(WorkLogPage);
+    fixture.componentInstance.selectedLog.set(item);
+    fixture.detectChanges();
+
+    const markdown = (fixture.nativeElement as HTMLElement).querySelectorAll('.detail-sheet app-markdown-viewer');
+    expect(markdown).toHaveLength(2);
+    expect(markdown[0].querySelector('ul')).not.toBeNull();
+    expect(markdown[1].querySelector('strong')?.textContent).toBe('pipeline');
   });
 });

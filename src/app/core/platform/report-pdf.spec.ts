@@ -1,6 +1,82 @@
 import { reportPdf } from './report-pdf';
+import { reportHtml, WorkLogReport } from '../../features/work-logs/work-log-report';
 
 describe('selectable web PDF output', () => {
+  for (const layout of ['jira', 'work-log', undefined] as const) {
+    it(`renders Markdown as styled text and clickable links for ${layout ?? 'default'} exports`, async () => {
+      const report: WorkLogReport = {
+        layout,
+        period: 'October 2026',
+        categories: 'Office Work',
+        generated: '2026-10-11',
+        records: [
+          {
+            date: '2026-10-08',
+            title: '**Deployment** update',
+            lines: [
+              'Comment: ## Review\n\n**Bold** *italic* ~~old~~ `code` and [link text](https://google.com)\n\n1. First\n2. Second\n\n| Guide |\n| --- |\n| [Reference](https://example.com) |\n\n[unsafe](javascript:alert)',
+            ],
+          },
+        ],
+      };
+      const content = await (await reportPdf(report)).text();
+      expect(content).toContain('/Subtype /Link');
+      expect(content).toContain('/URI <68747470733a2f2f676f6f676c652e636f6d>');
+      expect(content).toContain('(link text)');
+      expect(content).toMatch(/\/F2 [\d.]+ Tf[^\n]+\(Bold\)/);
+      expect(content).toMatch(/\/F4 [\d.]+ Tf[^\n]+\(italic\)/);
+      expect(content).toMatch(/\/F3 [\d.]+ Tf[^\n]+\(code\)/);
+      expect(content).toContain('(1.)');
+      expect(content).toContain('(First)');
+      expect(content).toContain('(Reference)');
+      expect(content).not.toMatch(/\[link text\]|\*\*Deployment\*\*|## Review|javascript:/);
+      const html = reportHtml(report);
+      expect(html).toContain('<strong>Deployment</strong>');
+      expect(html).toContain('<a href="https://google.com">link text</a>');
+      expect(html).not.toMatch(/\[link text\]|javascript:/);
+    });
+  }
+  it('draws real unordered bullets and keeps wrapped list text at one hanging indent', async () => {
+    const content = await (
+      await reportPdf({
+        layout: 'jira',
+        period: '',
+        categories: '',
+        generated: '',
+        records: [
+          { date: 'Description', title: '', lines: ['- ' + 'Wrapped list content '.repeat(30) + '\n  - Nested item'] },
+        ],
+      })
+    ).text();
+    expect(content.match(/\(\\225\) Tj/g)).toHaveLength(2);
+    expect(content).not.toContain('(- Wrapped');
+    const lines = content.split('\n').filter(line => line.includes('Wrapped list content'));
+    expect(lines.length).toBeGreaterThan(1);
+    const positions = lines.map(line => line.match(/1 0 0 1 ([\d.]+) [\d.]+ Tm/)?.[1]);
+    expect(new Set(positions).size).toBe(1);
+    const nested = content.split('\n').find(line => line.includes('(Nested item)'));
+    expect(Number(nested?.match(/1 0 0 1 ([\d.]+) [\d.]+ Tm/)?.[1])).toBeGreaterThan(Number(positions[0]));
+  });
+  it('retains link annotations when a long label wraps across lines and pages', async () => {
+    const content = await (
+      await reportPdf({
+        layout: 'work-log',
+        period: '',
+        categories: '',
+        generated: '',
+        records: [
+          {
+            date: '2026-10-08',
+            title: 'Long link',
+            lines: ['[' + 'Readable linked text '.repeat(700) + '](https://example.com)'],
+          },
+        ],
+      })
+    ).text();
+    expect(Number(content.match(/\/Type \/Pages \/Count (\d+)/)?.[1])).toBeGreaterThan(1);
+    expect(content.match(/\/Subtype \/Link/g)?.length).toBeGreaterThan(10);
+    expect(content).not.toContain('[Readable');
+  });
   it('groups Work Log entries by readable date and styles notes without dropping content', async () => {
     const blob = await reportPdf({
       layout: 'work-log',

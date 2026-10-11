@@ -16,12 +16,12 @@ import { ConfirmationService } from '../../core/notifications/confirmation.servi
           aria-modal="true"
           [attr.aria-labelledby]="'confirm-title-' + request.id"
           [attr.aria-describedby]="'confirm-message-' + request.id">
-          <div class="confirmation-icon" [class.danger]="request.danger">
-            <ion-icon [name]="request.danger ? 'trash-outline' : 'alert-circle-outline'" aria-hidden="true" />
-          </div>
           <div class="confirmation-heading">
+            <div class="confirmation-icon" [class.danger]="request.danger">
+              <ion-icon [name]="request.danger ? 'trash-outline' : 'alert-circle-outline'" aria-hidden="true" />
+            </div>
             <h2 [id]="'confirm-title-' + request.id">{{ request.title }}</h2>
-            <ion-button fill="clear" aria-label="{{ request.cancelLabel }}" (click)="confirmation.settle(false)">
+            <ion-button fill="clear" aria-label="Close confirmation" (click)="confirmation.settle(false)">
               <ion-icon name="close-outline" slot="icon-only" aria-hidden="true" />
             </ion-button>
           </div>
