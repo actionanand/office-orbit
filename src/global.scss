@@ -3836,6 +3836,9 @@ ion-popover.work-link-popover {
 .release-table tbody > tr.release-selected td {
   background: color-mix(in srgb, var(--accent) 8%, var(--surface));
 }
+.release-table tbody > tr:has(+ .release-details-row) td {
+  border-bottom: 0;
+}
 .release-table tbody > tr:last-child td,
 .release-table tbody > tr.release-details-row:last-child td {
   border-bottom: 0;
@@ -3869,12 +3872,14 @@ ion-popover.work-link-popover {
   color: var(--muted);
 }
 .release-date-cell {
-  display: grid;
-  gap: 6px;
+  display: table-cell;
 }
 .release-date-cell > span {
   display: grid;
   gap: 1px;
+}
+.release-date-cell > span + span {
+  margin-top: 6px;
 }
 .release-date-cell small {
   color: var(--muted);
@@ -4323,7 +4328,33 @@ app-orbit-loader .loader::after {
     content: 'Status:';
   }
   .release-table tbody > tr:not(.release-details-row) td:nth-child(6)::before {
-    content: 'Date:';
+    content: none;
+  }
+  .release-table tbody > tr:not(.release-details-row) td.release-date-cell {
+    display: grid;
+    gap: 6px;
+  }
+  .release-table tbody > tr:not(.release-details-row) .release-date-cell::before {
+    content: none;
+  }
+  .release-date-cell > span {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .release-date-cell > span + span {
+    margin-top: 0;
+  }
+  .release-date-cell small {
+    font-size: inherit;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+  .release-date-cell small::after {
+    content: ':';
   }
   .release-delivery,
   .release-table .jira-reference-list {

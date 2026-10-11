@@ -456,7 +456,9 @@ function supportsAllocationDetails(
                             <span><small>Announced</small>{{ date(item.formalAnnouncedDate) }}</span>
                           }
                           @if (item.confirmedReleaseDate) {
-                            <span><small>Released</small>{{ date(item.confirmedReleaseDate) }}</span>
+                            <span class="release-confirmed-date"
+                              ><small>Released</small>{{ date(item.confirmedReleaseDate) }}</span
+                            >
                           }
                           @if (!item.formalAnnouncedDate && !item.confirmedReleaseDate) {
                             <span class="muted-value">Not set</span>
