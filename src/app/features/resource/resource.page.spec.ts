@@ -335,6 +335,113 @@ describe('ResourcePage presentation', () => {
     expect(text).not.toContain('Delete JIRA');
   });
 
+  it('shows the active Sprint badge and Active chip only in the JIRAs All view', async () => {
+    const activeJira = {
+      id: 'active-jira-id',
+      createdTime: '',
+      lastEditedTime: '',
+      jiraKey: 'LSC-86139',
+      summary: 'RIR prod deployment',
+      status: 'Done',
+      tags: [],
+      appraisal: false,
+      spillover: true,
+      spilloverCount: 3,
+      description: '',
+      firstSprintStart: null,
+      inActiveSprint: true,
+      demoRequired: false,
+      demoedDate: null,
+      demoNotes: '',
+      sprintIds: ['current-sprint-id'],
+      projectIds: [],
+      linkedJiraIds: [],
+      linkedFromIds: [],
+      linkType: null,
+      linkReason: '',
+      linkedOn: null,
+      resolvedOn: null,
+      releaseItemIds: [],
+      sprints: [
+        {
+          id: 'current-sprint-id',
+          name: 'Sprint - 26.4 - Sprint 1',
+          active: true,
+          startDate: '2026-10-01',
+          endDate: '2026-10-14',
+        },
+      ],
+    } satisfies Jira;
+    const historicalJira = {
+      ...activeJira,
+      id: 'historical-jira-id',
+      jiraKey: 'LSC-86140',
+      spilloverCount: 0,
+      sprints: [
+        {
+          id: 'historical-sprint-id',
+          name: 'Sprint history',
+          active: false,
+          startDate: '2026-09-01',
+          endDate: '2026-09-14',
+        },
+      ],
+    } satisfies Jira;
+    const views = [
+      { label: 'All', path: '/api/jiras' },
+      { label: 'Active', path: '/api/jiras/active' },
+      { label: 'Blocked', path: '/api/jiras/blocked' },
+      { label: 'Spillovers', path: '/api/jiras/spillovers' },
+      { label: 'Demo Pending', path: '/api/jiras/demo-pending' },
+      { label: 'Demoed', path: '/api/jiras/demoed' },
+      { label: 'Appraisal', path: '/api/jiras/appraisal' },
+    ];
+    await TestBed.configureTestingModule({
+      imports: [ResourcePage],
+      providers: [
+        provideHttpClient(),
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: route },
+        { provide: LinksService, useValue: { open: vi.fn() } },
+        {
+          provide: ReadFeatureService,
+          useValue: {
+            heading: 'JIRAs',
+            description: 'Priorities',
+            kind: 'jiras',
+            views,
+            list: () => of({ data: [activeJira], count: 1, hasMore: false, nextCursor: null }),
+            updatedAt: () => Date.now(),
+          },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ResourcePage);
+    fixture.detectChanges();
+    const badges = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.jira-row .status-badge'), (badge: Element) =>
+        badge.textContent?.trim(),
+      );
+    const page = fixture.componentInstance;
+
+    expect(badges()).toEqual(['Done', 'Sprint - 26.4 - Sprint 1', 'Spilled 3 times', 'Active']);
+    expect(fixture.nativeElement.querySelector('.jira-row .status-badge:last-child')?.classList).toContain(
+      'active-sprint',
+    );
+
+    page.items.set([historicalJira]);
+    fixture.detectChanges();
+    expect(badges()).toEqual(['Done']);
+
+    page.items.set([activeJira]);
+    for (const view of views.filter(view => view.path !== '/api/jiras')) {
+      page.select(view.path);
+      fixture.detectChanges();
+      expect(badges()).toContain('Sprint - 26.4 - Sprint 1');
+      expect(badges()).not.toContain('Active');
+    }
+  });
+
   it('links Sprint cards and enriches allocation rows with compact JIRA details', async () => {
     const sprint: Sprint = {
       id: 'sprint/id',

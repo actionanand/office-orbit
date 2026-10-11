@@ -1165,6 +1165,16 @@ details > summary {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   color: var(--accent);
 }
+.status-badge.active-sprint {
+  border-color: color-mix(in srgb, #2f6fed 52%, var(--line));
+  background: color-mix(in srgb, #2f6fed 11%, var(--surface));
+  color: #155eef;
+}
+.ion-palette-dark .status-badge.active-sprint {
+  border-color: color-mix(in srgb, #8ab4ff 55%, var(--line));
+  background: color-mix(in srgb, #8ab4ff 16%, var(--surface));
+  color: #9ac0ff;
+}
 .status-badge.info {
   border-color: color-mix(in srgb, #2877c7 45%, var(--line));
   color: #1665b5;

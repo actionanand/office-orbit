@@ -251,6 +251,9 @@ function supportsAllocationDetails(
                       }
                       @if (currentSprint(item); as sprint) {
                         <app-status-badge [label]="sprint.name" />
+                        @if (selected() === '/api/jiras') {
+                          <app-status-badge label="Active" kind="active-sprint" />
+                        }
                       }
                       @if (item.spilloverCount > 0) {
                         <app-status-badge [label]="spilled(item.spilloverCount)" />
