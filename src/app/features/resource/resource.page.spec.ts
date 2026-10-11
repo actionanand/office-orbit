@@ -14,6 +14,7 @@ import {
   WorkLog,
 } from '../../shared/models/api.models';
 import { ResourcePage } from './resource.page';
+import { ReleaseService } from '../releases/releases.service';
 
 const route = { snapshot: { queryParamMap: convertToParamMap({}) } };
 
@@ -46,6 +47,7 @@ describe('ResourcePage presentation', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: route },
         { provide: LinksService, useValue: {} },
+        { provide: ReleaseService, useValue: {} },
         {
           provide: ReadFeatureService,
           useValue: {
@@ -67,9 +69,38 @@ describe('ResourcePage presentation', () => {
     expect(element.querySelectorAll('.release-select-column input[type="checkbox"]')).toHaveLength(1);
     expect(element.querySelector('.release-table details')).toBeTruthy();
     expect(element.querySelector('ion-modal.release-copy-modal')).toBeTruthy();
+    expect(element.textContent).toContain('Set announcement date');
+    expect(element.textContent).toContain('Set release date');
     expect(element.querySelectorAll('ion-modal.release-copy-modal ion-checkbox')).toHaveLength(8);
     page.selectVisibleReleases();
     expect(page.selectedReleaseIds()).toEqual(['private-release-id']);
+    expect(page.canSetReleaseDate('announcement')).toBe(true);
+    expect(page.canSetReleaseDate('release')).toBe(true);
+    page.items.set([{ ...release, formalAnnouncedDate: '2026-10-01' }]);
+    expect(page.canSetReleaseDate('announcement')).toBe(false);
+    expect(page.canSetReleaseDate('release')).toBe(true);
+    page.items.set([{ ...release, confirmedReleaseDate: '2026-10-02' }]);
+    expect(page.canSetReleaseDate('announcement')).toBe(true);
+    expect(page.canSetReleaseDate('release')).toBe(false);
+    page.releaseDateEditorOpen.set(true);
+    const reload = vi.spyOn(page, 'load');
+    page.releaseDatesSaved({
+      dateType: 'announcement',
+      date: '2026-10-10',
+      requested: 1,
+      updated: 1,
+      allSucceeded: true,
+      data: [release],
+    });
+    expect(page.releaseDateEditorOpen()).toBe(false);
+    expect(page.selectedReleaseIds()).toEqual([]);
+    expect(reload).toHaveBeenCalledWith(true, false, true);
+    page.releaseDatesFailed({ status: 409 });
+    expect(reload).toHaveBeenCalledTimes(2);
+    page.releaseDatesFailed({ status: 500 });
+    expect(reload).toHaveBeenCalledTimes(2);
+    page.items.set([release]);
+    page.selectedReleaseIds.set(['private-release-id']);
     expect(page.releaseNotesText(page.selectedReleases())).toBe(
       "Title: Visible JIRA\nJIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\nComponent Name: Delivery API\nDeployment Type: Production\nVersion Number: [1.2.3] from branch 'main'\nComment: Ready for confirmation.",
     );
@@ -119,6 +150,7 @@ describe('ResourcePage presentation', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: route },
         { provide: LinksService, useValue: {} },
+        { provide: ReleaseService, useValue: {} },
         {
           provide: ReadFeatureService,
           useValue: {

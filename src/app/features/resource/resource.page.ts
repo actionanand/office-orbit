@@ -23,6 +23,7 @@ import {
   chevronForwardOutline,
   closeOutline,
   copyOutline,
+  calendarOutline,
   ellipsisVerticalOutline,
   openOutline,
   pencilOutline,
@@ -41,6 +42,8 @@ import {
   DomainItem,
   Feedback,
   Jira,
+  ReleaseBulkDateResponse,
+  ReleaseDateType,
   ReleaseItem,
   Sprint,
   SprintAllocation,
@@ -62,6 +65,8 @@ import { JiraCreateComponent } from '../jiras/jira-create.component';
 import { FeedbackEditorComponent } from '../feedback/feedback-editor.component';
 import { WorkLinkEditorComponent } from '../work-links/work-link-editor.component';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
+import { ReleaseDateEditorComponent } from '../releases/release-date-editor.component';
+import { ReleaseCalendarComponent } from '../releases/release-calendar.component';
 
 interface AllocationDetailSource {
   allocationJiras(allocations: SprintAllocation[], refresh?: boolean): Observable<Record<string, SprintDetailJira[]>>;
@@ -106,6 +111,8 @@ function supportsAllocationDetails(
     StatePanelComponent,
     StatusBadgeComponent,
     IonicDateFieldComponent,
+    ReleaseDateEditorComponent,
+    ReleaseCalendarComponent,
   ],
   template: `<ion-header class="ion-no-border">
       <ion-toolbar>
@@ -119,7 +126,11 @@ function supportsAllocationDetails(
       <main class="page-wrap resource-page">
         <div class="page-action-row">
           <app-page-header [title]="feature.heading" [description]="feature.description" />
-          @if (feature.kind === 'feedback') {
+          @if (feature.kind === 'releases') {
+            <ion-button fill="outline" (click)="releaseCalendarOpen.set(true)"
+              ><ion-icon name="calendar-outline" slot="start" />Calendar</ion-button
+            >
+          } @else if (feature.kind === 'feedback') {
             <ion-button (click)="openFeedback(null)"
               ><ion-icon name="add-outline" slot="start" />Add feedback</ion-button
             >
@@ -360,6 +371,22 @@ function supportsAllocationDetails(
                 <span>
                   <ion-button fill="clear" size="small" (click)="selectVisibleReleases()">Select visible</ion-button>
                   @if (selectedReleaseIds().length) {
+                    <ion-button
+                      size="small"
+                      fill="outline"
+                      [disabled]="!canSetReleaseDate('announcement')"
+                      [attr.title]="releaseDateActionHint('announcement')"
+                      (click)="openReleaseDateEditor('announcement')"
+                      >Set announcement date</ion-button
+                    >
+                    <ion-button
+                      size="small"
+                      fill="outline"
+                      [disabled]="!canSetReleaseDate('release')"
+                      [attr.title]="releaseDateActionHint('release')"
+                      (click)="openReleaseDateEditor('release')"
+                      >Set release date</ion-button
+                    >
                     <ion-button fill="clear" size="small" (click)="clearReleaseSelection()">Clear</ion-button>
                     <ion-button size="small" (click)="openReleaseCopyOptions()"
                       ><ion-icon name="copy-outline" slot="start" />Copy release notes</ion-button
@@ -422,7 +449,15 @@ function supportsAllocationDetails(
                         </td>
                         <td><app-status-badge [label]="releaseState(item)" /></td>
                         <td class="release-date-cell">
-                          {{ date(item.confirmedReleaseDate || item.formalAnnouncedDate) }}
+                          @if (item.formalAnnouncedDate) {
+                            <span><small>Announced</small>{{ date(item.formalAnnouncedDate) }}</span>
+                          }
+                          @if (item.confirmedReleaseDate) {
+                            <span><small>Released</small>{{ date(item.confirmedReleaseDate) }}</span>
+                          }
+                          @if (!item.formalAnnouncedDate && !item.confirmedReleaseDate) {
+                            <span class="muted-value">Not set</span>
+                          }
                         </td>
                       </tr>
                       @if (item.notes || item.sprints?.length) {
@@ -466,9 +501,7 @@ function supportsAllocationDetails(
                 <ion-content>
                   <div class="release-copy-options">
                     <p>
-                      {{ selectedReleaseIds().length }} selected release{{
-                        selectedReleaseIds().length === 1 ? '' : 's'
-                      }}
+                      {{ releasesForCopy().length }} selected release{{ releasesForCopy().length === 1 ? '' : 's' }}
                     </p>
                     <ion-checkbox
                       justify="start"
@@ -532,7 +565,7 @@ function supportsAllocationDetails(
                   </div>
                   <div class="release-copy-preview">
                     <span>Preview</span>
-                    <pre>{{ releaseNotesText(selectedReleases()) }}</pre>
+                    <pre>{{ releaseNotesText(releasesForCopy()) }}</pre>
                   </div>
                   <div class="release-copy-actions">
                     <ion-button fill="clear" (click)="closeReleaseCopyOptions()">Cancel</ion-button>
@@ -802,6 +835,19 @@ function supportsAllocationDetails(
       @if (feature.kind === 'jiras') {
         <app-jira-create [open]="jiraCreateOpen()" (closed)="jiraCreateOpen.set(false)" (saved)="jiraSaved($event)" />
       }
+      @if (feature.kind === 'releases') {
+        <app-release-date-editor
+          [open]="releaseDateEditorOpen()"
+          [dateType]="releaseDateType()"
+          [selectedIds]="selectedReleaseIds()"
+          (closed)="releaseDateEditorOpen.set(false)"
+          (saved)="releaseDatesSaved($event)"
+          (failed)="releaseDatesFailed($event)" />
+        <app-release-calendar
+          [open]="releaseCalendarOpen()"
+          (closed)="releaseCalendarOpen.set(false)"
+          (copyRequested)="openCalendarReleaseCopyOptions($event)" />
+      }
     </ion-content>`,
 })
 export class ResourcePage {
@@ -832,6 +878,10 @@ export class ResourcePage {
   readonly editingWorkLink = signal<WorkLink | null>(null);
   readonly allocationDetails = signal<Record<string, SprintDetailJira[]>>({});
   readonly selectedReleaseIds = signal<string[]>([]);
+  readonly releaseCopyItems = signal<ReleaseItem[] | null>(null);
+  readonly releaseDateEditorOpen = signal(false);
+  readonly releaseCalendarOpen = signal(false);
+  readonly releaseDateType = signal<ReleaseDateType>('announcement');
   readonly releaseCopyOpen = signal(false);
   readonly releaseCopyDefaults = {
     groupByJira: true,
@@ -876,6 +926,7 @@ export class ResourcePage {
     const selectedIds = new Set(this.selectedReleaseIds());
     return this.releases().filter(item => selectedIds.has(item.id));
   });
+  readonly releasesForCopy = computed(() => this.releaseCopyItems() ?? this.selectedReleases());
   readonly feedbackItems = computed(() => this.visible() as Feedback[]);
   readonly workLinks = computed(() => this.visible() as WorkLink[]);
   readonly date = formatDate;
@@ -887,6 +938,7 @@ export class ResourcePage {
   constructor() {
     addIcons({
       addOutline,
+      calendarOutline,
       chevronDownOutline,
       chevronForwardOutline,
       closeOutline,
@@ -1107,14 +1159,66 @@ export class ResourcePage {
     this.selectedReleaseIds.set([]);
   }
 
-  openReleaseCopyOptions(): void {
-    if (!this.selectedReleases().length) return;
+  canSetReleaseDate(dateType: ReleaseDateType): boolean {
+    const selected = this.selectedReleases();
+    return (
+      selected.length > 0 &&
+      selected.every(item =>
+        dateType === 'announcement' ? item.formalAnnouncedDate === null : item.confirmedReleaseDate === null,
+      )
+    );
+  }
+
+  releaseDateActionHint(dateType: ReleaseDateType): string | null {
+    if (this.canSetReleaseDate(dateType)) return null;
+    return `One or more selected releases already have a ${dateType === 'announcement' ? 'announcement' : 'release'} date.`;
+  }
+
+  openReleaseDateEditor(dateType: ReleaseDateType): void {
+    if (!this.canSetReleaseDate(dateType)) return;
+    this.releaseDateType.set(dateType);
+    this.releaseDateEditorOpen.set(true);
+  }
+
+  releaseDatesSaved(response: ReleaseBulkDateResponse): void {
+    this.releaseDateEditorOpen.set(false);
+    this.clearReleaseSelection();
+    const label = response.dateType === 'announcement' ? 'Announcement date' : 'Release date';
+    this.snackbar.success(
+      response.allSucceeded
+        ? `${label} added to ${response.updated} releases.`
+        : `${response.updated} of ${response.requested} releases were updated.${
+            response.failed ? ` ${response.failed} failed.` : ''
+          } Refreshing release data.`,
+    );
+    this.load(true, false, true);
+  }
+
+  releaseDatesFailed(error: unknown): void {
+    const conflict = typeof error === 'object' && error !== null && 'status' in error && error.status === 409;
+    this.snackbar.error(
+      conflict
+        ? 'One or more selected releases already have this date. Release data has been refreshed.'
+        : apiError(error),
+    );
+    if (conflict) this.load(true, false, true);
+  }
+
+  openReleaseCopyOptions(releases = this.selectedReleases()): void {
+    if (!releases.length) return;
+    this.releaseCopyItems.set(releases);
     this.resetReleaseCopyOptions();
     this.releaseCopyOpen.set(true);
   }
 
+  openCalendarReleaseCopyOptions(releases: ReleaseItem[]): void {
+    this.releaseCalendarOpen.set(false);
+    this.openReleaseCopyOptions(releases);
+  }
+
   closeReleaseCopyOptions(): void {
     this.releaseCopyOpen.set(false);
+    this.releaseCopyItems.set(null);
   }
 
   private resetReleaseCopyOptions(): void {
@@ -1130,7 +1234,7 @@ export class ResourcePage {
   }
 
   async copySelectedReleaseNotes(): Promise<void> {
-    const notes = this.releaseNotesText(this.selectedReleases());
+    const notes = this.releaseNotesText(this.releasesForCopy());
     if (!notes) return;
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(notes);

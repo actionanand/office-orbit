@@ -40,6 +40,13 @@ export class MutationApiService {
       );
   }
 
+  patchEndpoint<TResponse, TBody>(path: string, body: TBody, invalidatePrefix = path): Observable<TResponse> {
+    return this.http.patch<TResponse>(environment.apiBaseUrl + path, body).pipe(
+      timeout(15000),
+      tap(() => this.invalidate(invalidatePrefix)),
+    );
+  }
+
   delete(path: string, pageId: string): Observable<void> {
     return this.http.delete<void>(`${environment.apiBaseUrl}${path}/${encodeURIComponent(pageId)}`).pipe(
       timeout(15000),
