@@ -1,0 +1,236 @@
+%PDF-1.4
+%OfficeOrbit
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 4 /Kids [3 0 R 5 0 R 7 0 R 9 0 R] >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R /F4 14 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 3314 >>
+stream
+BT /F2 11 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 795 Tm (OFFICE ORBIT) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 775 Tm (JIRA DETAIL REPORT) Tj ET
+BT /F2 22 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 742 Tm (Frontendapp - Angular upgrade and backstage) Tj ET
+BT /F2 22 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 709 Tm (migration) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 671 Tm (LSC-84944  |  Generated Oct 11, 2026) Tj ET
+0.93 0.96 0.94 rg 42 623.5 511 27 re f
+0.09 0.39 0.25 rg 42 623.5 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 633.5 Tm (Overview) Tj ET
+BT /F1 8.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 605.5 Tm (Status) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 588.5 Tm (Done) Tj ET
+BT /F1 8.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 309.5 605.5 Tm (Project) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 309.5 588.5 Tm (Cortellis Regulatory Intelligence \(CRI\)) Tj ET
+BT /F1 8.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 561.5 Tm (Current Sprint) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 544.5 Tm (Sprint - 26.4 - Sprint 1) Tj ET
+BT /F1 8.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 309.5 561.5 Tm (First Sprint Start) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 309.5 544.5 Tm (Aug 19, 2026) Tj ET
+BT /F1 8.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 517.5 Tm (Spillover) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 500.5 Tm (3) Tj ET
+BT /F1 8.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 309.5 517.5 Tm (Appraisal) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 309.5 500.5 Tm (No) Tj ET
+BT /F1 8.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 473.5 Tm (Work started) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 456.5 Tm (Aug 19, 2026) Tj ET
+BT /F1 8.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 309.5 473.5 Tm (Sprint window through) Tj ET
+BT /F2 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 309.5 456.5 Tm (Oct 13, 2026) Tj ET
+0.93 0.96 0.94 rg 42 402.5 511 27 re f
+0.09 0.39 0.25 rg 42 402.5 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 412.5 Tm (Description) Tj ET
+BT /F2 14 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 379.5 Tm (Angular Upgrade) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 351.5 Tm (- Angular 9 -> 18) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 332.75 Tm (- Backstage migration) Tj ET
+0.96 0.97 0.98 rg 48 310.75 505 15.75 re f
+BT /F4 10.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 54 314 Tm (Deployment requires approval from the platform team.) Tj ET
+0.93 0.96 0.94 rg 42 285.25 511 16 re f
+BT /F2 9 Tf 0.09 0.39 0.25 rg 1 0 0 1 50 291.25 Tm (Component) Tj ET
+BT /F2 9 Tf 0.09 0.39 0.25 rg 1 0 0 1 305.5 291.25 Tm (Version) Tj ET
+0.97 0.98 0.98 rg 42 264.25 511 16 re f
+BT /F1 9 Tf 0.13 0.18 0.22 rg 1 0 0 1 50 270.25 Tm (cortellis-frontend) Tj ET
+BT /F1 9 Tf 0.13 0.18 0.22 rg 1 0 0 1 305.5 270.25 Tm (2a19386-115) Tj ET
+0.97 0.98 0.98 rg 42 243.25 511 16 re f
+BT /F1 9 Tf 0.13 0.18 0.22 rg 1 0 0 1 50 249.25 Tm (cortellis-results-app) Tj ET
+BT /F1 9 Tf 0.13 0.18 0.22 rg 1 0 0 1 305.5 249.25 Tm (c3628ff-66) Tj ET
+0.96 0.97 0.98 rg 46 225.75 507 13.5 re f
+BT /F3 9 Tf 0.13 0.18 0.22 rg 1 0 0 1 52 228.25 Tm (const platform = "Backstage";) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 207.75 Tm (Refer to the deployment guide \(https://example.com/deployment\).) Tj ET
+0.93 0.96 0.94 rg 42 36.4 511 0.6 re f
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 19 Tm (Office Orbit  |  LSC-84944) Tj ET
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 536.18656 19 Tm (1 / 4) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R /F4 14 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 3149 >>
+stream
+BT /F2 8 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 814 Tm (OFFICE ORBIT  /  JIRA DETAIL) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 503.83624 814 Tm (LSC-84944) Tj ET
+0.93 0.96 0.94 rg 42 805 511 1 re f
+0.93 0.96 0.94 rg 42 762 511 27 re f
+0.09 0.39 0.25 rg 42 762 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 772 Tm (Sprint history) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 744 Tm (Sprint - 26.3 - Sprint 5) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 721 Tm (Aug 19 - Sep 1, 2026) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 698.25 Tm (Planned: 3 days) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 677 Tm (Migration completed.) Tj ET
+0.85 0.89 0.87 rg 42 646.65 511 0.6 re f
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 630.25 Tm (Sprint - 26.3 - Sprint 6) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 607.25 Tm (Aug 19 - Sep 1, 2026) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 584.5 Tm (Planned: 3 days) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 563.25 Tm (Spill reason: The local setup required help from the platform team. Changes were reviewed and) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 547.5 Tm (verified before deployment. The local setup required help from the platform team. Changes were) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 531.75 Tm (reviewed and verified before deployment. The local setup required help from the platform team.) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 516 Tm (Changes were reviewed and verified before deployment. ) Tj ET
+0.85 0.89 0.87 rg 42 485.65 511 0.6 re f
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 469.25 Tm (Sprint - 26.3 - Sprint 7) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 446.25 Tm (Aug 19 - Sep 1, 2026) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 423.5 Tm (Planned: 3 days) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 402.25 Tm (Spill reason: The local setup required help from the platform team. Changes were reviewed and) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 386.5 Tm (verified before deployment. The local setup required help from the platform team. Changes were) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 370.75 Tm (reviewed and verified before deployment. The local setup required help from the platform team.) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 355 Tm (Changes were reviewed and verified before deployment. The local setup required help from the) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 339.25 Tm (platform team. Changes were reviewed and verified before deployment. The local setup required) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 323.5 Tm (help from the platform team. Changes were reviewed and verified before deployment. The local) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 307.75 Tm (setup required help from the platform team. Changes were reviewed and verified before) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 292 Tm (deployment. ) Tj ET
+0.93 0.96 0.94 rg 42 36.4 511 0.6 re f
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 19 Tm (Office Orbit  |  LSC-84944) Tj ET
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 536.18656 19 Tm (2 / 4) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R /F4 14 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 4812 >>
+stream
+BT /F2 8 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 814 Tm (OFFICE ORBIT  /  JIRA DETAIL) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 503.83624 814 Tm (LSC-84944) Tj ET
+0.93 0.96 0.94 rg 42 805 511 1 re f
+0.93 0.96 0.94 rg 42 762 511 27 re f
+0.09 0.39 0.25 rg 42 762 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 772 Tm (Sprint history \(continued\)) Tj ET
+0.85 0.89 0.87 rg 42 748.4 511 0.6 re f
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 732 Tm (Sprint - 26.3 - Sprint 8) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 709 Tm (Aug 19 - Sep 1, 2026) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 686.25 Tm (Planned: 3 days) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 665 Tm (Spill reason: The local setup required help from the platform team. Changes were reviewed and) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 649.25 Tm (verified before deployment. The local setup required help from the platform team. Changes were) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 633.5 Tm (reviewed and verified before deployment. The local setup required help from the platform team.) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 617.75 Tm (Changes were reviewed and verified before deployment. The local setup required help from the) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 602 Tm (platform team. Changes were reviewed and verified before deployment. The local setup required) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 586.25 Tm (help from the platform team. Changes were reviewed and verified before deployment. The local) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 570.5 Tm (setup required help from the platform team. Changes were reviewed and verified before) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 554.75 Tm (deployment. The local setup required help from the platform team. Changes were reviewed and) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 539 Tm (verified before deployment. The local setup required help from the platform team. Changes were) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 523.25 Tm (reviewed and verified before deployment. The local setup required help from the platform team.) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 507.5 Tm (Changes were reviewed and verified before deployment. ) Tj ET
+0.93 0.96 0.94 rg 42 457.75 511 27 re f
+0.09 0.39 0.25 rg 42 457.75 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 467.75 Tm (Spill history) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 439.75 Tm (Spill #1: Sprint 5 -> Sprint 6) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 416.75 Tm (Reason: Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 401 Tm (team. Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 385.25 Tm (team. Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 369.5 Tm (team. Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 353.75 Tm (team. Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 338 Tm (team. Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 322.25 Tm (team. ) Tj ET
+0.85 0.89 0.87 rg 42 291.9 511 0.6 re f
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 275.5 Tm (Spill #2: Sprint 5 -> Sprint 6) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 252.5 Tm (Reason: Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 236.75 Tm (team. Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 221 Tm (team. Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 205.25 Tm (team. Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 189.5 Tm (team. Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 173.75 Tm (team. Dependency on platform configuration was resolved after coordination with the DevOps) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 158 Tm (team. ) Tj ET
+0.93 0.96 0.94 rg 42 36.4 511 0.6 re f
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 19 Tm (Office Orbit  |  LSC-84944) Tj ET
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 536.18656 19 Tm (3 / 4) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 11 0 R /F2 12 0 R /F3 13 0 R /F4 14 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 2570 >>
+stream
+BT /F2 8 Tf 0.09 0.39 0.25 rg 1 0 0 1 42 814 Tm (OFFICE ORBIT  /  JIRA DETAIL) Tj ET
+BT /F1 9 Tf 0.36 0.41 0.44 rg 1 0 0 1 503.83624 814 Tm (LSC-84944) Tj ET
+0.93 0.96 0.94 rg 42 805 511 1 re f
+0.93 0.96 0.94 rg 42 762 511 27 re f
+0.09 0.39 0.25 rg 42 762 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 772 Tm (Work history) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 744 Tm (JWT inserted at email chips at edit alert) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 721 Tm (Date: Sep 22, 2026) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 699.75 Tm (Office Work | WFO \(Office\)) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 677 Tm (Comment: Changes have been validated in the test environment.) Tj ET
+0.93 0.96 0.94 rg 42 627.25 511 27 re f
+0.09 0.39 0.25 rg 42 627.25 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 637.25 Tm (Relationships) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 609.25 Tm (Depends on: LPE-65) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 586.25 Tm (Create MCP ElastiCache and Security Group) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 563.5 Tm (Status: Done) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 542.25 Tm (Resolved: Sep 15, 2026) Tj ET
+0.93 0.96 0.94 rg 42 494 511 27 re f
+0.09 0.39 0.25 rg 42 494 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 504 Tm (Release history) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 476 Tm (cortellis-frontend) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 453 Tm (Deployment: Backstage) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 431.75 Tm (Version: 2a19386-115) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 410.5 Tm (Branch: master) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 389.25 Tm (Notes: Migration verified.) Tj ET
+0.93 0.96 0.94 rg 42 339.5 511 27 re f
+0.09 0.39 0.25 rg 42 339.5 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 349.5 Tm (Demo) Tj ET
+BT /F2 12 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 321.5 Tm (Demoed) Tj ET
+BT /F1 10.5 Tf 0.13 0.18 0.22 rg 1 0 0 1 42 298.5 Tm (Demoed date: Oct 2, 2026) Tj ET
+0.93 0.96 0.94 rg 42 248.75 511 27 re f
+0.09 0.39 0.25 rg 42 248.75 3 27 re f
+BT /F2 12 Tf 0.09 0.39 0.25 rg 1 0 0 1 54 258.75 Tm (Record information) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 230.75 Tm (Created: Aug 19, 2026) Tj ET
+BT /F1 9.5 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 209.5 Tm (Last updated: Oct 11, 2026) Tj ET
+0.93 0.96 0.94 rg 42 36.4 511 0.6 re f
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 42 19 Tm (Office Orbit  |  LSC-84944) Tj ET
+BT /F1 8 Tf 0.36 0.41 0.44 rg 1 0 0 1 536.18656 19 Tm (4 / 4) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+12 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+13 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+14 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 15
+0000000000 65535 f 
+0000000022 00000 n 
+0000000071 00000 n 
+0000000146 00000 n 
+0000000306 00000 n 
+0000003672 00000 n 
+0000003832 00000 n 
+0000007033 00000 n 
+0000007193 00000 n 
+0000012057 00000 n 
+0000012218 00000 n 
+0000014841 00000 n 
+0000014939 00000 n 
+0000015042 00000 n 
+0000015138 00000 n 
+trailer
+<< /Size 15 /Root 1 0 R >>
+startxref
+15244
+%%EOF

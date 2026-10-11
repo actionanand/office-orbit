@@ -29,7 +29,7 @@ The active-session list is never requested by startup, login, status validation,
 | JiraService      | /api/jiras, /active, /blocked, /spillovers, /appraisal, /demo-pending, /demoed; /api/jiras/:jiraKey |
 | WorkLogService   | /api/work-logs, /appraisal                                                                          |
 | SprintService    | /api/sprints, /active, /history, /api/sprints/:sprintId; /api/sprint-allocations, /current          |
-| ReleaseService   | /api/releases, /pending, /confirmed, /not-announced                                                 |
+| ReleaseService   | /api/releases, /pending, /confirmed, /not-announced, /bulk-date, /calendar, /by-date                |
 | FeedbackService  | /api/feedback, /appraisal, /improvement-follow-up, /negative                                        |
 | WorkLinksService | /api/work-links, /active                                                                            |
 
@@ -46,6 +46,8 @@ The editors load `/api/work-logs/meta`, `/api/feedback/meta`, or `/api/work-link
 Feedback has Company and Team relations and a read-only `workType` rollup. It has no Project relation. The client never sends `workType`, `projectId`, or `projectIds`; after saving it refreshes Feedback so the value recalculated by Notion is displayed.
 
 Mutation success invalidates the affected collection prefix and Dashboard summaries. Work Log writes also invalidate Work Log calendar and Work Activity analytics entries. Existing authentication remains entirely interceptor-managed, and mutations are never retried automatically.
+
+Release bulk dates use `PATCH /api/releases/bulk-date` with selected release IDs, `dateType` (`announcement` or `release`), and one ISO date. The Worker requires the target date to be empty for every selected item; a 409 conflict writes nothing. Release calendar browsing calls `/api/releases/calendar` for month markers, then `/api/releases/by-date?include=relations` for all components on one marked date. Exact-date pagination follows opaque cursors and deduplicates IDs.
 
 ## HTTP QUERY
 

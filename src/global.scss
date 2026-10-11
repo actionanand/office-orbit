@@ -1165,6 +1165,16 @@ details > summary {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   color: var(--accent);
 }
+.status-badge.active-sprint {
+  border-color: color-mix(in srgb, #2f6fed 52%, var(--line));
+  background: color-mix(in srgb, #2f6fed 11%, var(--surface));
+  color: #155eef;
+}
+.ion-palette-dark .status-badge.active-sprint {
+  border-color: color-mix(in srgb, #8ab4ff 55%, var(--line));
+  background: color-mix(in srgb, #8ab4ff 16%, var(--surface));
+  color: #9ac0ff;
+}
 .status-badge.info {
   border-color: color-mix(in srgb, #2877c7 45%, var(--line));
   color: #1665b5;
@@ -1723,12 +1733,14 @@ ion-popover.work-link-popover {
 .relationship-dates {
   color: var(--muted);
 }
-.relationship-list {
+.relationship-grid {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 .relationship-item {
   display: grid;
+  min-width: 0;
   gap: 6px;
   padding: 12px 14px;
   border: 1px solid var(--line);
@@ -1747,6 +1759,7 @@ ion-popover.work-link-popover {
 }
 .relationship-jira > span {
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 .relationship-item p {
   margin: 0;
@@ -1757,6 +1770,7 @@ ion-popover.work-link-popover {
 .work-history-section,
 .release-history-section,
 .description-section,
+.relationships-section,
 .record-information {
   grid-column: 1 / -1;
 }
@@ -2046,6 +2060,9 @@ ion-popover.work-link-popover {
   }
   .summary-grid,
   .detail-columns {
+    grid-template-columns: 1fr;
+  }
+  .relationship-grid {
     grid-template-columns: 1fr;
   }
   .sprint-detail-capacity {
@@ -2880,6 +2897,9 @@ ion-popover.work-link-popover {
 .productivity-row-heading strong {
   overflow-wrap: anywhere;
 }
+.productivity-row:has(.inline-status-select) .productivity-row-heading {
+  min-height: 44px;
+}
 .productivity-row .preview {
   max-width: 90ch;
 }
@@ -2888,6 +2908,29 @@ ion-popover.work-link-popover {
   align-items: center;
   justify-content: flex-end;
   gap: 2px;
+}
+.productivity-controls {
+  display: contents;
+}
+.productivity-controls.memo-controls {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  min-width: 0;
+}
+.memo-controls .productivity-actions {
+  flex-wrap: nowrap;
+}
+.memo-pin-icon {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+}
+.memo-pin-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .productivity-actions ion-button {
   margin: 0;
@@ -2934,8 +2977,14 @@ ion-popover.work-link-popover {
 .reference-filters {
   display: grid;
   grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(150px, 1fr));
+  align-items: start;
   gap: 12px;
   margin: 18px 0;
+}
+.reference-filters ion-input,
+.reference-filters ion-select {
+  min-width: 0;
+  margin: 0;
 }
 .reference-filters ion-input,
 .reference-filters ion-select,
@@ -3134,6 +3183,7 @@ ion-popover.work-link-popover {
 }
 .reference-file-actions {
   display: flex;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -3522,11 +3572,21 @@ ion-popover.work-link-popover {
     grid-template-columns: auto minmax(0, 1fr);
     padding: 13px 12px;
   }
+  .productivity-row:has(.inline-status-select) .productivity-row-heading {
+    min-height: 0;
+  }
   .productivity-actions {
     grid-column: 2;
     width: 100%;
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+  .productivity-controls.memo-controls {
+    grid-column: 2;
+    justify-items: start;
+  }
+  .memo-controls .productivity-actions {
+    grid-column: auto;
   }
   .productivity-actions ion-button {
     --padding-start: 6px;
@@ -3819,6 +3879,9 @@ ion-popover.work-link-popover {
 .release-table tbody > tr.release-selected td {
   background: color-mix(in srgb, var(--accent) 8%, var(--surface));
 }
+.release-table tbody > tr:has(+ .release-details-row) td {
+  border-bottom: 0;
+}
 .release-table tbody > tr:last-child td,
 .release-table tbody > tr.release-details-row:last-child td {
   border-bottom: 0;
@@ -3850,6 +3913,252 @@ ion-popover.work-link-popover {
 .release-date-cell,
 .muted-value {
   color: var(--muted);
+}
+.release-date-cell {
+  display: table-cell;
+}
+.release-date-cell > span {
+  display: grid;
+  gap: 1px;
+}
+.release-date-cell > span + span {
+  margin-top: 6px;
+}
+.release-date-cell small {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.release-date-modal {
+  --width: min(520px, calc(100vw - 28px));
+  --height: min(72vh, 560px);
+  --border-radius: 20px;
+}
+.release-date-form,
+.release-calendar {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+.release-date-form > p {
+  margin: 0;
+  color: var(--muted);
+}
+.release-date-confirm {
+  color: var(--ion-text-color) !important;
+}
+app-orbit-loader {
+  display: inline-grid;
+  place-items: center;
+  --loader-color-1: var(--accent);
+  --loader-color-2: var(--accent);
+  --loader-dimension: 48px;
+  --loader-perspective: 1000px;
+}
+app-orbit-loader .loader {
+  display: block;
+  position: relative;
+  transform: rotateZ(45deg);
+  perspective: var(--loader-perspective);
+  border-radius: 50%;
+  width: var(--loader-dimension);
+  height: var(--loader-dimension);
+  font-size: inherit;
+  color: var(--loader-color-1);
+}
+app-orbit-loader .loader::before,
+app-orbit-loader .loader::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: inherit;
+  height: inherit;
+  border-radius: 50%;
+  transform: rotateX(70deg);
+  // Keep the orbit visible when reduced motion disables the animation.
+  box-shadow: 0.2em 0 0 0 currentcolor;
+  animation: orbit-loader-spin 1s linear infinite;
+}
+app-orbit-loader .loader::after {
+  color: var(--loader-color-2);
+  transform: rotateY(70deg);
+  box-shadow: -0.2em 0 0 0 currentcolor;
+  animation-delay: 0.4s;
+}
+@keyframes orbit-loader-spin {
+  0%,
+  100% {
+    box-shadow: 0.2em 0 0 0 currentcolor;
+  }
+  12% {
+    box-shadow: 0.2em 0.2em 0 0 currentcolor;
+  }
+  25% {
+    box-shadow: 0 0.2em 0 0 currentcolor;
+  }
+  37% {
+    box-shadow: -0.2em 0.2em 0 0 currentcolor;
+  }
+  50% {
+    box-shadow: -0.2em 0 0 0 currentcolor;
+  }
+  62% {
+    box-shadow: -0.2em -0.2em 0 0 currentcolor;
+  }
+  75% {
+    box-shadow: 0 -0.2em 0 0 currentcolor;
+  }
+  87% {
+    box-shadow: 0.2em -0.2em 0 0 currentcolor;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  // Active-operation feedback stays animated, as in Ping Metric. Override only
+  // these orbits; the app's decorative motion remains disabled.
+  app-orbit-loader .loader::before,
+  app-orbit-loader .loader::after {
+    animation: orbit-loader-spin 1s linear infinite !important;
+  }
+  app-orbit-loader .loader::after {
+    animation-delay: 0.4s !important;
+  }
+}
+.release-calendar-modal {
+  --width: min(820px, calc(100vw - 28px));
+  --height: min(88vh, 860px);
+  --border-radius: 20px;
+}
+.release-calendar-type-selector {
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  // Ionic MD caps each segment button at 360px, then centers the pair.
+  // This selector has exactly two choices and should occupy its full width.
+  grid-auto-columns: minmax(0, 1fr);
+  --indicator-color: var(--accent);
+}
+.release-calendar-type-selector ion-segment-button {
+  margin: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+.release-calendar-type-selector ion-segment-button::part(indicator) {
+  left: 0;
+  right: 0;
+}
+.release-calendar-type-selector ion-segment-button::part(indicator-background) {
+  height: 2px;
+  background: var(--accent);
+}
+.release-calendar-month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.release-calendar-loading {
+  display: grid;
+  min-height: 300px;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.release-calendar-weekdays,
+.release-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.release-calendar-weekdays span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+}
+.release-calendar-grid > button {
+  display: grid;
+  min-height: 52px;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+}
+.release-calendar-grid > button.active {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--surface-soft);
+  color: var(--ion-text-color);
+  cursor: pointer;
+}
+.release-calendar-grid > button.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.release-calendar-grid small {
+  display: grid;
+  min-width: 18px;
+  min-height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.68rem;
+}
+.release-calendar-results {
+  display: grid;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.release-calendar-results h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.release-calendar-copy-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.release-calendar-copy-toolbar > span:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.release-calendar-results article {
+  display: grid;
+  gap: 4px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.release-calendar-result-heading {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  color: var(--ion-text-color);
+  cursor: pointer;
+}
+.release-calendar-result-heading input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+.release-calendar-results article > span {
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 .release-delivery {
   display: flex;
@@ -4062,7 +4371,33 @@ ion-popover.work-link-popover {
     content: 'Status:';
   }
   .release-table tbody > tr:not(.release-details-row) td:nth-child(6)::before {
-    content: 'Date:';
+    content: none;
+  }
+  .release-table tbody > tr:not(.release-details-row) td.release-date-cell {
+    display: grid;
+    gap: 6px;
+  }
+  .release-table tbody > tr:not(.release-details-row) .release-date-cell::before {
+    content: none;
+  }
+  .release-date-cell > span {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .release-date-cell > span + span {
+    margin-top: 0;
+  }
+  .release-date-cell small {
+    font-size: inherit;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+  .release-date-cell small::after {
+    content: ':';
   }
   .release-delivery,
   .release-table .jira-reference-list {
@@ -4099,6 +4434,28 @@ ion-popover.work-link-popover {
     --height: 90%;
     --border-radius: 20px 20px 0 0;
     align-items: flex-end;
+  }
+  .release-date-modal,
+  .release-calendar-modal {
+    --width: 100%;
+    --height: 92%;
+    --border-radius: 20px 20px 0 0;
+    align-items: flex-end;
+  }
+  .release-date-form,
+  .release-calendar {
+    gap: 16px;
+    padding: 18px;
+  }
+  .release-calendar-grid > button {
+    min-height: 44px;
+  }
+  .release-calendar-copy-toolbar {
+    align-items: start;
+    flex-direction: column;
+  }
+  .release-calendar-copy-toolbar > span:last-child {
+    justify-content: start;
   }
 }
 .export-modal,

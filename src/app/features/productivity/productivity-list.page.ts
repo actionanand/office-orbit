@@ -1,6 +1,6 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   IonButton,
   IonCheckbox,
@@ -12,6 +12,7 @@ import {
   IonIcon,
   IonSelect,
   IonSelectOption,
+  IonSpinner,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
@@ -54,13 +55,13 @@ type View = { label: string; key: string };
     IonLabel,
     IonCheckbox,
     WorkCalendarComponent,
-    RouterLink,
     IonButton,
     IonContent,
     IonHeader,
     IonIcon,
     IonSelect,
     IonSelectOption,
+    IonSpinner,
     IonTitle,
     IonToolbar,
     LoadingSkeletonComponent,
@@ -183,12 +184,14 @@ type View = { label: string; key: string };
                 /></span>
                 <div class="productivity-copy" [class.clickable]="kind === 'memos'" (click)="openItem(item)">
                   <div class="productivity-row-heading">
-                    <strong>{{ title(item) }}</strong
-                    ><span class="badge-line">
-                      @for (badge of badges(item); track badge) {
-                        <app-status-badge [label]="badge" />
-                      }
-                    </span>
+                    <strong>{{ title(item) }}</strong>
+                    @if (kind !== 'memos') {
+                      <span class="badge-line">
+                        @for (badge of badges(item); track badge) {
+                          <app-status-badge [label]="badge" />
+                        }
+                      </span>
+                    }
                   </div>
                   @if (recurrenceLabel(item)) {
                     <p class="todo-recurrence-summary">{{ recurrenceLabel(item) }}</p>
@@ -212,45 +215,70 @@ type View = { label: string; key: string };
                     <p class="form-error">{{ setupIssue(item) }}</p>
                   }
                 </div>
-                <div class="productivity-actions">
-                  @if ('toDo' in item && item.dueDate) {
-                    <span class="productivity-action-date">Due {{ formatDate(item.dueDate) }}</span>
-                  }
-                  @if ('status' in item) {
-                    <ion-select
-                      class="inline-status-select"
-                      interface="popover"
-                      [attr.aria-label]="'Status for ' + title(item)"
-                      [value]="statusOptionId(item)"
-                      (ionChange)="changeStatus(item, $event.detail.value)">
-                      @for (option of statusOptions(); track option.id) {
-                        <ion-select-option [value]="option.id">{{ option.name }}</ion-select-option>
-                      }
-                    </ion-select>
-                  }
+                <div class="productivity-controls" [class.memo-controls]="kind === 'memos'">
                   @if (kind === 'memos') {
-                    <ion-button fill="clear" size="small" (click)="togglePin(item)">{{
-                      isPinned(item) ? 'Unpin' : 'Pin'
-                    }}</ion-button>
-                    <ion-button fill="clear" size="small" [routerLink]="['/app/productivity/memos', item.id]"
-                      >Open</ion-button
-                    >
+                    <span class="badge-line">
+                      @for (badge of badges(item); track badge) {
+                        <app-status-badge [label]="badge" />
+                      }
+                    </span>
                   }
-                  <ion-button
-                    class="productivity-edit-button"
-                    fill="clear"
-                    size="small"
-                    [attr.aria-label]="'Edit ' + title(item)"
-                    (click)="openEditor(item)"
-                    ><ion-icon name="pencil-outline" slot="start" /><span class="productivity-edit-label"
-                      >Edit</span
-                    ></ion-button
-                  >
-                  <ion-button fill="clear" size="small" color="danger" (click)="deleteOne(item)"
-                    ><ion-icon name="trash-outline" slot="icon-only" /><span class="sr-only"
-                      >Delete {{ title(item) }}</span
-                    ></ion-button
-                  >
+                  <div class="productivity-actions">
+                    @if ('toDo' in item && item.dueDate) {
+                      <span class="productivity-action-date">Due {{ formatDate(item.dueDate) }}</span>
+                    }
+                    @if ('status' in item) {
+                      <ion-select
+                        class="inline-status-select"
+                        interface="popover"
+                        [attr.aria-label]="'Status for ' + title(item)"
+                        [value]="statusOptionId(item)"
+                        (ionChange)="changeStatus(item, $event.detail.value)">
+                        @for (option of statusOptions(); track option.id) {
+                          <ion-select-option [value]="option.id">{{ option.name }}</ion-select-option>
+                        }
+                      </ion-select>
+                    }
+                    @if (kind === 'memos') {
+                      <ion-button
+                        fill="clear"
+                        size="small"
+                        [attr.aria-label]="(isPinned(item) ? 'Unpin ' : 'Pin ') + title(item)"
+                        [attr.title]="isPinned(item) ? 'Unpin' : 'Pin'"
+                        [disabled]="pinUpdatingIds().includes(item.id)"
+                        [attr.aria-busy]="pinUpdatingIds().includes(item.id)"
+                        (click)="togglePin(item)">
+                        @if (pinUpdatingIds().includes(item.id)) {
+                          <ion-spinner name="crescent" aria-hidden="true" />
+                        } @else if (isPinned(item)) {
+                          <span class="memo-pin-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
+                              <path
+                                transform="rotate(45 12 12)"
+                                d="M16 9V4h1V2H7v2h1v5c0 1.66-1.34 3-3 3v2h6v8h2v-8h6v-2c-1.66 0-3-1.34-3-3Z" />
+                            </svg>
+                          </span>
+                        } @else {
+                          Pin
+                        }
+                      </ion-button>
+                    }
+                    <ion-button
+                      class="productivity-edit-button"
+                      fill="clear"
+                      size="small"
+                      [attr.aria-label]="'Edit ' + title(item)"
+                      (click)="openEditor(item)"
+                      ><ion-icon name="pencil-outline" slot="start" /><span class="productivity-edit-label"
+                        >Edit</span
+                      ></ion-button
+                    >
+                    <ion-button fill="clear" size="small" color="danger" (click)="deleteOne(item)"
+                      ><ion-icon name="trash-outline" slot="icon-only" /><span class="sr-only"
+                        >Delete {{ title(item) }}</span
+                      ></ion-button
+                    >
+                  </div>
                 </div>
               </article>
             }
@@ -294,6 +322,7 @@ export class ProductivityListPage {
   readonly selectedView = signal('all');
   readonly search = signal('');
   readonly selectedIds = signal<string[]>([]);
+  readonly pinUpdatingIds = signal<string[]>([]);
   readonly selectionLimitReached = computed(() => this.selectedIds().length >= 25);
   readonly selectedItem = computed(() => {
     const ids = this.selectedIds();
@@ -669,15 +698,18 @@ export class ProductivityListPage {
     }
   }
   async togglePin(item: DomainItem): Promise<void> {
-    if (!('memo' in item)) return;
+    if (!('memo' in item) || this.pinUpdatingIds().includes(item.id)) return;
+    this.pinUpdatingIds.update(ids => [...ids, item.id]);
     const pinned = !item.pinned;
     try {
       const response = await firstValueFrom(this.api.patch<Memo, { pinned: boolean }>('memos', item.id, { pinned }));
       this.items.update(items => items.map(value => (value.id === item.id ? response.data : value)));
-      this.snackbar.success(pinned ? 'Memo pinned.' : 'Memo unpinned.');
-      if (this.selectedView() === 'pinned' && !pinned) this.load(true);
+      this.snackbar.success(response.data.pinned ? 'Memo pinned.' : 'Memo unpinned.');
+      if (this.selectedView() === 'pinned' && !response.data.pinned) this.load(true);
     } catch (error) {
       this.snackbar.error(apiError(error));
+    } finally {
+      this.pinUpdatingIds.update(ids => ids.filter(id => id !== item.id));
     }
   }
   emptyTitle(): string {

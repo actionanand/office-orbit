@@ -8,6 +8,7 @@ export class StatusBadgeComponent {
   readonly label = input.required<string>();
   readonly kind = input('neutral');
   readonly tone = computed(() => {
+    if (this.kind() === 'active-sprint') return 'active-sprint';
     if (this.kind() === 'jira-status') {
       switch (this.label().trim().toLowerCase()) {
         case 'not started':

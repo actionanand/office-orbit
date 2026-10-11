@@ -12,6 +12,8 @@ import {
   refreshOutline,
 } from 'ionicons/icons';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
+import { ReportOutputService } from '../../core/platform/report-output.service';
+import { jiraPdfFilename, jiraReport } from './jira-report';
 import { apiError } from '../../core/api/api-error';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { StatePanelComponent } from '../../shared/components/state-panel.component';
@@ -26,6 +28,13 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
 
 @Component({
   selector: 'app-jira-detail',
+  styles: `
+    .jira-pdf-export {
+      display: block;
+      width: fit-content;
+      margin: 0 0 16px;
+    }
+  `,
   imports: [
     RouterLink,
     IonButton,
@@ -61,6 +70,14 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
           <app-state-panel [error]="error()" message="JIRA not found." (retry)="load()" />
         } @else if (item(); as jira) {
           <header class="detail-header">
+            <ion-button
+              class="jira-pdf-export"
+              fill="outline"
+              [disabled]="exporting()"
+              [attr.aria-busy]="exporting()"
+              (click)="exportPdf()">
+              {{ exporting() ? 'Exporting PDF…' : 'Export as PDF' }}
+            </ion-button>
             <app-jira-link [jiraKey]="jira.jiraKey" [showExternal]="true" [externalText]="true" />
             @if (jira.summary) {
               <h1>{{ jira.summary }}</h1>
@@ -263,7 +280,7 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
             @if (jira.relationships.length > 0) {
               <section class="detail-section relationships-section">
                 <h2>Relationships</h2>
-                <div class="relationship-list">
+                <div class="relationship-grid">
                   @for (relationship of jira.relationships; track relationship.direction + relationship.otherJira.id) {
                     <article class="relationship-item">
                       <div class="relationship-heading">
@@ -401,12 +418,14 @@ export class JiraDetailPage {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly editOpen = signal(false);
+  readonly exporting = signal(false);
   readonly names = names;
   readonly date = formatDate;
   readonly dateRange = formatDateRange;
   readonly spilled = spilloverLabel;
   private readonly service = inject(JiraService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly reportOutput = inject(ReportOutputService);
   private readonly destroyRef = inject(DestroyRef);
   private request?: Subscription;
 
@@ -439,6 +458,22 @@ export class JiraDetailPage {
 
   currentSprint(jira: JiraDetail) {
     return activeSprint(jira.sprints);
+  }
+
+  async exportPdf(): Promise<void> {
+    const jira = this.item();
+    if (!jira || this.loading() || this.error() || this.exporting()) return;
+    this.exporting.set(true);
+    try {
+      await this.reportOutput.pdf(jiraReport(jira), jiraPdfFilename(jira.jiraKey));
+      this.snackbar.success(
+        this.reportOutput.android ? 'Choose an app to save or share the PDF.' : 'JIRA PDF downloaded.',
+      );
+    } catch {
+      this.snackbar.error('Unable to export JIRA PDF. Please try again.');
+    } finally {
+      this.exporting.set(false);
+    }
   }
 
   eventsFrom(jira: JiraDetail, sprintId: string): SpillEvent[] {

@@ -14,6 +14,7 @@ import {
   WorkLog,
 } from '../../shared/models/api.models';
 import { ResourcePage } from './resource.page';
+import { ReleaseService } from '../releases/releases.service';
 
 const route = { snapshot: { queryParamMap: convertToParamMap({}) } };
 
@@ -46,6 +47,7 @@ describe('ResourcePage presentation', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: route },
         { provide: LinksService, useValue: {} },
+        { provide: ReleaseService, useValue: {} },
         {
           provide: ReadFeatureService,
           useValue: {
@@ -67,9 +69,38 @@ describe('ResourcePage presentation', () => {
     expect(element.querySelectorAll('.release-select-column input[type="checkbox"]')).toHaveLength(1);
     expect(element.querySelector('.release-table details')).toBeTruthy();
     expect(element.querySelector('ion-modal.release-copy-modal')).toBeTruthy();
+    expect(element.textContent).toContain('Set announcement date');
+    expect(element.textContent).toContain('Set release date');
     expect(element.querySelectorAll('ion-modal.release-copy-modal ion-checkbox')).toHaveLength(8);
     page.selectVisibleReleases();
     expect(page.selectedReleaseIds()).toEqual(['private-release-id']);
+    expect(page.canSetReleaseDate('announcement')).toBe(true);
+    expect(page.canSetReleaseDate('release')).toBe(true);
+    page.items.set([{ ...release, formalAnnouncedDate: '2026-10-01' }]);
+    expect(page.canSetReleaseDate('announcement')).toBe(false);
+    expect(page.canSetReleaseDate('release')).toBe(true);
+    page.items.set([{ ...release, confirmedReleaseDate: '2026-10-02' }]);
+    expect(page.canSetReleaseDate('announcement')).toBe(true);
+    expect(page.canSetReleaseDate('release')).toBe(false);
+    page.releaseDateEditorOpen.set(true);
+    const reload = vi.spyOn(page, 'load');
+    page.releaseDatesSaved({
+      dateType: 'announcement',
+      date: '2026-10-10',
+      requested: 1,
+      updated: 1,
+      allSucceeded: true,
+      data: [release],
+    });
+    expect(page.releaseDateEditorOpen()).toBe(false);
+    expect(page.selectedReleaseIds()).toEqual([]);
+    expect(reload).toHaveBeenCalledWith(true, false, true);
+    page.releaseDatesFailed({ status: 409 });
+    expect(reload).toHaveBeenCalledTimes(2);
+    page.releaseDatesFailed({ status: 500 });
+    expect(reload).toHaveBeenCalledTimes(2);
+    page.items.set([release]);
+    page.selectedReleaseIds.set(['private-release-id']);
     expect(page.releaseNotesText(page.selectedReleases())).toBe(
       "Title: Visible JIRA\nJIRA: https://clarivate.atlassian.net/browse/LSC-84944\n\nComponent Name: Delivery API\nDeployment Type: Production\nVersion Number: [1.2.3] from branch 'main'\nComment: Ready for confirmation.",
     );
@@ -119,6 +150,7 @@ describe('ResourcePage presentation', () => {
         provideRouter([]),
         { provide: ActivatedRoute, useValue: route },
         { provide: LinksService, useValue: {} },
+        { provide: ReleaseService, useValue: {} },
         {
           provide: ReadFeatureService,
           useValue: {
@@ -301,6 +333,113 @@ describe('ResourcePage presentation', () => {
     expect(text).toContain('Add JIRA');
     expect(text).not.toContain('Edit JIRA');
     expect(text).not.toContain('Delete JIRA');
+  });
+
+  it('shows the active Sprint badge and Active chip only in the JIRAs All view', async () => {
+    const activeJira = {
+      id: 'active-jira-id',
+      createdTime: '',
+      lastEditedTime: '',
+      jiraKey: 'LSC-86139',
+      summary: 'RIR prod deployment',
+      status: 'Done',
+      tags: [],
+      appraisal: false,
+      spillover: true,
+      spilloverCount: 3,
+      description: '',
+      firstSprintStart: null,
+      inActiveSprint: true,
+      demoRequired: false,
+      demoedDate: null,
+      demoNotes: '',
+      sprintIds: ['current-sprint-id'],
+      projectIds: [],
+      linkedJiraIds: [],
+      linkedFromIds: [],
+      linkType: null,
+      linkReason: '',
+      linkedOn: null,
+      resolvedOn: null,
+      releaseItemIds: [],
+      sprints: [
+        {
+          id: 'current-sprint-id',
+          name: 'Sprint - 26.4 - Sprint 1',
+          active: true,
+          startDate: '2026-10-01',
+          endDate: '2026-10-14',
+        },
+      ],
+    } satisfies Jira;
+    const historicalJira = {
+      ...activeJira,
+      id: 'historical-jira-id',
+      jiraKey: 'LSC-86140',
+      spilloverCount: 0,
+      sprints: [
+        {
+          id: 'historical-sprint-id',
+          name: 'Sprint history',
+          active: false,
+          startDate: '2026-09-01',
+          endDate: '2026-09-14',
+        },
+      ],
+    } satisfies Jira;
+    const views = [
+      { label: 'All', path: '/api/jiras' },
+      { label: 'Active', path: '/api/jiras/active' },
+      { label: 'Blocked', path: '/api/jiras/blocked' },
+      { label: 'Spillovers', path: '/api/jiras/spillovers' },
+      { label: 'Demo Pending', path: '/api/jiras/demo-pending' },
+      { label: 'Demoed', path: '/api/jiras/demoed' },
+      { label: 'Appraisal', path: '/api/jiras/appraisal' },
+    ];
+    await TestBed.configureTestingModule({
+      imports: [ResourcePage],
+      providers: [
+        provideHttpClient(),
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: route },
+        { provide: LinksService, useValue: { open: vi.fn() } },
+        {
+          provide: ReadFeatureService,
+          useValue: {
+            heading: 'JIRAs',
+            description: 'Priorities',
+            kind: 'jiras',
+            views,
+            list: () => of({ data: [activeJira], count: 1, hasMore: false, nextCursor: null }),
+            updatedAt: () => Date.now(),
+          },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ResourcePage);
+    fixture.detectChanges();
+    const badges = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('.jira-row .status-badge'), (badge: Element) =>
+        badge.textContent?.trim(),
+      );
+    const page = fixture.componentInstance;
+
+    expect(badges()).toEqual(['Done', 'Sprint - 26.4 - Sprint 1', 'Spilled 3 times', 'Active']);
+    expect(fixture.nativeElement.querySelector('.jira-row .status-badge:last-child')?.classList).toContain(
+      'active-sprint',
+    );
+
+    page.items.set([historicalJira]);
+    fixture.detectChanges();
+    expect(badges()).toEqual(['Done']);
+
+    page.items.set([activeJira]);
+    for (const view of views.filter(view => view.path !== '/api/jiras')) {
+      page.select(view.path);
+      fixture.detectChanges();
+      expect(badges()).toContain('Sprint - 26.4 - Sprint 1');
+      expect(badges()).not.toContain('Active');
+    }
   });
 
   it('links Sprint cards and enriches allocation rows with compact JIRA details', async () => {

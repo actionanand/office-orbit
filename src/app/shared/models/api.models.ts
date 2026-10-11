@@ -487,6 +487,48 @@ export interface ReleaseItem {
   sprints?: NamedRef[];
 }
 
+export type ReleaseDateType = 'announcement' | 'release';
+
+export interface ReleaseBulkDateRequest {
+  releaseItemIds: string[];
+  dateType: ReleaseDateType;
+  date: string;
+}
+
+export interface ReleaseBulkDateResponse {
+  dateType: ReleaseDateType;
+  date: string;
+  requested: number;
+  updated: number;
+  failed?: number;
+  allSucceeded: boolean;
+  data: ReleaseItem[];
+}
+
+export interface ReleaseDateConflict {
+  id: string;
+  componentName: string;
+  currentDate: string;
+}
+
+export interface ReleaseBulkDateConflictResponse {
+  dateType: ReleaseDateType;
+  conflicts: ReleaseDateConflict[];
+}
+
+export interface ReleaseCalendarDate {
+  date: string;
+  count: number;
+}
+
+export interface ReleaseCalendarResponse {
+  dateType: ReleaseDateType;
+  from: string;
+  to: string;
+  totalItems: number;
+  dates: ReleaseCalendarDate[];
+}
+
 export interface Feedback {
   id: string;
   createdTime: string;

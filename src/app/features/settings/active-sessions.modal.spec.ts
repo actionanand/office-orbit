@@ -125,16 +125,26 @@ describe('ActiveSessionsModal', () => {
   });
 
   it('closes and clears local authentication when the server revokes the current session', async () => {
-    listResult = of({ sessions: [current] });
+    listResult = of({ sessions: [current, other] });
     const fixture = await create();
     sessionManagement.revokeSession.mockReturnValueOnce(
       of({ success: true, sessionId: current.id, currentSession: true }),
     );
     const closed = vi.fn();
     fixture.componentInstance.closed.subscribe(closed);
-    await fixture.componentInstance.logoutSession(current);
+    await fixture.componentInstance.logoutSession(other);
     expect(closed).toHaveBeenCalledOnce();
     expect(auth.signOut).toHaveBeenCalledOnce();
+  });
+
+  it('never confirms or revokes the current device from the session list', async () => {
+    listResult = of({ sessions: [current, other] });
+    const fixture = await create();
+    await fixture.componentInstance.logoutSession(current);
+    expect(confirmation.confirm).not.toHaveBeenCalled();
+    expect(sessionManagement.revokeSession).not.toHaveBeenCalled();
+    expect(auth.signOut).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.sessions()).toEqual([current, other]);
   });
 
   it('logs out all other sessions while preserving the current session locally', async () => {
