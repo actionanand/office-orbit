@@ -2897,6 +2897,9 @@ ion-popover.work-link-popover {
 .productivity-row-heading strong {
   overflow-wrap: anywhere;
 }
+.productivity-row:has(.inline-status-select) .productivity-row-heading {
+  min-height: 44px;
+}
 .productivity-row .preview {
   max-width: 90ch;
 }
@@ -3568,6 +3571,9 @@ ion-popover.work-link-popover {
   .productivity-row {
     grid-template-columns: auto minmax(0, 1fr);
     padding: 13px 12px;
+  }
+  .productivity-row:has(.inline-status-select) .productivity-row-heading {
+    min-height: 0;
   }
   .productivity-actions {
     grid-column: 2;
