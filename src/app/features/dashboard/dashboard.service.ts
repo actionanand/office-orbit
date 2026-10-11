@@ -2,7 +2,7 @@ import { inject, Service } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { DashboardResponse } from '../../shared/models/api.models';
-import { tap, timeout } from 'rxjs';
+import { tap } from 'rxjs';
 import { cacheKey, DataCacheService } from '../../core/cache/data-cache.service';
 @Service()
 export class DashboardService {
@@ -14,10 +14,9 @@ export class DashboardService {
     return this.cache.load(
       `dashboard:${params.toString() || 'all'}`,
       () =>
-        this.http.get<DashboardResponse>(environment.apiBaseUrl + '/api/dashboard', { params }).pipe(
-          timeout(15000),
-          tap(response => this.seedSharedData(response)),
-        ),
+        this.http
+          .get<DashboardResponse>(environment.apiBaseUrl + '/api/dashboard', { params })
+          .pipe(tap(response => this.seedSharedData(response))),
       refresh,
     );
   }

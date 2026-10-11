@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
-import { defer, firstValueFrom, timeout } from 'rxjs';
+import { defer, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { RelationOption } from '../../shared/models/api.models';
 import { DataCacheService } from '../cache/data-cache.service';
@@ -27,9 +27,7 @@ export class RelationOptionsService {
     do {
       let params = new HttpParams().set('pageSize', '100');
       if (cursor) params = params.set('cursor', cursor);
-      const page = await firstValueFrom(
-        this.http.get<RelationPage>(environment.apiBaseUrl + path, { params }).pipe(timeout(15000)),
-      );
+      const page = await firstValueFrom(this.http.get<RelationPage>(environment.apiBaseUrl + path, { params }));
       records.push(...page.data);
       if (!page.hasMore) break;
       cursor = page.nextCursor;

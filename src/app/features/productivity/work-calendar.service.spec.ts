@@ -5,6 +5,7 @@ import { WorkCalendarService } from './work-calendar.service';
 import { WEEKDAYS } from './todo-recurrence';
 import { environment } from '../../../environments/environment';
 import { DataCacheService } from '../../core/cache/data-cache.service';
+import { API_RETRY_SAFE_MUTATION } from '../../core/api/api-retry-policy';
 
 describe('WorkCalendarService', () => {
   let http: HttpTestingController, service: WorkCalendarService;
@@ -23,6 +24,7 @@ describe('WorkCalendarService', () => {
     service.save(['Sunday', 'Monday']).subscribe();
     const patch = http.expectOne(url);
     expect(patch.request.method).toBe('PATCH');
+    expect(patch.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(true);
     expect(patch.request.body).toEqual({ weekOffDays: ['Monday', 'Sunday'] });
     patch.flush({ data: { weekOffDays: ['Monday', 'Sunday'] } });
     expect(TestBed.inject(DataCacheService).get('/api/settings/work-calendar')).toEqual({

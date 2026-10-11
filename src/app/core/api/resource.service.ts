@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
-import { map, Observable, tap, timeout } from 'rxjs';
+import { map, Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DomainItem, ListResponse } from '../../shared/models/api.models';
 import { cacheKey, DataCacheService } from '../cache/data-cache.service';
@@ -23,7 +23,6 @@ export class ResourceService {
       cacheKey(path, filters),
       () =>
         this.http.get<unknown>(`${environment.apiBaseUrl}${path}`, { params }).pipe(
-          timeout(15000),
           map(response => this.normalize<T>(response)),
           tap(response => this.seedJiraDetails(path, response.data)),
         ),
@@ -37,7 +36,7 @@ export class ResourceService {
     );
     return this.cache.load(
       cacheKey(path, filters),
-      () => this.http.get<T>(`${environment.apiBaseUrl}${path}`, { params }).pipe(timeout(15000)),
+      () => this.http.get<T>(`${environment.apiBaseUrl}${path}`, { params }),
       refresh,
     );
   }
@@ -49,7 +48,6 @@ export class ResourceService {
       fromObject: Object.fromEntries(Object.entries(filters).filter(([, value]) => value)),
     });
     return this.http.get<unknown>(environment.apiBaseUrl + path, { params }).pipe(
-      timeout(15000),
       map(response => this.normalize<T>(response)),
       tap(response => this.seedJiraDetails(path, response.data)),
     );

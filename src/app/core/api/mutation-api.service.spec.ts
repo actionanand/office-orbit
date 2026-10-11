@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DataCacheService } from '../cache/data-cache.service';
 import { MutationApiService } from './mutation-api.service';
+import { API_RETRY_SAFE_MUTATION } from './api-retry-policy';
 
 describe('MutationApiService', () => {
   let service: MutationApiService;
@@ -32,6 +33,7 @@ describe('MutationApiService', () => {
     );
     const post = http.expectOne(`${environment.apiBaseUrl}/api/work-logs`);
     expect(post.request.method).toBe('POST');
+    expect(post.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(false);
     expect(post.request.body).toEqual({ update: 'Done' });
     post.flush({ data: { id: 'new' } });
     await created;
@@ -41,6 +43,7 @@ describe('MutationApiService', () => {
     );
     const patch = http.expectOne(`${environment.apiBaseUrl}/api/work-logs/page%2Fid`);
     expect(patch.request.method).toBe('PATCH');
+    expect(patch.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(true);
     patch.flush({ data: { id: 'page/id' } });
     await patched;
   });
@@ -55,6 +58,7 @@ describe('MutationApiService', () => {
     const result = firstValueFrom(service.query('/api/work-logs', body));
     const request = http.expectOne(`${environment.apiBaseUrl}/api/work-logs`);
     expect(request.request.method).toBe('QUERY');
+    expect(request.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(false);
     expect(request.request.body).toEqual(body);
     request.flush({ data: [], count: 0, hasMore: false, nextCursor: null });
     await result;
@@ -64,12 +68,14 @@ describe('MutationApiService', () => {
     const deleted = firstValueFrom(service.delete('/api/todos', 'page/id'));
     const single = http.expectOne(`${environment.apiBaseUrl}/api/todos/page%2Fid`);
     expect(single.request.method).toBe('DELETE');
+    expect(single.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(false);
     single.flush(null);
     await deleted;
 
     const bulk = firstValueFrom(service.bulkDelete('/api/tasks', ['one', 'two']));
     const request = http.expectOne(`${environment.apiBaseUrl}/api/tasks/bulk-delete`);
     expect(request.request.method).toBe('POST');
+    expect(request.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(false);
     expect(request.request.body).toEqual({ pageIds: ['one', 'two'] });
     request.flush({ requested: 2, deleted: 1, failed: [{ id: 'two', deleted: false }], allSucceeded: false });
     expect((await bulk).allSucceeded).toBe(false);
@@ -79,6 +85,20 @@ describe('MutationApiService', () => {
         Array.from({ length: 26 }, (_, index) => String(index)),
       ),
     ).toThrow();
+  });
+
+  it('marks endpoint PATCH as safe without changing the body or invalidation prefix', async () => {
+    const body = { reasonMarkdown: 'Blocked by **DevOps**' };
+    const invalidate = vi.spyOn(TestBed.inject(DataCacheService), 'invalidate');
+    const path = '/api/jiras/LSC-84944/spills/2/reason';
+    const result = firstValueFrom(service.patchEndpoint(path, body, '/api/jiras'));
+    const request = http.expectOne(environment.apiBaseUrl + path);
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(true);
+    expect(request.request.body).toBe(body);
+    request.flush({ data: { jiraKey: 'LSC-84944' } });
+    await result;
+    expect(invalidate.mock.calls.filter(([prefix]) => prefix === '/api/jiras')).toHaveLength(1);
   });
 
   it('invalidates affected resource and summary cache prefixes after a successful write', async () => {
