@@ -52,4 +52,25 @@ describe('CredentialEditorComponent', () => {
 
     expect(saved).not.toHaveBeenCalled();
   });
+
+  it('reports user edits and secret visibility changes as vault activity', () => {
+    TestBed.configureTestingModule({ imports: [CredentialEditorComponent] }).overrideComponent(
+      CredentialEditorComponent,
+      {
+        remove: { imports: [IonModal] },
+        add: { imports: [EditorModalStubComponent] },
+      },
+    );
+    const fixture = TestBed.createComponent(CredentialEditorComponent);
+    const activity = vi.fn();
+    fixture.componentInstance.activity.subscribe(activity);
+    fixture.componentRef.setInput('open', true);
+    TestBed.tick();
+
+    expect(activity).not.toHaveBeenCalled();
+    fixture.componentInstance.form.controls.name.setValue('Production credential');
+    fixture.componentInstance.toggleSecret();
+
+    expect(activity).toHaveBeenCalledTimes(2);
+  });
 });

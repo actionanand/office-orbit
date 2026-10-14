@@ -46,6 +46,35 @@ describe('CredentialVaultSessionService', () => {
 
     expect(service.key()).toBeNull();
   });
+
+  it('resets the inactivity deadline whenever vault activity is recorded', () => {
+    vi.useFakeTimers();
+    try {
+      const locked = signal(false);
+      const authenticated = signal(true);
+      TestBed.configureTestingModule({
+        providers: [
+          CredentialVaultSessionService,
+          { provide: AppLockService, useValue: { locked } },
+          { provide: AuthState, useValue: { authenticated } },
+        ],
+      });
+      const service = TestBed.inject(CredentialVaultSessionService);
+      service.unlock({} as CryptoKey);
+      expect(service.key()).not.toBeNull();
+
+      vi.advanceTimersByTime(10 * 60_000 - 1);
+      expect(service.key()).not.toBeNull();
+      service.touch();
+
+      vi.advanceTimersByTime(10 * 60_000 - 1);
+      expect(service.key()).not.toBeNull();
+      vi.advanceTimersByTime(1);
+      expect(service.key()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('CredentialVaultApiService', () => {

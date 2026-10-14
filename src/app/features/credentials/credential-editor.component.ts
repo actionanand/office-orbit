@@ -1,4 +1,5 @@
 import { Component, effect, input, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonButton, IonInput, IonModal, IonSelect, IonSelectOption, IonTextarea } from '@ionic/angular';
 import { CredentialPlaintext, credentialTypes, DecryptedCredential } from './credential.models';
@@ -25,7 +26,7 @@ import { CredentialPlaintext, credentialTypes, DecryptedCredential } from './cre
           fill="outline"
           [type]="showSecret ? 'text' : 'password'"
           formControlName="secret" />
-        <ion-button type="button" fill="clear" (click)="showSecret = !showSecret">{{
+        <ion-button type="button" fill="clear" (click)="toggleSecret()">{{
           showSecret ? 'Hide secret' : 'Show secret'
         }}</ion-button>
         <ion-input label="URL" labelPlacement="stacked" fill="outline" type="url" formControlName="url" />
@@ -53,6 +54,7 @@ export class CredentialEditorComponent {
   readonly saving = input(false);
   readonly saved = output<CredentialPlaintext>();
   readonly closed = output<void>();
+  readonly activity = output<void>();
   readonly types = credentialTypes;
   showSecret = false;
   readonly form = new FormGroup({
@@ -68,6 +70,7 @@ export class CredentialEditorComponent {
     tags: new FormControl(''),
   });
   constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.activity.emit());
     effect(() => {
       if (this.open()) this.reset();
       else this.clear();
@@ -94,35 +97,45 @@ export class CredentialEditorComponent {
         .filter(Boolean),
     });
   }
+  toggleSecret(): void {
+    this.showSecret = !this.showSecret;
+    this.activity.emit();
+  }
   private reset(): void {
     const payload = this.item()?.payload;
     this.showSecret = false;
-    this.form.reset({
-      name: payload?.name ?? '',
-      type: payload?.type ?? 'database',
-      username: payload?.username ?? '',
-      secret: payload?.secret ?? '',
-      url: payload?.url ?? '',
-      host: payload?.host ?? '',
-      port: payload?.port ?? '',
-      environment: payload?.environment ?? '',
-      notes: payload?.notes ?? '',
-      tags: payload?.tags.join(', ') ?? '',
-    });
+    this.form.reset(
+      {
+        name: payload?.name ?? '',
+        type: payload?.type ?? 'database',
+        username: payload?.username ?? '',
+        secret: payload?.secret ?? '',
+        url: payload?.url ?? '',
+        host: payload?.host ?? '',
+        port: payload?.port ?? '',
+        environment: payload?.environment ?? '',
+        notes: payload?.notes ?? '',
+        tags: payload?.tags.join(', ') ?? '',
+      },
+      { emitEvent: false },
+    );
   }
   private clear(): void {
     this.showSecret = false;
-    this.form.reset({
-      name: '',
-      type: 'database',
-      username: '',
-      secret: '',
-      url: '',
-      host: '',
-      port: '',
-      environment: '',
-      notes: '',
-      tags: '',
-    });
+    this.form.reset(
+      {
+        name: '',
+        type: 'database',
+        username: '',
+        secret: '',
+        url: '',
+        host: '',
+        port: '',
+        environment: '',
+        notes: '',
+        tags: '',
+      },
+      { emitEvent: false },
+    );
   }
 }

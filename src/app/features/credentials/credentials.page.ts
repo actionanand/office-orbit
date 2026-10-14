@@ -101,7 +101,7 @@ type CheckedEvent = { detail: { checked: boolean } };
             </div>
             <div>
               <ion-button fill="outline" (click)="lock()">Lock Vault</ion-button
-              ><ion-button (click)="editorOpen.set(true)">Add Credential</ion-button>
+              ><ion-button (click)="addCredential()">Add Credential</ion-button>
             </div>
           </header>
           <section class="credential-toolbar">
@@ -171,7 +171,7 @@ type CheckedEvent = { detail: { checked: boolean } };
                   @if (validUrl(credential.payload.url)) {
                     <ion-button fill="clear" (click)="openUrl(credential.payload.url)">Open</ion-button>
                   }
-                  <ion-button fill="clear" (click)="editing.set(credential)">Edit</ion-button
+                  <ion-button fill="clear" (click)="editCredential(credential)">Edit</ion-button
                   ><ion-button fill="clear" color="danger" (click)="deleteOne(credential)">Delete</ion-button>
                 </div>
               </article>
@@ -182,6 +182,7 @@ type CheckedEvent = { detail: { checked: boolean } };
             [item]="editing()"
             [saving]="credentialSaving()"
             (closed)="closeEditor()"
+            (activity)="touch()"
             (saved)="saveCredential($event)" />
         }</main
     ></ion-content>
@@ -253,6 +254,14 @@ export class CredentialsPage {
   }
   clearSelection(): void {
     this.selected.set(new Set<string>());
+    this.touch();
+  }
+  addCredential(): void {
+    this.editorOpen.set(true);
+    this.touch();
+  }
+  editCredential(credential: DecryptedCredential): void {
+    this.editing.set(credential);
     this.touch();
   }
 
@@ -361,6 +370,7 @@ export class CredentialsPage {
   }
 
   async deleteOne(record: DecryptedCredential): Promise<void> {
+    this.touch();
     const confirmed = await this.confirm.confirm({
       title: 'Delete credential?',
       message: `Delete ${record.payload.name}? This cannot be undone.`,
@@ -380,6 +390,7 @@ export class CredentialsPage {
   }
 
   async deleteSelected(): Promise<void> {
+    this.touch();
     const ids = [...this.selected()];
     if (!ids.length || ids.length > 25) return;
     const confirmed = await this.confirm.confirm({
