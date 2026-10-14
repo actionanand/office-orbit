@@ -1,40 +1,63 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { CursorService } from '../../core/api/cursor.service';
-import { workLogFixture } from '../../shared/models/work-log.fixture';
-import { AnalyticsService, aggregateWork } from './analytics.service';
-import { BarChartComponent } from '../../shared/components/bar-chart.component';
-describe('Bounded analytics', () => {
-  it('aggregates real values by category, type and week', () => {
-    const summary = aggregateWork([
-      workLogFixture('a'),
-      workLogFixture('b', { category: 'Grooming', type: 'Learning' }),
-    ]);
-    expect(summary.categories).toEqual([
-      { label: 'Office Work', value: 1 },
-      { label: 'Grooming', value: 1 },
-    ]);
-    expect(summary.types[1]).toEqual({ label: 'Learning', value: 1 });
-    expect(summary.weeks[0].value).toBe(2);
+import { environment } from '../../../environments/environment';
+import { DataCacheService } from '../../core/cache/data-cache.service';
+import { HistoricalAnalyticsResponse } from '../../shared/models/api.models';
+import { AnalyticsService } from './analytics.service';
+
+const response = (from: string, to: string): HistoricalAnalyticsResponse => ({
+  schemaVersion: 1,
+  generatedAt: '2026-10-15T10:00:00.000Z',
+  from,
+  to,
+  workActivity: { count: 0, weeks: [], categories: [], types: [] },
+  spillSummary: {
+    distinctJiras: 0,
+    jirasWithAnySpill: 0,
+    totalSpillEvents: 0,
+    spillPercentage: 0,
+    averageSpillsPerSpilledJira: 0,
+  },
+  spillTrend: null,
+  sprints: [],
+  topSpilledJiras: [],
+});
+
+describe('AnalyticsService', () => {
+  let service: AnalyticsService;
+  let http: HttpTestingController;
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [AnalyticsService, DataCacheService, provideHttpClient(), provideHttpClientTesting()],
+    });
+    service = TestBed.inject(AnalyticsService);
+    http = TestBed.inject(HttpTestingController);
   });
-  it('reuses the bounded range until explicit refresh', async () => {
-    const range = vi.fn().mockResolvedValue([workLogFixture('a')]);
-    TestBed.configureTestingModule({ providers: [{ provide: CursorService, useValue: { range } }] });
-    const service = TestBed.inject(AnalyticsService);
-    await firstValueFrom(service.load('2026-09-01', '2026-09-30'));
-    await firstValueFrom(service.load('2026-09-01', '2026-09-30'));
-    expect(range).toHaveBeenCalledTimes(1);
-    expect(range.mock.calls[0][1]).toEqual({ from: '2026-09-01', to: '2026-09-30' });
-    await firstValueFrom(service.load('2026-09-01', '2026-09-30', true));
-    expect(range).toHaveBeenCalledTimes(2);
+  afterEach(() => http.verify());
+
+  it('loads Worker historical analytics by inclusive date range and caches an exact range', async () => {
+    const first = firstValueFrom(service.load('2026-09-16', '2026-10-15'));
+    const request = http.expectOne(`${environment.apiBaseUrl}/api/analytics?from=2026-09-16&to=2026-10-15`);
+    expect(request.request.method).toBe('GET');
+    request.flush(response('2026-09-16', '2026-10-15'));
+    await first;
+    await firstValueFrom(service.load('2026-09-16', '2026-10-15'));
+    http.expectNone(`${environment.apiBaseUrl}/api/analytics?from=2026-09-16&to=2026-10-15`);
   });
-  it('renders supplied values visibly and in SVG', () => {
-    const fixture = TestBed.createComponent(BarChartComponent);
-    fixture.componentRef.setInput('label', 'Category mix');
-    fixture.componentRef.setInput('values', [{ label: 'Office Work', value: 18 }]);
-    fixture.detectChanges();
-    const element: HTMLElement = fixture.nativeElement;
-    expect(element.textContent).toContain('18');
-    expect(element.querySelector('.chart-fill')?.getAttribute('width')).toBe('100');
+
+  it('separates range cache entries and bypasses the selected entry on refresh', async () => {
+    const first = firstValueFrom(service.load('2026-09-16', '2026-10-15'));
+    http
+      .expectOne(request => request.url.endsWith('/api/analytics') && request.params.get('from') === '2026-09-16')
+      .flush(response('2026-09-16', '2026-10-15'));
+    await first;
+    const second = firstValueFrom(service.load('2026-07-18', '2026-10-15'));
+    http.expectOne(request => request.params.get('from') === '2026-07-18').flush(response('2026-07-18', '2026-10-15'));
+    await second;
+    const refresh = firstValueFrom(service.load('2026-09-16', '2026-10-15', true));
+    http.expectOne(request => request.params.get('from') === '2026-09-16').flush(response('2026-09-16', '2026-10-15'));
+    await refresh;
   });
 });

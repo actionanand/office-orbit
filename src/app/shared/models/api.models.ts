@@ -797,3 +797,53 @@ export interface DashboardResponse {
   feedbackSummary: { appraisal: number; improvementFollowUp: number; negative: number };
   activeWorkLinks: WorkLink[];
 }
+
+export interface HistoricalAnalyticsResponse {
+  schemaVersion: 1;
+  generatedAt: string;
+  from: string;
+  to: string;
+  workActivity: {
+    count: number;
+    weeks: Array<{ weekStart: string; count: number }>;
+    categories: Array<{ label: string; count: number }>;
+    types: Array<{ label: string; count: number }>;
+  };
+  spillSummary: {
+    distinctJiras: number;
+    jirasWithAnySpill: number;
+    totalSpillEvents: number;
+    spillPercentage: number;
+    averageSpillsPerSpilledJira: number;
+  };
+  spillTrend: null | {
+    firstSprintRate: number;
+    latestSprintRate: number;
+    changePercentagePoints: number;
+    direction: 'improving' | 'worsening' | 'unchanged';
+  };
+  sprints: Array<{
+    id: string;
+    sprint: string;
+    startDate: string | null;
+    endDate: string | null;
+    active: boolean;
+    jiraCount: number;
+    incomingSpillJiras: number;
+    outgoingSpillJiras: number;
+    outgoingSpillRate: number;
+    capacityDays: number;
+    availableDays: number;
+    plannedDays: number;
+    remainingPlannedDays: number;
+    utilizationPercent: number;
+    allocationConflictPairs: number;
+  }>;
+  topSpilledJiras: Array<{
+    id: string;
+    jiraKey: string;
+    summary: string;
+    fullHistorySpillCount: number;
+    selectedRangeOutgoingSpillCount: number;
+  }>;
+}
