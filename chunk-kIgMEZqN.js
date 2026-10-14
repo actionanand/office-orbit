@@ -1,1 +1,0 @@
-import {o}from'./chunk-CyFHB2T8.js';var t,e=(t=class{constructor(r){this.init=r,this.records=this.init();}reset(){this.records=this.init();}},o(t,"ImperativeState"),t);export{e};
