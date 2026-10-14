@@ -4,7 +4,7 @@ import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { ConfirmationService } from '../../core/notifications/confirmation.service';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
-import { Memo, Todo } from '../../shared/models/api.models';
+import { Memo, Task, Todo } from '../../shared/models/api.models';
 import { ProductivityListPage } from './productivity-list.page';
 import { ProductivityService } from './productivity.service';
 import { TodoComputedService } from './todo-computed.service';
@@ -141,6 +141,40 @@ describe('ProductivityListPage bulk selection', () => {
     expect(component.pinUpdatingIds()).toEqual([]);
     expect(component.items()).toEqual([memo]);
     expect(snackbar.error).toHaveBeenCalledOnce();
+  });
+
+  it('renders task Notes and Outcome / Update as formatted Markdown', () => {
+    TestBed.overrideProvider(ActivatedRoute, { useValue: { snapshot: { data: { kind: 'tasks' } } } });
+    const task: Task = {
+      id: 'task',
+      createdTime: '',
+      lastEditedTime: '',
+      task: 'Formatted task',
+      status: 'Not started',
+      priority: null,
+      responsibility: null,
+      requestedBy: '',
+      requestedByType: null,
+      assignedTo: '',
+      assignedToType: null,
+      dueDate: null,
+      followUpDate: null,
+      completedDate: null,
+      companyIds: [],
+      jiraIds: [],
+      notes: 'Testing **bold** notes',
+      outcomeUpdate: '- Shipped',
+    };
+    const fixture = TestBed.createComponent(ProductivityListPage);
+    fixture.componentInstance.items.set([task]);
+    fixture.componentInstance.loading.set(false);
+    fixture.detectChanges();
+
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelectorAll('.productivity-markdown app-markdown-viewer')).toHaveLength(2);
+    expect(root.querySelector('.productivity-markdown .markdown-viewer strong')?.textContent).toBe('bold');
+    expect(root.querySelector('.productivity-markdown .markdown-viewer ul li')?.textContent).toBe('Shipped');
+    expect(root.textContent).not.toContain('**bold**');
   });
 
   it('closes through isOpen after save, reloads todos, and reopens with saved settings', async () => {

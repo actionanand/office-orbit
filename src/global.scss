@@ -2539,7 +2539,7 @@ ion-popover.work-link-popover {
   --width: min(880px, calc(100vw - 32px));
 }
 .productivity-editor-modal.compact-editor-modal {
-  --height: min(500px, calc(100vh - 32px));
+  --height: min(600px, calc(100vh - 32px));
 }
 .editor-form {
   display: grid;
@@ -2563,6 +2563,7 @@ ion-popover.work-link-popover {
 .editor-form > ion-checkbox,
 .editor-form > app-ionic-date-field,
 .editor-form > app-jira-picker,
+.editor-form > app-markdown-input,
 .editor-form > .ionic-field-with-helper {
   min-width: 0;
   margin: 0;
@@ -3019,12 +3020,19 @@ ion-popover.work-link-popover {
 .productivity-row:has(.inline-status-select) .productivity-row-heading {
   min-height: 44px;
 }
-.todo-row .selection-check ion-checkbox {
-  // Give Ionic's internal wrapper a height to inherit so the icon is centered.
+.todo-row .selection-check ion-checkbox,
+.productivity-row:has(.inline-status-select) .selection-check ion-checkbox {
+  // Give Ionic's internal wrapper a heading-height target so the checkbox and title share a center line.
   height: 44px;
 }
-.productivity-row .preview {
+.productivity-markdown {
   max-width: 90ch;
+  min-width: 0;
+}
+.productivity-markdown > strong {
+  display: block;
+  color: var(--muted);
+  font-size: 0.76rem;
 }
 .productivity-actions {
   display: flex;
@@ -3629,46 +3637,11 @@ ion-popover.work-link-popover {
   border-color: var(--ion-color-primary);
   background: var(--ion-color-primary);
 }
-.markdown-mode {
-  display: flex;
-  width: max-content;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--surface-soft);
-}
-.markdown-mode button {
-  min-height: 38px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 700;
-}
-.markdown-mode button.active {
-  background: var(--surface);
-  color: var(--ion-color-primary);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 8%);
-}
-.markdown-editor-preview {
-  min-height: 320px;
-  padding: 18px;
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-}
 .markdown-viewer blockquote {
   margin-inline: 0;
   padding-left: 16px;
   border-left: 4px solid var(--line);
   color: var(--muted);
-}
-.markdown-editor {
-  min-height: 330px;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
-  line-height: 1.55;
 }
 .sr-only {
   position: absolute;
@@ -3714,6 +3687,13 @@ ion-popover.work-link-popover {
   }
   .productivity-row:has(.inline-status-select) .productivity-row-heading {
     min-height: 0;
+  }
+  .productivity-row:not(.todo-row):has(.inline-status-select) .selection-check {
+    place-items: start center;
+  }
+  .productivity-row:not(.todo-row):has(.inline-status-select) .selection-check ion-checkbox {
+    min-height: 32px;
+    height: 32px;
   }
   .todo-row .productivity-row-heading strong {
     display: flex;

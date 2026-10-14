@@ -19,7 +19,6 @@ import {
   IonModal,
   IonSelect,
   IonSelectOption,
-  IonTextarea,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
@@ -43,7 +42,7 @@ import {
 } from '../../shared/models/api.models';
 import { metadataOptions, optionId, relationOptions, todayIso } from '../../shared/utils/editor';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
-import { MarkdownViewerComponent } from './markdown-viewer.component';
+import { MarkdownInputComponent } from '../../shared/components/markdown-input.component';
 import { JiraPickerComponent, JiraPickerSelection } from '../jiras/jira-picker.component';
 import { ProductivityKind, ProductivityService } from './productivity.service';
 
@@ -61,12 +60,11 @@ import { ProductivityKind, ProductivityService } from './productivity.service';
     IonModal,
     IonSelect,
     IonSelectOption,
-    IonTextarea,
     IonTitle,
     IonToolbar,
     IonicDateFieldComponent,
     JiraPickerComponent,
-    MarkdownViewerComponent,
+    MarkdownInputComponent,
   ],
   template: `<ion-modal
     class="editor-modal productivity-editor-modal"
@@ -128,14 +126,7 @@ import { ProductivityKind, ProductivityService } from './productivity.service';
               @if (setupIssue()) {
                 <p class="form-error field-span" role="status">{{ setupIssue() }}</p>
               }
-              <ion-textarea
-                class="field-span"
-                fill="outline"
-                label="Notes"
-                labelPlacement="stacked"
-                [autoGrow]="true"
-                [rows]="5"
-                formControlName="notes" />
+              <app-markdown-input class="field-span" label="Notes" [rows]="5" variant="full" formControlName="notes" />
             } @else if (kind() === 'tasks') {
               <ion-select
                 label="Status"
@@ -218,21 +209,12 @@ import { ProductivityKind, ProductivityService } from './productivity.service';
                 [selectedIds]="form.controls.jiraIds.value"
                 [selectedJiras]="selectedJiras()"
                 (selectionChange)="jirasChanged($event)" />
-              <ion-textarea
+              <app-markdown-input class="field-span" label="Notes" [rows]="4" variant="full" formControlName="notes" />
+              <app-markdown-input
                 class="field-span"
-                fill="outline"
-                label="Notes"
-                labelPlacement="stacked"
-                [autoGrow]="true"
-                [rows]="4"
-                formControlName="notes" />
-              <ion-textarea
-                class="field-span"
-                fill="outline"
                 label="Outcome / Update"
-                labelPlacement="stacked"
-                [autoGrow]="true"
                 [rows]="4"
+                variant="full"
                 formControlName="outcomeUpdate" />
             } @else {
               <ion-select
@@ -258,25 +240,12 @@ import { ProductivityKind, ProductivityService } from './productivity.service';
                 }
               </ion-select>
               <ion-checkbox justify="start" labelPlacement="end" formControlName="pinned">Pinned</ion-checkbox>
-              <div class="field-span markdown-mode" role="group" aria-label="Markdown editor mode">
-                <button type="button" [class.active]="!preview()" (click)="preview.set(false)">Edit</button>
-                <button type="button" [class.active]="preview()" (click)="preview.set(true)">Preview</button>
-              </div>
-              @if (preview()) {
-                <section class="field-span markdown-editor-preview" aria-label="Markdown preview">
-                  <app-markdown-viewer [markdown]="form.controls.markdown.value" />
-                </section>
-              } @else {
-                <ion-textarea
-                  class="field-span markdown-editor"
-                  fill="outline"
-                  label="Markdown"
-                  labelPlacement="stacked"
-                  [autoGrow]="true"
-                  [rows]="16"
-                  formControlName="markdown"
-                  helperText="{{ form.controls.markdown.value.length }} characters" />
-              }
+              <app-markdown-input
+                class="field-span"
+                label="Markdown"
+                variant="full"
+                [rows]="16"
+                formControlName="markdown" />
             }
             @if (saveError()) {
               <p class="form-error field-span" role="alert">{{ saveError() }}</p>
@@ -303,7 +272,6 @@ export class ProductivityEditorComponent {
   readonly submitting = signal(false);
   readonly loadError = signal('');
   readonly saveError = signal('');
-  readonly preview = signal(false);
   readonly metadata = signal<ResourceMetadataResponse | null>(null);
   readonly companies = signal<RelationOption[]>([]);
   readonly selectedJiras = signal<JiraRef[]>([]);
@@ -363,7 +331,6 @@ export class ProductivityEditorComponent {
     this.loading.set(true);
     this.loadError.set('');
     this.saveError.set('');
-    this.preview.set(false);
     try {
       const metadata = await firstValueFrom(this.api.metadata(this.kind(), refresh));
       this.metadata.set(metadata);
