@@ -1,1 +1,0 @@
-import {S as T}from'./main-277PBN6U.js';var t=T("Browser",{web:()=>import('./chunk-D1vXP6dk.js').then(e=>new e.BrowserWeb)});export{t as Browser};
