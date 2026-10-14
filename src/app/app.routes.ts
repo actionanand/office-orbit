@@ -47,6 +47,10 @@ export const routes: Routes = [
         loadChildren: () => import('./features/work-links/work-links.routes').then(m => m.routes),
       },
       {
+        path: 'credentials',
+        loadComponent: () => import('./features/credentials/credentials.page').then(m => m.CredentialsPage),
+      },
+      {
         path: 'productivity',
         loadChildren: () => import('./features/productivity/productivity.routes').then(m => m.routes),
       },

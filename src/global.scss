@@ -1398,6 +1398,106 @@ details > summary {
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
+.credential-gate {
+  display: grid;
+  gap: 16px;
+  max-width: 520px;
+  margin: 8vh auto;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.credential-editor-modal {
+  --width: min(760px, calc(100vw - 32px));
+  --height: min(760px, calc(100vh - 32px));
+}
+.credential-gate h1,
+.credential-heading h1 {
+  margin: 0;
+}
+.credential-heading,
+.credential-toolbar,
+.credential-selection,
+.credential-card,
+.credential-actions {
+  display: flex;
+  gap: 12px;
+}
+.credential-heading,
+.credential-selection,
+.credential-card {
+  justify-content: space-between;
+}
+.credential-heading > div:last-child,
+.credential-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.credential-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) auto;
+  align-items: center;
+  margin: 24px 0 8px;
+}
+.credential-selection {
+  align-items: center;
+  margin: 4px 0 12px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.credential-list {
+  display: grid;
+  gap: 10px;
+}
+.credential-card {
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.credential-copy {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+.credential-copy > span,
+.credential-secret {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.credential-secret {
+  color: var(--ion-text-color);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.credential-actions {
+  justify-content: flex-end;
+}
+.credential-actions ion-button {
+  --padding-start: 7px;
+  --padding-end: 7px;
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .credential-heading,
+  .credential-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .credential-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .credential-actions {
+    justify-content: flex-start;
+  }
+}
 @media (max-width: 480px) {
   .authoritative-plan-capacity > span {
     padding: 16px 12px;
