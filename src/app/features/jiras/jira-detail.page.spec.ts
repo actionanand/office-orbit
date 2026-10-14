@@ -206,7 +206,7 @@ const jira: JiraDetail = {
 describe('JiraDetailPage', () => {
   const output = { android: false, pdf: vi.fn<ReportOutputService['pdf']>() };
   const snackbar = { success: vi.fn(), error: vi.fn() };
-  async function render(value = jira) {
+  async function render(value = jira, releaseManagementEnabled = false) {
     await TestBed.configureTestingModule({
       imports: [JiraDetailPage],
       providers: [
@@ -220,7 +220,7 @@ describe('JiraDetailPage', () => {
           useValue: {
             refresh: vi.fn().mockResolvedValue(null),
             alterSprintEnabled: signal(false),
-            alterReleaseManagementEnabled: signal(false),
+            alterReleaseManagementEnabled: signal(releaseManagementEnabled),
           },
         },
         { provide: JiraLinkService, useValue: { externalUrl: () => of(null) } },
@@ -236,6 +236,17 @@ describe('JiraDetailPage', () => {
   afterEach(() => {
     vi.resetAllMocks();
     TestBed.resetTestingModule();
+  });
+
+  it('places release actions after PDF export in the same detail action row', async () => {
+    const fixture = await render(jira, true);
+    const row = (fixture.nativeElement as HTMLElement).querySelector('.detail-action-row');
+
+    expect(row).not.toBeNull();
+    expect(Array.from(row!.querySelectorAll('ion-button')).map(button => button.textContent?.trim())).toEqual([
+      'Export as PDF',
+      'Add to release item',
+    ]);
   });
 
   it('exports the loaded JIRA and prevents repeated clicks while exporting', async () => {

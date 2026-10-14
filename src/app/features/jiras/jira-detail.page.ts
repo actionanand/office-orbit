@@ -38,13 +38,6 @@ import { ReleaseItemEditorComponent } from '../releases/release-item-editor.comp
 
 @Component({
   selector: 'app-jira-detail',
-  styles: `
-    .jira-pdf-export {
-      display: block;
-      width: fit-content;
-      margin: 0 0 16px;
-    }
-  `,
   imports: [
     RouterLink,
     IonButton,
@@ -84,14 +77,38 @@ import { ReleaseItemEditorComponent } from '../releases/release-item-editor.comp
           <app-state-panel [error]="error()" message="JIRA not found." (retry)="load()" />
         } @else if (item(); as jira) {
           <header class="detail-header">
-            <ion-button
-              class="jira-pdf-export"
-              fill="outline"
-              [disabled]="exporting()"
-              [attr.aria-busy]="exporting()"
-              (click)="exportPdf()">
-              {{ exporting() ? 'Exporting PDF…' : 'Export as PDF' }}
-            </ion-button>
+            <div class="detail-action-row">
+              <ion-button
+                class="jira-pdf-export"
+                fill="outline"
+                [disabled]="exporting()"
+                [attr.aria-busy]="exporting()"
+                (click)="exportPdf()">
+                {{ exporting() ? 'Exporting PDF…' : 'Export as PDF' }}
+              </ion-button>
+              @if (alterControls.alterSprintEnabled() || alterControls.alterReleaseManagementEnabled()) {
+                <div class="detail-header-actions">
+                  @if (alterControls.alterSprintEnabled()) {
+                    <ion-button
+                      fill="outline"
+                      [disabled]="jiraInCurrentSprint(jira) || addingToSprint()"
+                      [attr.title]="jiraInCurrentSprint(jira) ? 'This JIRA is already in the current Sprint.' : null"
+                      (click)="addToCurrentSprint(jira)">
+                      {{
+                        jiraInCurrentSprint(jira)
+                          ? 'In current Sprint'
+                          : addingToSprint()
+                            ? 'Adding…'
+                            : 'Add to current Sprint'
+                      }}
+                    </ion-button>
+                  }
+                  @if (alterControls.alterReleaseManagementEnabled()) {
+                    <ion-button fill="outline" (click)="releaseEditorOpen.set(true)">Add to release item</ion-button>
+                  }
+                </div>
+              }
+            </div>
             <app-jira-link [jiraKey]="jira.jiraKey" [showExternal]="true" [externalText]="true" />
             @if (jira.summary) {
               <h1>{{ jira.summary }}</h1>
@@ -113,28 +130,6 @@ import { ReleaseItemEditorComponent } from '../releases/release-item-editor.comp
                 <app-status-badge [label]="'Releases ' + jira.releaseItemCount" />
               }
             </div>
-            @if (alterControls.alterSprintEnabled() || alterControls.alterReleaseManagementEnabled()) {
-              <div class="detail-header-actions">
-                @if (alterControls.alterSprintEnabled()) {
-                  <ion-button
-                    fill="outline"
-                    [disabled]="jiraInCurrentSprint(jira) || addingToSprint()"
-                    [attr.title]="jiraInCurrentSprint(jira) ? 'This JIRA is already in the current Sprint.' : null"
-                    (click)="addToCurrentSprint(jira)">
-                    {{
-                      jiraInCurrentSprint(jira)
-                        ? 'In current Sprint'
-                        : addingToSprint()
-                          ? 'Adding…'
-                          : 'Add to current Sprint'
-                    }}
-                  </ion-button>
-                }
-                @if (alterControls.alterReleaseManagementEnabled()) {
-                  <ion-button fill="outline" (click)="releaseEditorOpen.set(true)">Add to release item</ion-button>
-                }
-              </div>
-            }
           </header>
 
           <div class="detail-columns">
