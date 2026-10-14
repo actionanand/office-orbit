@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { DataCacheService } from '../../core/cache/data-cache.service';
 import { ReleaseItem } from '../../shared/models/api.models';
 import { ReleaseService } from './releases.service';
+import { API_RETRY_SAFE_MUTATION } from '../../core/api/api-retry-policy';
 
 const release = (id: string): ReleaseItem => ({
   id,
@@ -62,6 +63,47 @@ describe('ReleaseService', () => {
     expect(cache.get('dashboard:summary')).toBeNull();
   });
 
+  it('uses the Release metadata and CRUD contracts with the central retry policy', async () => {
+    const metadata = firstValueFrom(service.metadata());
+    const metadataRequest = http.expectOne(`${environment.apiBaseUrl}/api/releases/meta`);
+    expect(metadataRequest.request.method).toBe('GET');
+    metadataRequest.flush({ resource: 'releases', fields: [] });
+    await metadata;
+
+    const body = {
+      jiraId: 'jira-id',
+      componentName: 'Client',
+      deploymentTypeOptionId: null,
+      versionNumber: '1.2.3',
+      branch: 'main',
+      formalAnnouncedDate: null,
+      confirmedReleaseDate: null,
+      notes: '',
+    };
+    const created = firstValueFrom(service.create(body));
+    const createRequest = http.expectOne(`${environment.apiBaseUrl}/api/releases`);
+    expect(createRequest.request.method).toBe('POST');
+    expect(createRequest.request.body).toEqual(body);
+    expect(createRequest.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(false);
+    createRequest.flush({ data: release('one') });
+    await created;
+
+    const updated = firstValueFrom(service.update('one/two', { componentName: 'Updated' }));
+    const updateRequest = http.expectOne(`${environment.apiBaseUrl}/api/releases/one%2Ftwo`);
+    expect(updateRequest.request.method).toBe('PATCH');
+    expect(updateRequest.request.body).toEqual({ componentName: 'Updated' });
+    expect(updateRequest.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(true);
+    updateRequest.flush({ data: release('one/two') });
+    await updated;
+
+    const deleted = firstValueFrom(service.delete('one/two'));
+    const deleteRequest = http.expectOne(`${environment.apiBaseUrl}/api/releases/one%2Ftwo`);
+    expect(deleteRequest.request.method).toBe('DELETE');
+    expect(deleteRequest.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(false);
+    deleteRequest.flush(null);
+    await deleted;
+  });
+
   it('loads every by-date cursor once and de-duplicates relation-rich releases', async () => {
     const result = firstValueFrom(service.byDate('release', '2026-10-10'));
     const first = http.expectOne(request => request.url === `${environment.apiBaseUrl}/api/releases/by-date`);
@@ -70,6 +112,7 @@ describe('ReleaseService', () => {
     expect(first.request.params.get('pageSize')).toBe('100');
     expect(first.request.params.get('include')).toBe('relations');
     first.flush({ data: [release('one')], count: 1, hasMore: true, nextCursor: 'next' });
+    await Promise.resolve();
     const second = http.expectOne(request => request.url === `${environment.apiBaseUrl}/api/releases/by-date`);
     expect(second.request.params.get('cursor')).toBe('next');
     second.flush({ data: [release('one'), release('two')], count: 2, hasMore: false, nextCursor: null });
@@ -105,6 +148,7 @@ describe('ReleaseService', () => {
     http
       .expectOne(request => request.url === `${environment.apiBaseUrl}/api/releases/by-date`)
       .flush({ data: [release('one')], count: 1, hasMore: true, nextCursor: 'repeat' });
+    await Promise.resolve();
     http
       .expectOne(request => request.url === `${environment.apiBaseUrl}/api/releases/by-date`)
       .flush({ data: [release('two')], count: 1, hasMore: true, nextCursor: 'repeat' });

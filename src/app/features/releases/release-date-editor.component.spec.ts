@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { of, Subject, throwError } from 'rxjs';
 import { ReleaseBulkDateResponse } from '../../shared/models/api.models';
 import { ReleaseService } from './releases.service';
 import { ReleaseDateEditorComponent } from './release-date-editor.component';
+import { AlterControlsService } from '../../core/management/alter-controls.service';
 
 const response: ReleaseBulkDateResponse = {
   dateType: 'announcement',
@@ -18,7 +20,15 @@ describe('ReleaseDateEditorComponent', () => {
 
   beforeEach(() => {
     releases.bulkSetDate.mockReset().mockReturnValue(of(response));
-    TestBed.configureTestingModule({ providers: [{ provide: ReleaseService, useValue: releases }] });
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ReleaseService, useValue: releases },
+        {
+          provide: AlterControlsService,
+          useValue: { alterReleaseManagementEnabled: signal(true), refresh: vi.fn().mockResolvedValue(null) },
+        },
+      ],
+    });
   });
 
   function create() {
@@ -81,7 +91,7 @@ describe('ReleaseDateEditorComponent', () => {
     await component.submit();
 
     expect(failed).toHaveBeenCalledWith({ status: 500 });
-    expect(component.error()).toBe('The release date could not be updated.');
+    expect(component.error()).toBe('Something went wrong. Please try again.');
     expect(component.saving()).toBe(false);
   });
 });

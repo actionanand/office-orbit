@@ -2,7 +2,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Observable, Subscription } from 'rxjs';
+import { firstValueFrom, Observable, Subscription } from 'rxjs';
 import {
   IonButton,
   IonContent,
@@ -28,11 +28,13 @@ import {
   openOutline,
   pencilOutline,
   refreshOutline,
+  trashOutline,
 } from 'ionicons/icons';
-import { apiError } from '../../core/api/api-error';
+import { apiError, apiErrorCode } from '../../core/api/api-error';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
 import { NavigationStateService } from '../../core/cache/navigation-state.service';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
+import { AlterControlsService } from '../../core/management/alter-controls.service';
 import { LinksService, safeUrl } from '../../core/platform/links.service';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
@@ -48,6 +50,7 @@ import {
   Sprint,
   SprintAllocation,
   SprintDetailJira,
+  AddExistingJiraToCurrentSprintResponse,
   WorkLink,
   WorkLog,
 } from '../../shared/models/api.models';
@@ -69,9 +72,20 @@ import { ReleaseDateEditorComponent } from '../releases/release-date-editor.comp
 import { ReleaseCalendarComponent } from '../releases/release-calendar.component';
 import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
 import { MarkdownViewerComponent } from '../productivity/markdown-viewer.component';
+import { SprintEditorComponent } from '../sprints/sprint-editor.component';
+import { ReleaseItemEditorComponent } from '../releases/release-item-editor.component';
+import { ConfirmationService } from '../../core/notifications/confirmation.service';
 
 interface AllocationDetailSource {
   allocationJiras(allocations: SprintAllocation[], refresh?: boolean): Observable<Record<string, SprintDetailJira[]>>;
+}
+
+interface CurrentSprintMutationSource {
+  addToCurrentSprint(jiraKey: string): Observable<AddExistingJiraToCurrentSprintResponse>;
+}
+
+interface ReleaseMutationSource {
+  delete(releaseItemId: string): Observable<void>;
 }
 
 interface ReleaseCopyEntity {
@@ -86,6 +100,16 @@ function supportsAllocationDetails(
   service: ReadFeatureService,
 ): service is ReadFeatureService & AllocationDetailSource {
   return 'allocationJiras' in service && typeof service.allocationJiras === 'function';
+}
+
+function supportsCurrentSprintMutation(
+  service: ReadFeatureService,
+): service is ReadFeatureService & CurrentSprintMutationSource {
+  return 'addToCurrentSprint' in service && typeof service.addToCurrentSprint === 'function';
+}
+
+function supportsReleaseMutation(service: ReadFeatureService): service is ReadFeatureService & ReleaseMutationSource {
+  return 'delete' in service && typeof service.delete === 'function';
 }
 
 @Component({
@@ -117,6 +141,8 @@ function supportsAllocationDetails(
     ReleaseCalendarComponent,
     InlineMarkdownPipe,
     MarkdownViewerComponent,
+    SprintEditorComponent,
+    ReleaseItemEditorComponent,
   ],
   template: `<ion-header class="ion-no-border">
       <ion-toolbar>
@@ -145,6 +171,10 @@ function supportsAllocationDetails(
           } @else if (feature.kind === 'jiras') {
             <ion-button (click)="jiraCreateOpen.set(true)"
               ><ion-icon name="add-outline" slot="start" />Add JIRA</ion-button
+            >
+          } @else if (feature.kind === 'sprints' && alterControls.alterSprintEnabled()) {
+            <ion-button (click)="sprintEditorOpen.set(true)"
+              ><ion-icon name="add-outline" slot="start" />Create Sprint</ion-button
             >
           }
         </div>
@@ -242,38 +272,69 @@ function supportsAllocationDetails(
           } @else if (feature.kind === 'jiras') {
             <section class="entity-list" aria-label="JIRA items">
               @for (item of jiras(); track item.id) {
-                <a
-                  class="entity-row jira-row"
-                  [routerLink]="['/app/jiras', item.jiraKey]"
-                  queryParamsHandling="preserve">
-                  <span class="entity-copy">
-                    <span class="entity-kicker">{{ item.jiraKey }}</span>
-                    @if (item.summary) {
-                      <strong>{{ item.summary }}</strong>
-                    }
-                    <span class="badge-line">
-                      @if (item.status) {
-                        <app-status-badge [label]="item.status" kind="jira-status" />
+                <article class="entity-row jira-row jira-row-with-actions">
+                  <a class="jira-row-link" [routerLink]="['/app/jiras', item.jiraKey]" queryParamsHandling="preserve">
+                    <span class="entity-copy">
+                      <span class="entity-kicker">{{ item.jiraKey }}</span>
+                      @if (item.summary) {
+                        <strong>{{ item.summary }}</strong>
                       }
-                      @if (currentSprint(item); as sprint) {
-                        <app-status-badge [label]="sprint.name" />
-                        @if (selected() === '/api/jiras') {
-                          <app-status-badge label="Active" kind="active-sprint" />
+                      <span class="badge-line">
+                        @if (item.status) {
+                          <app-status-badge [label]="item.status" kind="jira-status" />
                         }
-                      }
-                      @if (item.spilloverCount > 0) {
-                        <app-status-badge [label]="spilled(item.spilloverCount)" />
-                      }
-                      @if (item.demoRequired && !item.demoedDate) {
-                        <app-status-badge label="Demo pending" />
-                      }
-                      @if (item.demoedDate) {
-                        <app-status-badge label="Demoed" kind="success" />
-                      }
+                        @if (currentSprint(item); as sprint) {
+                          <app-status-badge [label]="sprint.name" />
+                          @if (selected() === '/api/jiras') {
+                            <app-status-badge label="Active" kind="active-sprint" />
+                          }
+                        }
+                        @if (item.releaseItemIds.length > 0) {
+                          <app-status-badge [label]="'Releases ' + item.releaseItemIds.length" />
+                        }
+                        @if (item.spilloverCount > 0) {
+                          <app-status-badge [label]="spilled(item.spilloverCount)" />
+                        }
+                        @if (item.demoRequired && !item.demoedDate) {
+                          <app-status-badge label="Demo pending" />
+                        }
+                        @if (item.demoedDate) {
+                          <app-status-badge label="Demoed" kind="success" />
+                        }
+                      </span>
                     </span>
-                  </span>
-                  <ion-icon class="row-arrow" name="chevron-forward-outline" aria-hidden="true" />
-                </a>
+                    <ion-icon class="row-arrow" name="chevron-forward-outline" aria-hidden="true" />
+                  </a>
+                  @if (alterControls.alterSprintEnabled()) {
+                    <div class="jira-row-actions">
+                      <ion-button
+                        fill="outline"
+                        size="small"
+                        [disabled]="jiraInCurrentSprint(item) || jiraSprintBusy() === item.jiraKey"
+                        [attr.title]="jiraInCurrentSprint(item) ? 'This JIRA is already in the current Sprint.' : null"
+                        (click)="addJiraToCurrentSprint(item)">
+                        {{
+                          jiraInCurrentSprint(item)
+                            ? 'In current Sprint'
+                            : jiraSprintBusy() === item.jiraKey
+                              ? 'Adding…'
+                              : 'Add to current Sprint'
+                        }}
+                      </ion-button>
+                      @if (alterControls.alterReleaseManagementEnabled()) {
+                        <ion-button fill="outline" size="small" (click)="openReleaseCreate(item)"
+                          >Add to release item</ion-button
+                        >
+                      }
+                    </div>
+                  } @else if (alterControls.alterReleaseManagementEnabled()) {
+                    <div class="jira-row-actions">
+                      <ion-button fill="outline" size="small" (click)="openReleaseCreate(item)"
+                        >Add to release item</ion-button
+                      >
+                    </div>
+                  }
+                </article>
               }
             </section>
           } @else if (feature.kind === 'sprints') {
@@ -400,6 +461,29 @@ function supportsAllocationDetails(
                     <ion-button size="small" (click)="openReleaseCopyOptions()"
                       ><ion-icon name="copy-outline" slot="start" />Copy release notes</ion-button
                     >
+                    @if (alterControls.alterReleaseManagementEnabled() && selectedReleaseIds().length === 1) {
+                      <ion-button
+                        size="small"
+                        fill="outline"
+                        [disabled]="selectedReleases()[0].confirmedReleaseDate !== null"
+                        [attr.title]="
+                          selectedReleases()[0].confirmedReleaseDate ? 'Confirmed Release Items are read-only.' : null
+                        "
+                        (click)="openReleaseEdit()">
+                        <ion-icon name="pencil-outline" slot="start" />Edit
+                      </ion-button>
+                      <ion-button
+                        size="small"
+                        color="danger"
+                        fill="outline"
+                        [disabled]="selectedReleases()[0].confirmedReleaseDate !== null || releaseDeleting()"
+                        [attr.title]="
+                          selectedReleases()[0].confirmedReleaseDate ? 'Confirmed Release Items are read-only.' : null
+                        "
+                        (click)="deleteSelectedRelease()">
+                        <ion-icon name="trash-outline" slot="start" />Delete
+                      </ion-button>
+                    }
                   }
                 </span>
               </div>
@@ -865,6 +949,21 @@ function supportsAllocationDetails(
           (closed)="releaseCalendarOpen.set(false)"
           (copyRequested)="openCalendarReleaseCopyOptions($event)" />
       }
+      @if (feature.kind === 'sprints') {
+        <app-sprint-editor
+          [open]="sprintEditorOpen()"
+          (closed)="sprintEditorOpen.set(false)"
+          (saved)="sprintSaved($event)" />
+      }
+      @if (feature.kind === 'jiras' || feature.kind === 'releases') {
+        <app-release-item-editor
+          [open]="releaseItemEditorOpen()"
+          [item]="editingRelease()"
+          [jiraId]="releaseSourceJira()?.id ?? null"
+          [jiraKey]="releaseSourceJira()?.jiraKey ?? ''"
+          (closed)="closeReleaseItemEditor()"
+          (saved)="releaseItemSaved($event)" />
+      }
     </ion-content>`,
 })
 export class ResourcePage {
@@ -875,6 +974,8 @@ export class ResourcePage {
   private readonly router = inject(Router);
   private readonly navigationState = inject(NavigationStateService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly confirmation = inject(ConfirmationService);
+  readonly alterControls = inject(AlterControlsService);
   private request?: Subscription;
   private allocationRequest?: Subscription;
   readonly selected = signal(this.feature.views[0].path);
@@ -892,6 +993,8 @@ export class ResourcePage {
   readonly editingFeedback = signal<Feedback | null>(null);
   readonly workLinkEditorOpen = signal(false);
   readonly jiraCreateOpen = signal(false);
+  readonly sprintEditorOpen = signal(false);
+  readonly jiraSprintBusy = signal<string | null>(null);
   readonly editingWorkLink = signal<WorkLink | null>(null);
   readonly allocationDetails = signal<Record<string, SprintDetailJira[]>>({});
   readonly selectedReleaseIds = signal<string[]>([]);
@@ -900,6 +1003,10 @@ export class ResourcePage {
   readonly releaseCalendarOpen = signal(false);
   readonly releaseDateType = signal<ReleaseDateType>('announcement');
   readonly releaseCopyOpen = signal(false);
+  readonly releaseItemEditorOpen = signal(false);
+  readonly editingRelease = signal<ReleaseItem | null>(null);
+  readonly releaseSourceJira = signal<Jira | null>(null);
+  readonly releaseDeleting = signal(false);
   readonly releaseCopyDefaults = {
     groupByJira: true,
     combineComponents: true,
@@ -964,6 +1071,7 @@ export class ResourcePage {
       openOutline,
       pencilOutline,
       refreshOutline,
+      trashOutline,
     });
     const requestedView = this.route.snapshot.queryParamMap.get('view');
     const matchingView = this.feature.views.find(view => requestedView && this.viewToken(view.label) === requestedView);
@@ -972,6 +1080,8 @@ export class ResourcePage {
     else if (restored && this.feature.views.some(view => view.path === restored.selected))
       this.selected.set(restored.selected);
     if (restored) this.search.set(restored.search);
+    if (['jiras', 'sprints', 'releases'].includes(this.feature.kind))
+      void this.alterControls.refresh().catch(() => undefined);
     this.load();
   }
 
@@ -1001,6 +1111,8 @@ export class ResourcePage {
 
   load(refresh = false, more = false, preserveVisible = false): void {
     if (more && this.loadingMore()) return;
+    if (refresh && ['jiras', 'sprints', 'releases'].includes(this.feature.kind))
+      void this.alterControls.refresh().catch(() => undefined);
     const filters: Record<string, string> = this.feature.kind === 'work-logs' ? this.filters.getRawValue() : {};
     if (filters['from'] && filters['to'] && filters['from'] > filters['to']) {
       this.error.set('The start date must be before the end date.');
@@ -1118,6 +1230,119 @@ export class ResourcePage {
     this.load(true, false, true);
   }
 
+  openReleaseCreate(item: Jira): void {
+    if (!this.alterControls.alterReleaseManagementEnabled()) return;
+    this.releaseSourceJira.set(item);
+    this.editingRelease.set(null);
+    this.releaseItemEditorOpen.set(true);
+  }
+
+  openReleaseEdit(): void {
+    const item = this.selectedReleases()[0];
+    if (!item || item.confirmedReleaseDate || !this.alterControls.alterReleaseManagementEnabled()) return;
+    this.releaseSourceJira.set(null);
+    this.editingRelease.set(item);
+    this.releaseItemEditorOpen.set(true);
+  }
+
+  closeReleaseItemEditor(): void {
+    this.releaseItemEditorOpen.set(false);
+    this.editingRelease.set(null);
+    this.releaseSourceJira.set(null);
+  }
+
+  releaseItemSaved(item: ReleaseItem): void {
+    const editing = this.editingRelease() !== null;
+    if (this.feature.kind === 'releases') this.upsert(item);
+    this.closeReleaseItemEditor();
+    this.clearReleaseSelection();
+    this.snackbar.success(editing ? 'Release Item updated.' : 'Release Item created.');
+    this.load(true, false, true);
+  }
+
+  async deleteSelectedRelease(): Promise<void> {
+    const item = this.selectedReleases()[0];
+    if (
+      !item ||
+      item.confirmedReleaseDate ||
+      this.releaseDeleting() ||
+      !this.alterControls.alterReleaseManagementEnabled() ||
+      !supportsReleaseMutation(this.feature)
+    )
+      return;
+    const confirmed = await this.confirmation.confirm({
+      title: 'Delete Release Item?',
+      message: 'Delete this Release Item? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!confirmed) return;
+    this.releaseDeleting.set(true);
+    try {
+      await firstValueFrom(this.feature.delete(item.id));
+      this.items.update(items => items.filter(candidate => candidate.id !== item.id));
+      this.clearReleaseSelection();
+      this.snackbar.success('Release Item deleted.');
+    } catch (error) {
+      if (apiErrorCode(error) === 'ALTER_RELEASE_MANAGEMENT_DISABLED') {
+        await this.alterControls.refresh().catch(() => undefined);
+        this.snackbar.error('Alter Release Management has expired. Enable it again in Settings.');
+      } else if (apiErrorCode(error) === 'RELEASE_ITEM_CONFIRMED') {
+        this.snackbar.error('Confirmed Release Items are read-only.');
+        this.load(true, false, true);
+      } else {
+        this.snackbar.error(apiError(error));
+      }
+    } finally {
+      this.releaseDeleting.set(false);
+    }
+  }
+
+  sprintSaved(item: Sprint): void {
+    this.upsert(item);
+    this.sprintEditorOpen.set(false);
+    this.snackbar.success('Sprint created.');
+    this.load(true, false, true);
+  }
+
+  async addJiraToCurrentSprint(item: Jira): Promise<void> {
+    if (
+      this.jiraSprintBusy() ||
+      !this.alterControls.alterSprintEnabled() ||
+      this.jiraInCurrentSprint(item) ||
+      !supportsCurrentSprintMutation(this.feature)
+    )
+      return;
+    this.jiraSprintBusy.set(item.jiraKey);
+    try {
+      const response = await firstValueFrom(this.feature.addToCurrentSprint(item.jiraKey));
+      this.upsert(response.data);
+      this.snackbar.success(
+        response.alreadyAssigned ? 'JIRA is already in the current Sprint.' : 'JIRA added to the current Sprint.',
+      );
+    } catch (error) {
+      if (apiErrorCode(error) === 'ALTER_SPRINT_DISABLED') {
+        await this.alterControls.refresh().catch(() => undefined);
+        this.snackbar.error('Alter Sprint has expired. Enable it again in Settings.');
+      } else if (apiErrorCode(error) === 'ACTIVE_SPRINT_NOT_FOUND') {
+        this.snackbar.error('No active Sprint is configured.');
+      } else if (apiErrorCode(error) === 'ACTIVE_SPRINT_CONFLICT') {
+        this.snackbar.error('Multiple active Sprints are configured.');
+      } else if (apiErrorCode(error) === 'SPRINT_ALLOCATION_CONFLICT') {
+        this.snackbar.error('This JIRA has conflicting Sprint Allocation records.');
+      } else if (apiErrorCode(error) === 'SPRINT_ASSIGNMENT_PARTIAL') {
+        this.snackbar.error(
+          'The Sprint relation was updated, but the allocation could not be completed. Refresh and try again.',
+        );
+        this.load(true, false, true);
+      } else {
+        this.snackbar.error(apiError(error));
+      }
+    } finally {
+      this.jiraSprintBusy.set(null);
+    }
+  }
+
   private upsert(item: DomainItem): void {
     this.items.update(items =>
       items.some(current => current.id === item.id)
@@ -1142,6 +1367,10 @@ export class ResourcePage {
 
   currentSprint(item: Jira) {
     return activeSprint(item.sprints);
+  }
+
+  jiraInCurrentSprint(item: Jira): boolean {
+    return item.inActiveSprint || this.currentSprint(item) !== null;
   }
 
   readonly spilled = spilloverLabel;
@@ -1179,15 +1408,21 @@ export class ResourcePage {
   canSetReleaseDate(dateType: ReleaseDateType): boolean {
     const selected = this.selectedReleases();
     return (
+      this.alterControls.alterReleaseManagementEnabled() &&
       selected.length > 0 &&
-      selected.every(item =>
-        dateType === 'announcement' ? item.formalAnnouncedDate === null : item.confirmedReleaseDate === null,
+      selected.every(
+        item =>
+          item.confirmedReleaseDate === null &&
+          (dateType === 'announcement' ? item.formalAnnouncedDate === null : true),
       )
     );
   }
 
   releaseDateActionHint(dateType: ReleaseDateType): string | null {
     if (this.canSetReleaseDate(dateType)) return null;
+    if (!this.alterControls.alterReleaseManagementEnabled()) return 'Enable Alter Release Management in Settings.';
+    if (this.selectedReleases().some(item => item.confirmedReleaseDate !== null))
+      return 'Confirmed Release Items are read-only.';
     return `One or more selected releases already have a ${dateType === 'announcement' ? 'announcement' : 'release'} date.`;
   }
 
@@ -1212,13 +1447,23 @@ export class ResourcePage {
   }
 
   releaseDatesFailed(error: unknown): void {
-    const conflict = typeof error === 'object' && error !== null && 'status' in error && error.status === 409;
-    this.snackbar.error(
-      conflict
-        ? 'One or more selected releases already have this date. Release data has been refreshed.'
-        : apiError(error),
-    );
-    if (conflict) this.load(true, false, true);
+    const code = apiErrorCode(error);
+    if (code === 'ALTER_RELEASE_MANAGEMENT_DISABLED') {
+      void this.alterControls.refresh().catch(() => undefined);
+      this.snackbar.error('Alter Release Management has expired. Enable it again in Settings.');
+      return;
+    }
+    if (code === 'RELEASE_ITEM_CONFIRMED') {
+      this.snackbar.error('Confirmed Release Items are read-only.');
+      this.load(true, false, true);
+      return;
+    }
+    if (code === 'RELEASE_DATE_CONFLICT') {
+      this.snackbar.error('One or more selected Release Items already have a different date.');
+      this.load(true, false, true);
+      return;
+    }
+    this.snackbar.error(apiError(error));
   }
 
   openReleaseCopyOptions(releases = this.selectedReleases()): void {

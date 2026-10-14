@@ -14,6 +14,8 @@ Android uses a five-item bottom navigation; desktop uses a sidebar. More links t
 
 Signals hold session, renewal, foreground/activity, lock, request, editor and theme state; computed signals derive visibility and filtered records. HttpClient/RxJS handle requests and cancellation. No NgRx or business-data persistence is introduced.
 
+`AlterControlsService` is the single source for temporary Sprint and Release mutation permission. It loads server state, maintains a server-clock offset, and exposes computed signals that turn off locally at expiry. Settings and the relevant feature pages refresh this shared state. A protected write rejected after expiry refreshes the service and removes the managed mutation controls; the client never automatically re-enables a control.
+
 Ionic 9 IonInput exposes a ControlValueAccessor rather than a Signal Forms value model in this installation. Password/PIN forms therefore use typed Reactive Forms, with signal-based UI state, as the specified fallback. Native date filters also use Reactive Forms to keep one form strategy.
 
 ## API boundary

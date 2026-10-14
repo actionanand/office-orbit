@@ -1,6 +1,8 @@
 import { Service, inject } from '@angular/core';
 import { MutationApiService } from '../../core/api/mutation-api.service';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
+import { DataCacheService } from '../../core/cache/data-cache.service';
+import { tap } from 'rxjs';
 import {
   Jira,
   JiraCreateRequest,
@@ -8,10 +10,12 @@ import {
   JiraPatchRequest,
   JiraSpillReasonRequest,
   MutationResponse,
+  AddExistingJiraToCurrentSprintResponse,
 } from '../../shared/models/api.models';
 @Service()
 export class JiraService extends ReadFeatureService {
   private readonly mutations = inject(MutationApiService);
+  private readonly cache = inject(DataCacheService);
   readonly heading = 'JIRAs';
   readonly description = 'Your priorities, blockers, and progress in one place.';
   readonly kind = 'jiras';
@@ -45,5 +49,20 @@ export class JiraService extends ReadFeatureService {
       { reasonMarkdown },
       '/api/jiras',
     );
+  }
+  addToCurrentSprint(jiraKey: string) {
+    return this.mutations
+      .patchEndpoint<AddExistingJiraToCurrentSprintResponse, Record<string, never>>(
+        `/api/jiras/${encodeURIComponent(jiraKey)}/current-sprint`,
+        {},
+        '/api/jiras',
+      )
+      .pipe(
+        tap(() => {
+          this.cache.invalidate('/api/sprints');
+          this.cache.invalidate('/api/sprint-allocations');
+          this.cache.invalidate('dashboard:');
+        }),
+      );
   }
 }

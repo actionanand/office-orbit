@@ -7,6 +7,8 @@ import { closeOutline } from 'ionicons/icons';
 import { IonicDateFieldComponent } from '../../shared/components/ionic-date-field.component';
 import { ReleaseBulkDateResponse, ReleaseDateType } from '../../shared/models/api.models';
 import { ReleaseService } from './releases.service';
+import { AlterControlsService } from '../../core/management/alter-controls.service';
+import { apiError } from '../../core/api/api-error';
 
 @Component({
   selector: 'app-release-date-editor',
@@ -50,12 +52,16 @@ import { ReleaseService } from './releases.service';
           }
           @if (error()) {
             <p class="form-error" role="alert">{{ error() }}</p>
+          } @else if (!alterControls.alterReleaseManagementEnabled()) {
+            <p class="form-error" role="alert">Alter Release Management has expired. Enable it again in Settings.</p>
           }
           <div class="editor-actions">
             <ion-button type="button" fill="clear" [disabled]="saving()" (click)="closed.emit()">Cancel</ion-button>
-            <ion-button type="submit" [disabled]="saving() || form.invalid">{{
-              saving() ? 'Applying…' : 'Apply date'
-            }}</ion-button>
+            <ion-button
+              type="submit"
+              [disabled]="saving() || form.invalid || !alterControls.alterReleaseManagementEnabled()"
+              >{{ saving() ? 'Applying…' : 'Apply date' }}</ion-button
+            >
           </div>
         </form></ion-content
       >
@@ -75,6 +81,7 @@ export class ReleaseDateEditorComponent {
   readonly title = computed(() => `Set ${this.dateType() === 'announcement' ? 'announcement' : 'release'} date`);
   readonly canDismiss = () => !this.saving();
   private readonly releases = inject(ReleaseService);
+  readonly alterControls = inject(AlterControlsService);
 
   constructor() {
     addIcons({ closeOutline });
@@ -91,7 +98,7 @@ export class ReleaseDateEditorComponent {
   }
 
   async submit(): Promise<void> {
-    if (this.form.invalid || this.saving()) return;
+    if (this.form.invalid || this.saving() || !this.alterControls.alterReleaseManagementEnabled()) return;
     this.saving.set(true);
     this.error.set('');
     try {
@@ -99,6 +106,8 @@ export class ReleaseDateEditorComponent {
         await firstValueFrom(this.releases.bulkSetDate(this.selectedIds(), this.dateType(), this.form.value)),
       );
     } catch (error) {
+      if (this.errorCode(error) === 'ALTER_RELEASE_MANAGEMENT_DISABLED')
+        await this.alterControls.refresh().catch(() => undefined);
       this.error.set(this.message(error));
       this.failed.emit(error);
     } finally {
@@ -115,18 +124,23 @@ export class ReleaseDateEditorComponent {
     }).format(new Date(`${value}T00:00:00Z`));
   }
   private message(error: unknown): string {
-    if (typeof error === 'object' && error !== null && 'status' in error && error.status === 409) {
-      const count = this.conflictCount(error);
-      return `${this.title()} could not be added because ${
-        count ? `${count} selected release${count === 1 ? '' : 's'}` : 'one or more selected releases'
-      } already have a date.`;
-    }
-    return 'The release date could not be updated.';
+    if (this.errorCode(error) === 'ALTER_RELEASE_MANAGEMENT_DISABLED')
+      return 'Alter Release Management has expired. Enable it again in Settings.';
+    if (this.errorCode(error) === 'RELEASE_ITEM_CONFIRMED') return 'Confirmed Release Items are read-only.';
+    if (this.errorCode(error) === 'RELEASE_DATE_CONFLICT')
+      return 'One or more selected Release Items already have a different date.';
+    return apiError(error);
   }
 
-  private conflictCount(error: object): number | null {
-    if (!('error' in error) || typeof error.error !== 'object' || error.error === null) return null;
-    const conflicts = 'conflicts' in error.error ? error.error.conflicts : null;
-    return Array.isArray(conflicts) ? conflicts.length : null;
+  private errorCode(error: unknown): string {
+    if (typeof error !== 'object' || error === null || !('error' in error)) return '';
+    const body = error.error;
+    if (typeof body !== 'object' || body === null) return '';
+    if ('code' in body && typeof body.code === 'string') return body.code;
+    const nested = 'error' in body ? body.error : undefined;
+    if (typeof nested === 'string') return nested;
+    return typeof nested === 'object' && nested !== null && 'code' in nested && typeof nested.code === 'string'
+      ? nested.code
+      : '';
   }
 }

@@ -1,9 +1,23 @@
-import { Service } from '@angular/core';
-import { catchError, forkJoin, map, of } from 'rxjs';
+import { inject, Service } from '@angular/core';
+import { catchError, forkJoin, map, of, tap } from 'rxjs';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
-import { SprintAllocation, SprintDetailJira, SprintDetailResponse } from '../../shared/models/api.models';
+import { DataCacheService } from '../../core/cache/data-cache.service';
+import { MutationApiService } from '../../core/api/mutation-api.service';
+import {
+  ListResponse,
+  Sprint,
+  SprintAllocation,
+  SprintAllocationPatchData,
+  SprintAllocationPatchRequest,
+  SprintCreateRequest,
+  SprintDetailJira,
+  SprintDetailResponse,
+  SprintPatchRequest,
+} from '../../shared/models/api.models';
 @Service()
 export class SprintService extends ReadFeatureService {
+  private readonly mutations = inject(MutationApiService);
+  private readonly cache = inject(DataCacheService);
   readonly heading = 'Sprints';
   readonly description = 'Keep capacity and commitments in balance.';
   readonly kind = 'sprints';
@@ -17,6 +31,35 @@ export class SprintService extends ReadFeatureService {
 
   detail(sprintId: string, refresh = false) {
     return this.api.detail<SprintDetailResponse>(`/api/sprints/${encodeURIComponent(sprintId)}`, {}, refresh);
+  }
+
+  active(refresh = false) {
+    return this.api.detail<ListResponse<Sprint>>('/api/sprints/active', { include: 'relations' }, refresh);
+  }
+
+  create(body: SprintCreateRequest) {
+    return this.mutations
+      .create<Sprint, SprintCreateRequest>('/api/sprints', body)
+      .pipe(tap(() => this.invalidateRelatedData()));
+  }
+
+  update(sprintId: string, body: SprintPatchRequest) {
+    return this.mutations
+      .patch<Sprint, SprintPatchRequest>('/api/sprints', sprintId, body)
+      .pipe(tap(() => this.invalidateRelatedData()));
+  }
+
+  updatePlannedDays(allocationId: string, plannedDays: number) {
+    const body: SprintAllocationPatchRequest = { plannedDays };
+    return this.mutations
+      .patch<SprintAllocationPatchData, SprintAllocationPatchRequest>('/api/sprint-allocations', allocationId, body)
+      .pipe(
+        map(response => {
+          this.cache.invalidate('/api/sprints');
+          this.cache.invalidate('dashboard:');
+          return response;
+        }),
+      );
   }
 
   allocationJiras(allocations: SprintAllocation[], refresh = false) {
@@ -35,5 +78,11 @@ export class SprintService extends ReadFeatureService {
         ),
       ),
     );
+  }
+
+  private invalidateRelatedData(): void {
+    this.cache.invalidate('/api/sprint-allocations');
+    this.cache.invalidate('/api/jiras');
+    this.cache.invalidate('dashboard:');
   }
 }

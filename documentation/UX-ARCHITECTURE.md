@@ -1,5 +1,13 @@
 # UX architecture
 
+## Managed data changes
+
+Settings includes backend-managed **Alter Sprint** and **Alter Release Management** switches. Enabling either switch first explains the affected writes and the 30-minute security window. An enabled switch shows **Active till** in the user's 12/24-hour preference. Cancellation and request failures restore the visible switch state, while disabling is immediate and needs no second confirmation.
+
+Read-only Sprint, JIRA, and Release views remain available while controls are off. Alter Sprint reveals Create Sprint, active-Sprint Edit, Add to current Sprint, and Planned Days actions. Sprint forms show Work Calendar week-offs without editing them, block saves when more than two week-off days are configured, and show the current active Sprint. Planned Days uses the returned Sprint detail so capacity values stay server-authoritative.
+
+Managed JIRA actions sit beside the row navigation link so buttons are never nested in anchors. JIRA rows and details show Release counts and can add another Release Item while Release management is enabled. Release selection preserves copy and calendar behavior at all times; edit, single-item delete, and date writes require the temporary control. Confirmed Release Items expose these mutation actions as read-only. Editors use metadata-backed Deployment Type options and keep an unknown historical value unless the user explicitly replaces or clears it.
+
 Office Orbit presents Worker data as work-management concepts rather than API records.
 
 ## Presentation boundary

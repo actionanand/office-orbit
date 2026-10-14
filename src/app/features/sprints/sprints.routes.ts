@@ -9,7 +9,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    providers: [{ provide: ReadFeatureService, useClass: SprintService }],
+    providers: [SprintService, { provide: ReadFeatureService, useExisting: SprintService }],
     loadComponent: () => import('../resource/resource.page').then(m => m.ResourcePage),
   },
 ];

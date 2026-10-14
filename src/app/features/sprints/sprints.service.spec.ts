@@ -5,8 +5,21 @@ import { ResourceService } from '../../core/api/resource.service';
 import { SprintAllocation, SprintDetailResponse } from '../../shared/models/api.models';
 import { routes } from './sprints.routes';
 import { SprintService } from './sprints.service';
+import { MutationApiService } from '../../core/api/mutation-api.service';
+import { DataCacheService } from '../../core/cache/data-cache.service';
 
 describe('SprintService and routes', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        DataCacheService,
+        {
+          provide: MutationApiService,
+          useValue: { create: vi.fn(), patch: vi.fn() },
+        },
+      ],
+    });
+  });
   it('requests encoded Sprint detail through the shared cache-aware API service', async () => {
     const response = { sprint: { id: 'sprint/id' }, jiras: [], count: 0 } as unknown as SprintDetailResponse;
     const detail = vi.fn(() => of(response));
@@ -60,6 +73,35 @@ describe('SprintService and routes', () => {
 
     expect(result[allocation.id]?.[0]?.summary).toBe('GRC alert migration');
     expect(detail).toHaveBeenCalledWith('/api/sprints/sprint-id', {}, false);
+  });
+
+  it('sends only supported Sprint and Planned Days fields through the shared mutation service', async () => {
+    const create = vi.fn(() => of({ data: { id: 'sprint-id' } }));
+    const patch = vi.fn(() => of({ data: { sprintDetail: { sprint: {}, jiras: [], count: 0 } } }));
+    TestBed.configureTestingModule({
+      providers: [
+        SprintService,
+        { provide: ResourceService, useValue: { detail: vi.fn() } },
+        { provide: CursorService, useValue: {} },
+        { provide: MutationApiService, useValue: { create, patch } },
+      ],
+    });
+    const service = TestBed.inject(SprintService);
+    const body = {
+      sprint: 'Sprint 8',
+      projectId: 'project-id',
+      startDate: '2026-10-14',
+      endDate: '2026-10-27',
+      plannedLeaveDays: 1,
+      holidayDays: 2,
+      makeActive: false,
+    };
+    await firstValueFrom(service.create(body));
+    expect(create).toHaveBeenCalledWith('/api/sprints', body);
+    await firstValueFrom(service.update('sprint/id', { sprint: 'Sprint 8 revised' }));
+    expect(patch).toHaveBeenCalledWith('/api/sprints', 'sprint/id', { sprint: 'Sprint 8 revised' });
+    await firstValueFrom(service.updatePlannedDays('allocation/id', 3.25));
+    expect(patch).toHaveBeenCalledWith('/api/sprint-allocations', 'allocation/id', { plannedDays: 3.25 });
   });
 
   it('keeps the list route and adds a lazy Sprint detail route', () => {

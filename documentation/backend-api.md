@@ -47,6 +47,16 @@ Feedback has Company and Team relations and a read-only `workType` rollup. It ha
 
 Mutation success invalidates the affected collection prefix and Dashboard summaries. Work Log writes also invalidate Work Log calendar and Work Activity analytics entries. Existing authentication remains entirely interceptor-managed, and mutations are never retried automatically.
 
+### Temporary managed-data controls
+
+`GET /api/settings/alter-controls` returns the backend-managed `alterSprint` and `alterReleaseManagement` states, their `activeUntil` values, remaining seconds, the 30-minute TTL, and `serverTime`. The client uses the server time to project expiry locally and periodically hides expired actions. It does not persist this state or send a request when a locally projected timer reaches zero. There is no client Cron or background renewal.
+
+`PATCH /api/settings/alter-controls` accepts exactly `{ control: 'sprint' | 'releaseManagement', enabled: boolean }`. Enabling starts a new 30-minute server window; disabling clears it. This PATCH deliberately bypasses automatic mutation retries because replaying an enable could extend the window.
+
+Alter Sprint protects `POST /api/sprints`, `PATCH /api/sprints/:sprintId`, `PATCH /api/jiras/:jiraKey/current-sprint`, and `PATCH /api/sprint-allocations/:allocationId`. The current-Sprint JIRA endpoint accepts `{}` and returns the updated JIRA, current Sprint, authoritative allocation, and `alreadyAssigned`. Planned Days writes accept only `{ plannedDays }` and return an authoritative Sprint detail used to replace the displayed capacity. Existing JIRA creation and its `inActiveSprint` option remain ungated, as do ordinary JIRA and spill-reason edits.
+
+Alter Release Management protects `POST /api/releases`, `PATCH /api/releases/:releaseItemId`, `DELETE /api/releases/:releaseItemId`, and `PATCH /api/releases/bulk-date`. Editors use `GET /api/releases/meta` for Deployment Type option IDs. A confirmed Release Item is immutable for edit, delete, announcement-date, and release-date writes; read, copy, and calendar features remain available. Release POST and DELETE stay single-attempt, while property-setting PATCH calls retain the centralized retry-safe policy.
+
 Release bulk dates use `PATCH /api/releases/bulk-date` with selected release IDs, `dateType` (`announcement` or `release`), and one ISO date. The Worker requires the target date to be empty for every selected item; a 409 conflict writes nothing. Release calendar browsing calls `/api/releases/calendar` for month markers, then `/api/releases/by-date?include=relations` for all components on one marked date. Exact-date pagination follows opaque cursors and deduplicates IDs.
 
 ## HTTP QUERY

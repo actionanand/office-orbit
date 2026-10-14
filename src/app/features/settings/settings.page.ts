@@ -30,7 +30,10 @@ import { AuthService } from '../../core/auth/auth.service';
 import { AppLockService, LockTimeoutMinutes } from '../../core/app-lock/app-lock.service';
 import { BiometricService } from '../../core/platform/biometric.service';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
+import { ConfirmationService } from '../../core/notifications/confirmation.service';
+import { AlterControlsService } from '../../core/management/alter-controls.service';
 import { appVersion } from '../../core/version/app-version';
+import { AlterControlName } from '../../shared/models/api.models';
 import { ActiveSessionsModalComponent } from './active-sessions.modal';
 @Component({
   selector: 'app-settings',
@@ -74,6 +77,45 @@ import { ActiveSessionsModalComponent } from './active-sessions.modal';
               </button>
             }
           </div>
+        </section>
+        <section class="data-card" aria-labelledby="managed-data-heading">
+          <h2 id="managed-data-heading">Managed data changes</h2>
+          <p>Temporarily allow changes to protected Sprint and Release data.</p>
+          @if (alterControls.loading() && !alterControls.state()) {
+            <p class="muted" role="status">Loading managed data controls…</p>
+          } @else {
+            <div class="setting-row">
+              <div>
+                <label for="alter-sprint-toggle">Alter Sprint</label>
+                @if (alterControls.alterSprintEnabled()) {
+                  <p class="muted">Active till {{ activeTill(alterControls.sprintActiveUntil()) }}</p>
+                }
+              </div>
+              <ion-toggle
+                id="alter-sprint-toggle"
+                color="primary"
+                [checked]="alterSprintChecked()"
+                [disabled]="controlBusy() !== null"
+                (ionChange)="onAlterControlToggle('sprint', $event.detail.checked)" />
+            </div>
+            <div class="setting-row">
+              <div>
+                <label for="alter-release-toggle">Alter Release Management</label>
+                @if (alterControls.alterReleaseManagementEnabled()) {
+                  <p class="muted">Active till {{ activeTill(alterControls.releaseActiveUntil()) }}</p>
+                }
+              </div>
+              <ion-toggle
+                id="alter-release-toggle"
+                color="primary"
+                [checked]="alterReleaseChecked()"
+                [disabled]="controlBusy() !== null"
+                (ionChange)="onAlterControlToggle('releaseManagement', $event.detail.checked)" />
+            </div>
+          }
+          @if (alterControls.error()) {
+            <p class="message" role="alert">{{ alterControls.error() }}</p>
+          }
         </section>
         <section class="data-card">
           <h2>Security</h2>
@@ -288,6 +330,8 @@ export class SettingsPage {
   readonly lock = inject(AppLockService);
   readonly biometric = inject(BiometricService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly confirmation = inject(ConfirmationService);
+  readonly alterControls = inject(AlterControlsService);
   readonly version = appVersion;
   readonly sessionKind = computed(() =>
     this.auth.state.session()?.sessionKind === 'extended' ? 'Extended session' : 'Fresh session',
@@ -302,6 +346,16 @@ export class SettingsPage {
     this.securityAction() === 'biometric' ? !this.lock.biometricEnabled() : this.lock.biometricEnabled(),
   );
   readonly timeFormat = signal<'12' | '24'>(this.loadTimeFormat());
+  private readonly controlRevision = signal(0);
+  readonly controlBusy = signal<AlterControlName | null>(null);
+  readonly alterSprintChecked = computed(() => {
+    this.controlRevision();
+    return this.alterControls.alterSprintEnabled();
+  });
+  readonly alterReleaseChecked = computed(() => {
+    this.controlRevision();
+    return this.alterControls.alterReleaseManagementEnabled();
+  });
   readonly showRemainingTime = signal(this.loadShowRemainingTime());
   // Advances the remaining-time display without depending on Date.now() directly.
   private readonly now = signal(Date.now());
@@ -365,6 +419,62 @@ export class SettingsPage {
     interval(30_000)
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.now.set(Date.now()));
+    void this.alterControls.refresh().catch(() => {
+      this.snackbar.error('Unable to load managed data controls.');
+    });
+  }
+  activeTill(value: string | null): string {
+    if (!value) return '';
+    return new Intl.DateTimeFormat(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: this.timeFormat() === '12',
+    }).format(new Date(value));
+  }
+  async onAlterControlToggle(control: AlterControlName, checked: boolean): Promise<void> {
+    if (this.controlBusy()) return;
+    const currentlyEnabled =
+      control === 'sprint'
+        ? this.alterControls.alterSprintEnabled()
+        : this.alterControls.alterReleaseManagementEnabled();
+    if (checked === currentlyEnabled) return;
+
+    this.controlRevision.update(value => value + 1);
+    if (checked && !(await this.confirmAlterControl(control))) {
+      this.controlRevision.update(value => value + 1);
+      return;
+    }
+
+    this.controlBusy.set(control);
+    try {
+      await this.alterControls.setControl(control, checked);
+      this.controlRevision.update(value => value + 1);
+      this.snackbar.success(
+        checked
+          ? `${control === 'sprint' ? 'Alter Sprint' : 'Alter Release Management'} enabled for 30 minutes.`
+          : `${control === 'sprint' ? 'Alter Sprint' : 'Alter Release Management'} disabled.`,
+      );
+    } catch {
+      this.controlRevision.update(value => value + 1);
+      this.snackbar.error(
+        `Unable to ${checked ? 'enable' : 'disable'} ${
+          control === 'sprint' ? 'Alter Sprint' : 'Alter Release Management'
+        }.`,
+      );
+    } finally {
+      this.controlBusy.set(null);
+    }
+  }
+  private confirmAlterControl(control: AlterControlName): Promise<boolean> {
+    const sprint = control === 'sprint';
+    return this.confirmation.confirm({
+      title: sprint ? 'Enable Alter Sprint?' : 'Enable Alter Release Management?',
+      message: sprint
+        ? 'This will temporarily allow Office Orbit to create and modify Sprint-related data, including creating Sprints, adding existing JIRAs to the current Sprint, and editing current Sprint allocations.\n\nAre you willing to enable it?\n\nFor security reasons, Alter Sprint will be automatically disabled after 30 minutes.'
+        : 'This will temporarily allow Office Orbit to create, edit and delete eligible Release Items and modify release-management data, including release dates.\n\nAre you willing to enable it?\n\nFor security reasons, Alter Release Management will be automatically disabled after 30 minutes.',
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Enable for 30 minutes',
+    });
   }
   setTimeFormat(format: '12' | '24'): void {
     this.timeFormat.set(format);

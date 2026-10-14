@@ -9,8 +9,30 @@ import { PlatformService } from '../../core/platform/platform.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { SessionManagementService } from '../../core/auth/session-management.service';
 import { SettingsPage } from './settings.page';
+import { AlterControlsService } from '../../core/management/alter-controls.service';
+import { ConfirmationService } from '../../core/notifications/confirmation.service';
 
 describe('SettingsPage', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: AlterControlsService,
+          useValue: {
+            refresh: vi.fn().mockResolvedValue(null),
+            setControl: vi.fn().mockResolvedValue(null),
+            loading: signal(false),
+            error: signal(''),
+            state: signal(null),
+            alterSprintEnabled: signal(false),
+            alterReleaseManagementEnabled: signal(false),
+            sprintActiveUntil: signal(null),
+            releaseActiveUntil: signal(null),
+          },
+        },
+      ],
+    });
+  });
   afterEach(() => {
     vi.useRealTimers();
     localStorage.removeItem('office-orbit.time-format');
@@ -248,6 +270,27 @@ describe('SettingsPage', () => {
     expect(page.pinProtectionChecked()).toBe(false);
     page.cancelSecurityAction();
     expect(page.pinProtectionChecked()).toBe(true);
+  });
+
+  it('confirms temporary Sprint access and visibly restores the toggle when cancelled', async () => {
+    const fixture = await renderWithPin();
+    fixture.detectChanges();
+    const page = fixture.componentInstance;
+    const controls = TestBed.inject(AlterControlsService);
+    const confirmation = TestBed.inject(ConfirmationService);
+
+    const cancelled = page.onAlterControlToggle('sprint', true);
+    expect(confirmation.current()?.title).toBe('Enable Alter Sprint?');
+    expect(confirmation.current()?.confirmLabel).toBe('Enable for 30 minutes');
+    confirmation.settle(false);
+    await cancelled;
+    expect(controls.setControl).not.toHaveBeenCalled();
+    expect(page.alterSprintChecked()).toBe(false);
+
+    const accepted = page.onAlterControlToggle('sprint', true);
+    confirmation.settle(true);
+    await accepted;
+    expect(controls.setControl).toHaveBeenCalledWith('sprint', true);
   });
 
   it('does not request active sessions until the user explicitly opens the modal', async () => {

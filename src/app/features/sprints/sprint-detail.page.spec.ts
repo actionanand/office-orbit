@@ -1,10 +1,14 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { Sprint, SprintDetailJira, SprintDetailResponse } from '../../shared/models/api.models';
 import { formatTodayLabel } from '../../shared/utils/format';
 import { SprintDetailPage } from './sprint-detail.page';
 import { SprintService } from './sprints.service';
+import { AlterControlsService } from '../../core/management/alter-controls.service';
+import { RelationOptionsService } from '../../core/api/relation-options.service';
+import { WorkCalendarService } from '../productivity/work-calendar.service';
 
 const sprint: Sprint = {
   id: 'sprint-6',
@@ -62,7 +66,16 @@ describe('SprintDetailPage', () => {
   async function render(value: SprintDetailResponse) {
     await TestBed.configureTestingModule({
       imports: [SprintDetailPage],
-      providers: [provideRouter([]), { provide: SprintService, useValue: { detail: () => of(value) } }],
+      providers: [
+        provideRouter([]),
+        { provide: SprintService, useValue: { detail: () => of(value) } },
+        {
+          provide: AlterControlsService,
+          useValue: { refresh: vi.fn().mockResolvedValue(null), alterSprintEnabled: signal(true) },
+        },
+        { provide: RelationOptionsService, useValue: { load: () => of([]) } },
+        { provide: WorkCalendarService, useValue: { get: () => of({ weekOffDays: ['Saturday', 'Sunday'] }) } },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(SprintDetailPage);
     fixture.componentRef.setInput('sprintId', value.sprint.id);
@@ -85,7 +98,7 @@ describe('SprintDetailPage', () => {
     expect(text).toContain('Completed work');
     expect(element.querySelectorAll('.sprint-jira-row')).toHaveLength(4);
     expect(
-      [...element.querySelectorAll<HTMLAnchorElement>('.sprint-jira-row')].some(link =>
+      [...element.querySelectorAll<HTMLAnchorElement>('.sprint-jira-link')].some(link =>
         link.href.endsWith('/app/jiras/CRI-2'),
       ),
     ).toBe(true);

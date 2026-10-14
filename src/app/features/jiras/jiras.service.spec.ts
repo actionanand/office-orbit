@@ -94,5 +94,7 @@ describe('JiraService', () => {
       { reasonMarkdown: '' },
       '/api/jiras',
     );
+    await firstValueFrom(service.addToCurrentSprint('CRI/1'));
+    expect(patchEndpoint).toHaveBeenLastCalledWith('/api/jiras/CRI%2F1/current-sprint', {}, '/api/jiras');
   });
 });

@@ -27,3 +27,16 @@ export function apiError(error: unknown, login = false): string {
       return 'The service is temporarily unavailable. Please try again shortly.';
   }
 }
+
+export function apiErrorCode(error: unknown): string {
+  const responseBody =
+    typeof error === 'object' && error !== null && 'error' in error ? (error as { error: unknown }).error : error;
+  if (typeof responseBody === 'string') return responseBody;
+  if (typeof responseBody !== 'object' || responseBody === null) return '';
+  if ('code' in responseBody && typeof responseBody.code === 'string') return responseBody.code;
+  const nested = 'error' in responseBody ? responseBody.error : undefined;
+  if (typeof nested === 'string') return nested;
+  return typeof nested === 'object' && nested !== null && 'code' in nested && typeof nested.code === 'string'
+    ? nested.code
+    : '';
+}

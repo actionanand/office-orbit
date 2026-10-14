@@ -53,6 +53,26 @@ export interface MutationResponse<T> {
   data: T;
 }
 
+export interface AlterControlState {
+  enabled: boolean;
+  activeUntil: string | null;
+  remainingSeconds: number;
+}
+
+export interface AlterControlsState {
+  alterSprint: AlterControlState;
+  alterReleaseManagement: AlterControlState;
+  ttlSeconds: number;
+  serverTime: string;
+}
+
+export type AlterControlName = 'sprint' | 'releaseManagement';
+
+export interface AlterControlPatchRequest {
+  control: AlterControlName;
+  enabled: boolean;
+}
+
 export interface RelationOption {
   id: string;
   label: string;
@@ -437,6 +457,20 @@ export interface Sprint {
   projects?: NamedRef[];
 }
 
+export interface SprintCreateRequest {
+  sprint: string;
+  projectId: string;
+  startDate: string;
+  endDate: string;
+  plannedLeaveDays: number;
+  holidayDays: number;
+  makeActive: boolean;
+}
+
+export type SprintPatchRequest = Partial<
+  Pick<SprintCreateRequest, 'sprint' | 'projectId' | 'startDate' | 'endDate' | 'plannedLeaveDays' | 'holidayDays'>
+>;
+
 export interface SprintAllocation {
   id: string;
   allocation: string;
@@ -472,6 +506,22 @@ export interface SprintDetailResponse {
   count: number;
 }
 
+export interface AddExistingJiraToCurrentSprintResponse {
+  data: JiraDetail;
+  currentSprint: Sprint;
+  allocation: SprintAllocation;
+  alreadyAssigned: boolean;
+}
+
+export interface SprintAllocationPatchRequest {
+  plannedDays: number;
+}
+
+export interface SprintAllocationPatchData {
+  allocation: SprintAllocation;
+  sprintDetail: SprintDetailResponse;
+}
+
 export interface ReleaseItem {
   id: string;
   createdTime: string;
@@ -491,6 +541,19 @@ export interface ReleaseItem {
   jiras?: JiraRef[];
   sprints?: NamedRef[];
 }
+
+export interface ReleaseCreateRequest {
+  jiraId: string;
+  componentName: string;
+  deploymentTypeOptionId: string | null;
+  versionNumber: string;
+  branch: string;
+  formalAnnouncedDate: string | null;
+  confirmedReleaseDate: string | null;
+  notes: string;
+}
+
+export type ReleasePatchRequest = Partial<Omit<ReleaseCreateRequest, 'jiraId'>>;
 
 export type ReleaseDateType = 'announcement' | 'release';
 

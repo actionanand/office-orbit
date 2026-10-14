@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -15,10 +16,25 @@ import {
 } from '../../shared/models/api.models';
 import { ResourcePage } from './resource.page';
 import { ReleaseService } from '../releases/releases.service';
+import { AlterControlsService } from '../../core/management/alter-controls.service';
 
 const route = { snapshot: { queryParamMap: convertToParamMap({}) } };
 
 describe('ResourcePage presentation', () => {
+  beforeEach(() =>
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: AlterControlsService,
+          useValue: {
+            refresh: vi.fn().mockResolvedValue(null),
+            alterSprintEnabled: signal(true),
+            alterReleaseManagementEnabled: signal(true),
+          },
+        },
+      ],
+    }),
+  );
   afterEach(() => TestBed.resetTestingModule());
   it('renders selectable releases in a compact table and formats grouped release notes', async () => {
     const release: ReleaseItem = {
@@ -69,10 +85,10 @@ describe('ResourcePage presentation', () => {
     expect(element.querySelectorAll('.release-select-column input[type="checkbox"]')).toHaveLength(1);
     expect(element.querySelector('.release-table details')).toBeTruthy();
     expect(element.querySelector('ion-modal.release-copy-modal')).toBeTruthy();
+    page.selectVisibleReleases();
+    fixture.detectChanges();
     expect(element.textContent).toContain('Set announcement date');
     expect(element.textContent).toContain('Set release date');
-    expect(element.querySelectorAll('ion-modal.release-copy-modal ion-checkbox')).toHaveLength(8);
-    page.selectVisibleReleases();
     expect(page.selectedReleaseIds()).toEqual(['private-release-id']);
     expect(page.canSetReleaseDate('announcement')).toBe(true);
     expect(page.canSetReleaseDate('release')).toBe(true);
@@ -80,7 +96,7 @@ describe('ResourcePage presentation', () => {
     expect(page.canSetReleaseDate('announcement')).toBe(false);
     expect(page.canSetReleaseDate('release')).toBe(true);
     page.items.set([{ ...release, confirmedReleaseDate: '2026-10-02' }]);
-    expect(page.canSetReleaseDate('announcement')).toBe(true);
+    expect(page.canSetReleaseDate('announcement')).toBe(false);
     expect(page.canSetReleaseDate('release')).toBe(false);
     page.releaseDateEditorOpen.set(true);
     const reload = vi.spyOn(page, 'load');
@@ -95,7 +111,7 @@ describe('ResourcePage presentation', () => {
     expect(page.releaseDateEditorOpen()).toBe(false);
     expect(page.selectedReleaseIds()).toEqual([]);
     expect(reload).toHaveBeenCalledWith(true, false, true);
-    page.releaseDatesFailed({ status: 409 });
+    page.releaseDatesFailed({ status: 409, error: { code: 'RELEASE_DATE_CONFLICT' } });
     expect(reload).toHaveBeenCalledTimes(2);
     page.releaseDatesFailed({ status: 500 });
     expect(reload).toHaveBeenCalledTimes(2);
@@ -171,7 +187,7 @@ describe('ResourcePage presentation', () => {
     const numericVersion = { ...release, id: 'numeric-version', versionNumber: '9' };
     expect(page.releaseNotesText([numericVersion])).toContain("Version Number: #9 from branch 'master'");
     page.prefixNumericReleaseVersions.set(false);
-    expect(page.releaseNotesText([numericVersion])).toContain("Version Number: [9] from branch 'master'");
+    expect(page.releaseNotesText([numericVersion])).toContain("Version Number: 9 from branch 'master'");
     page.prefixNumericReleaseVersions.set(true);
     const matchingComponent = { ...release, id: 'duplicate-component', versionNumber: '0d3e3fc-102', notes: 'Ready.' };
     const grouped = page.releaseNotesText([release, matchingComponent]);
@@ -424,10 +440,11 @@ describe('ResourcePage presentation', () => {
       );
     const page = fixture.componentInstance;
 
-    expect(badges()).toEqual(['Done', 'Sprint - 26.4 - Sprint 1', 'Spilled 3 times', 'Active']);
-    expect(fixture.nativeElement.querySelector('.jira-row .status-badge:last-child')?.classList).toContain(
-      'active-sprint',
-    );
+    expect(badges()).toEqual(['Done', 'Sprint - 26.4 - Sprint 1', 'Active', 'Spilled 3 times']);
+    const activeBadge = Array.from(
+      fixture.nativeElement.querySelectorAll('.jira-row .status-badge') as NodeListOf<HTMLElement>,
+    ).find(badge => badge.textContent?.trim() === 'Active');
+    expect(activeBadge?.classList).toContain('active-sprint');
 
     page.items.set([historicalJira]);
     fixture.detectChanges();

@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { IonButton, IonContent, IonHeader, IonIcon, IonTitle, IonToolbar } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline, chevronForwardOutline, refreshOutline } from 'ionicons/icons';
+import { arrowBackOutline, chevronForwardOutline, pencilOutline, refreshOutline } from 'ionicons/icons';
 import { Subscription } from 'rxjs';
 import { apiError } from '../../core/api/api-error';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
@@ -14,6 +14,10 @@ import { SprintDetailJira, SprintDetailResponse } from '../../shared/models/api.
 import { formatDateRange, formatTodayLabel, names } from '../../shared/utils/format';
 import { spilloverLabel } from '../../shared/utils/jira';
 import { SprintService } from './sprints.service';
+import { AlterControlsService } from '../../core/management/alter-controls.service';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
+import { SprintEditorComponent } from './sprint-editor.component';
+import { SprintPlannedDaysEditorComponent } from './sprint-planned-days-editor.component';
 
 @Component({
   selector: 'app-sprint-detail',
@@ -28,6 +32,8 @@ import { SprintService } from './sprints.service';
     LoadingSkeletonComponent,
     StatePanelComponent,
     StatusBadgeComponent,
+    SprintEditorComponent,
+    SprintPlannedDaysEditorComponent,
   ],
   template: `<ion-header class="ion-no-border">
       <ion-toolbar>
@@ -63,6 +69,11 @@ import { SprintService } from './sprints.service';
             @if (data.sprint.active) {
               <p class="today-label">Today: {{ today }}</p>
             }
+            @if (data.sprint.active && alterControls.alterSprintEnabled()) {
+              <ion-button fill="outline" (click)="sprintEditorOpen.set(true)">
+                <ion-icon name="pencil-outline" slot="start" />Edit Sprint
+              </ion-button>
+            }
           </header>
 
           <div class="detail-columns">
@@ -85,7 +96,7 @@ import { SprintService } from './sprints.service';
             </section>
             <section class="detail-section">
               <h2>Capacity</h2>
-              <dl class="sprint-detail-capacity">
+              <dl class="sprint-detail-capacity capacity-values">
                 <div>
                   <dt>Capacity</dt>
                   <dd>{{ data.sprint.capacityDays }}</dd>
@@ -103,6 +114,15 @@ import { SprintService } from './sprints.service';
                   <dd>{{ data.sprint.remainingDays }}</dd>
                 </div>
               </dl>
+              <div
+                class="progress-track capacity-progress"
+                role="progressbar"
+                aria-label="Sprint capacity allocated"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-valuenow]="capacityProgress(data)">
+                <span [style.width.%]="capacityProgress(data)"></span>
+              </div>
             </section>
           </div>
 
@@ -114,35 +134,52 @@ import { SprintService } from './sprints.service';
             @if (data.jiras.length) {
               <div class="entity-list">
                 @for (jira of data.jiras; track jira.id) {
-                  <a class="entity-row sprint-jira-row" [routerLink]="['/app/jiras', jira.jiraKey]">
-                    <span class="entity-copy">
-                      <span class="entity-kicker">{{ jira.jiraKey }}</span>
-                      <strong>{{ jira.summary || 'JIRA' }}</strong>
-                      <span class="badge-line">
-                        @if (jira.status) {
-                          <app-status-badge [label]="jira.status" kind="jira-status" />
-                        }
-                        @if (jira.spilloverCount > 0) {
-                          <app-status-badge [label]="spilled(jira.spilloverCount)" />
+                  <article class="entity-row sprint-jira-row sprint-jira-row-with-actions">
+                    <a class="sprint-jira-link" [routerLink]="['/app/jiras', jira.jiraKey]">
+                      <span class="entity-copy">
+                        <span class="entity-kicker">{{ jira.jiraKey }}</span>
+                        <strong>{{ jira.summary || 'JIRA' }}</strong>
+                        <span class="badge-line">
+                          @if (jira.status) {
+                            <app-status-badge [label]="jira.status" kind="jira-status" />
+                          }
+                          @if (jira.spilloverCount > 0) {
+                            <app-status-badge [label]="spilled(jira.spilloverCount)" />
+                          }
+                        </span>
+                        @if (jira.allocationConflict) {
+                          <span class="allocation-warning">
+                            <strong>Allocation conflict</strong> · {{ jira.allocationCount }}
+                            {{ jira.allocationCount === 1 ? 'record' : 'records' }}
+                          </span>
+                        } @else {
+                          <span class="planned-days">{{ plannedDays(jira) }}</span>
                         }
                       </span>
-                      @if (jira.allocationConflict) {
-                        <span class="allocation-warning">
-                          <strong>Allocation conflict</strong> · {{ jira.allocationCount }}
-                          {{ jira.allocationCount === 1 ? 'record' : 'records' }}
-                        </span>
-                      } @else {
-                        <span class="planned-days">{{ plannedDays(jira) }}</span>
-                      }
-                    </span>
-                    <ion-icon class="row-arrow" name="chevron-forward-outline" aria-hidden="true" />
-                  </a>
+                      <ion-icon class="row-arrow" name="chevron-forward-outline" aria-hidden="true" />
+                    </a>
+                    @if (canEditPlannedDays(data, jira)) {
+                      <ion-button fill="outline" size="small" (click)="editingJira.set(jira)">
+                        <ion-icon name="pencil-outline" slot="start" />Edit Planned Days
+                      </ion-button>
+                    }
+                  </article>
                 }
               </div>
             } @else {
               <p>No JIRAs are assigned to this Sprint.</p>
             }
           </section>
+          <app-sprint-editor
+            [open]="sprintEditorOpen()"
+            [item]="data.sprint"
+            (closed)="sprintEditorOpen.set(false)"
+            (saved)="sprintSaved()" />
+          <app-sprint-planned-days-editor
+            [open]="editingJira() !== null"
+            [jira]="editingJira()"
+            (closed)="editingJira.set(null)"
+            (saved)="plannedDaysSaved($event)" />
         }
       </main>
     </ion-content>`,
@@ -152,23 +189,29 @@ export class SprintDetailPage {
   readonly detail = signal<SprintDetailResponse | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
+  readonly sprintEditorOpen = signal(false);
+  readonly editingJira = signal<SprintDetailJira | null>(null);
   readonly dateRange = formatDateRange;
   readonly names = names;
   readonly today = formatTodayLabel();
   readonly spilled = spilloverLabel;
   private readonly service = inject(SprintService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly alterControls = inject(AlterControlsService);
+  private readonly snackbar = inject(SnackbarService);
   private request?: Subscription;
 
   constructor() {
-    addIcons({ arrowBackOutline, chevronForwardOutline, refreshOutline });
+    addIcons({ arrowBackOutline, chevronForwardOutline, pencilOutline, refreshOutline });
     effect(() => {
       this.sprintId();
       this.load();
     });
+    void this.alterControls.refresh().catch(() => undefined);
   }
 
   load(refresh = false): void {
+    if (refresh) void this.alterControls.refresh().catch(() => undefined);
     this.request?.unsubscribe();
     this.loading.set(true);
     this.error.set('');
@@ -196,5 +239,32 @@ export class SprintDetailPage {
   plannedDays(jira: SprintDetailJira): string {
     if (jira.plannedDays === null) return 'Planned days not recorded';
     return `Planned: ${jira.plannedDays} ${jira.plannedDays === 1 ? 'day' : 'days'}`;
+  }
+
+  capacityProgress(data: SprintDetailResponse): number {
+    return data.sprint.availableDays > 0
+      ? Math.min(100, Math.max(0, Math.round((data.sprint.allocatedDays / data.sprint.availableDays) * 100)))
+      : 0;
+  }
+
+  canEditPlannedDays(data: SprintDetailResponse, jira: SprintDetailJira): boolean {
+    return (
+      data.sprint.active &&
+      this.alterControls.alterSprintEnabled() &&
+      jira.allocationId !== null &&
+      !jira.allocationConflict
+    );
+  }
+
+  plannedDaysSaved(detail: SprintDetailResponse): void {
+    this.detail.set(detail);
+    this.editingJira.set(null);
+    this.snackbar.success('Planned Days updated.');
+  }
+
+  sprintSaved(): void {
+    this.sprintEditorOpen.set(false);
+    this.snackbar.success('Sprint updated.');
+    this.load(true);
   }
 }

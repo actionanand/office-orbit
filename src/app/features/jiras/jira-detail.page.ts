@@ -2,7 +2,7 @@ import { Component, DestroyRef, SecurityContext, effect, inject, input, signal }
 import { DomSanitizer } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { IonButton, IonContent, IonHeader, IonIcon, IonPopover, IonTitle, IonToolbar } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
@@ -19,7 +19,7 @@ import {
 import { SnackbarService } from '../../core/notifications/snackbar.service';
 import { ReportOutputService } from '../../core/platform/report-output.service';
 import { jiraPdfFilename, jiraReport } from './jira-report';
-import { apiError } from '../../core/api/api-error';
+import { apiError, apiErrorCode } from '../../core/api/api-error';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { StatePanelComponent } from '../../shared/components/state-panel.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
@@ -33,6 +33,8 @@ import { JiraService } from './jiras.service';
 import { MarkdownViewerComponent, renderMarkdown } from '../productivity/markdown-viewer.component';
 import { markdownBlocks } from '../../core/platform/report-markdown';
 import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
+import { AlterControlsService } from '../../core/management/alter-controls.service';
+import { ReleaseItemEditorComponent } from '../releases/release-item-editor.component';
 
 @Component({
   selector: 'app-jira-detail',
@@ -60,6 +62,7 @@ import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
     JiraSpillReasonEditorComponent,
     MarkdownViewerComponent,
     InlineMarkdownPipe,
+    ReleaseItemEditorComponent,
   ],
   template: `<ion-header class="ion-no-border"
       ><ion-toolbar
@@ -106,7 +109,32 @@ import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
               @if (jira.appraisal) {
                 <app-status-badge label="Appraisal" kind="success" />
               }
+              @if (jira.releaseItemCount > 0) {
+                <app-status-badge [label]="'Releases ' + jira.releaseItemCount" />
+              }
             </div>
+            @if (alterControls.alterSprintEnabled() || alterControls.alterReleaseManagementEnabled()) {
+              <div class="detail-header-actions">
+                @if (alterControls.alterSprintEnabled()) {
+                  <ion-button
+                    fill="outline"
+                    [disabled]="jiraInCurrentSprint(jira) || addingToSprint()"
+                    [attr.title]="jiraInCurrentSprint(jira) ? 'This JIRA is already in the current Sprint.' : null"
+                    (click)="addToCurrentSprint(jira)">
+                    {{
+                      jiraInCurrentSprint(jira)
+                        ? 'In current Sprint'
+                        : addingToSprint()
+                          ? 'Adding…'
+                          : 'Add to current Sprint'
+                    }}
+                  </ion-button>
+                }
+                @if (alterControls.alterReleaseManagementEnabled()) {
+                  <ion-button fill="outline" (click)="releaseEditorOpen.set(true)">Add to release item</ion-button>
+                }
+              </div>
+            }
           </header>
 
           <div class="detail-columns">
@@ -451,7 +479,7 @@ import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
                       @if (release.notes) {
                         <details>
                           <summary>Notes</summary>
-                          <p>{{ release.notes }}</p>
+                          <app-markdown-viewer class="compact-markdown" [markdown]="release.notes" />
                         </details>
                       }
                     </article>
@@ -491,6 +519,12 @@ import { InlineMarkdownPipe } from '../productivity/inline-markdown.pipe';
             </section>
           </div>
           <app-jira-edit [open]="editOpen()" [item]="jira" (closed)="editOpen.set(false)" (saved)="edited($event)" />
+          <app-release-item-editor
+            [open]="releaseEditorOpen()"
+            [jiraId]="jira.id"
+            [jiraKey]="jira.jiraKey"
+            (closed)="releaseEditorOpen.set(false)"
+            (saved)="releaseSaved()" />
           @if (selectedSpillEvent(); as event) {
             <app-jira-spill-reason-editor
               [open]="true"
@@ -508,6 +542,8 @@ export class JiraDetailPage {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly editOpen = signal(false);
+  readonly releaseEditorOpen = signal(false);
+  readonly addingToSprint = signal(false);
   readonly selectedSpillEvent = signal<SpillEvent | null>(null);
   readonly copyingSpillReason = signal<number | null>(null);
   readonly richCopySupported =
@@ -524,6 +560,7 @@ export class JiraDetailPage {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly reportOutput = inject(ReportOutputService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly alterControls = inject(AlterControlsService);
   private request?: Subscription;
 
   constructor() {
@@ -542,9 +579,11 @@ export class JiraDetailPage {
       this.jiraKey();
       this.load();
     });
+    void this.alterControls.refresh().catch(() => undefined);
   }
 
   load(refresh = false): void {
+    if (refresh) void this.alterControls.refresh().catch(() => undefined);
     this.request?.unsubscribe();
     this.loading.set(true);
     this.error.set('');
@@ -565,6 +604,48 @@ export class JiraDetailPage {
 
   currentSprint(jira: JiraDetail) {
     return activeSprint(jira.sprints);
+  }
+
+  jiraInCurrentSprint(jira: JiraDetail): boolean {
+    return jira.inActiveSprint || this.currentSprint(jira) !== null;
+  }
+
+  async addToCurrentSprint(jira: JiraDetail): Promise<void> {
+    if (this.addingToSprint() || this.jiraInCurrentSprint(jira) || !this.alterControls.alterSprintEnabled()) return;
+    this.addingToSprint.set(true);
+    try {
+      const response = await firstValueFrom(this.service.addToCurrentSprint(jira.jiraKey));
+      this.item.set(response.data);
+      this.snackbar.success(
+        response.alreadyAssigned ? 'JIRA is already in the current Sprint.' : 'JIRA added to the current Sprint.',
+      );
+    } catch (error) {
+      if (apiErrorCode(error) === 'ALTER_SPRINT_DISABLED') {
+        await this.alterControls.refresh().catch(() => undefined);
+        this.snackbar.error('Alter Sprint has expired. Enable it again in Settings.');
+      } else if (apiErrorCode(error) === 'ACTIVE_SPRINT_NOT_FOUND') {
+        this.snackbar.error('No active Sprint is configured.');
+      } else if (apiErrorCode(error) === 'ACTIVE_SPRINT_CONFLICT') {
+        this.snackbar.error('Multiple active Sprints are configured.');
+      } else if (apiErrorCode(error) === 'SPRINT_ALLOCATION_CONFLICT') {
+        this.snackbar.error('This JIRA has conflicting Sprint Allocation records.');
+      } else if (apiErrorCode(error) === 'SPRINT_ASSIGNMENT_PARTIAL') {
+        this.snackbar.error(
+          'The Sprint relation was updated, but the allocation could not be completed. Refresh and try again.',
+        );
+        this.load(true);
+      } else {
+        this.snackbar.error(apiError(error));
+      }
+    } finally {
+      this.addingToSprint.set(false);
+    }
+  }
+
+  releaseSaved(): void {
+    this.releaseEditorOpen.set(false);
+    this.snackbar.success('Release Item created.');
+    this.load(true);
   }
 
   async exportPdf(): Promise<void> {

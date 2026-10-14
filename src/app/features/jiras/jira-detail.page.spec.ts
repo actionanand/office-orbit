@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -12,6 +13,8 @@ import { JiraDetailPage } from './jira-detail.page';
 import { JiraLinkService } from './jira-link.service';
 import { JiraService } from './jiras.service';
 import { JiraSpillReasonEditorComponent } from './jira-spill-reason-editor.component';
+import { AlterControlsService } from '../../core/management/alter-controls.service';
+import { ReleaseService } from '../releases/releases.service';
 
 const historical: SprintRef = {
   id: 'sprint-5',
@@ -210,7 +213,16 @@ describe('JiraDetailPage', () => {
         provideRouter([]),
         { provide: ReportOutputService, useValue: output },
         { provide: SnackbarService, useValue: snackbar },
-        { provide: JiraService, useValue: { detail: () => of(value) } },
+        { provide: JiraService, useValue: { detail: () => of(value), addToCurrentSprint: vi.fn() } },
+        { provide: ReleaseService, useValue: { metadata: vi.fn() } },
+        {
+          provide: AlterControlsService,
+          useValue: {
+            refresh: vi.fn().mockResolvedValue(null),
+            alterSprintEnabled: signal(false),
+            alterReleaseManagementEnabled: signal(false),
+          },
+        },
         { provide: JiraLinkService, useValue: { externalUrl: () => of(null) } },
         { provide: LinksService, useValue: { open: vi.fn() } },
       ],
@@ -500,8 +512,10 @@ describe('JiraDetailPage', () => {
       })),
     };
     const fixture = await render(value);
-    const button = (fixture.nativeElement as HTMLElement).querySelector('ion-button.spill-reason-action');
-    expect(button?.getAttribute('disabled')).not.toBeNull();
+    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLIonButtonElement>(
+      'ion-button.spill-reason-action',
+    );
+    expect(button?.disabled).toBe(true);
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('.spill-event .allocation-warning')?.textContent,
     ).toContain(message);
