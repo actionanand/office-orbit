@@ -303,7 +303,6 @@ function supportsReleaseMutation(service: ReadFeatureService): service is ReadFe
                         }
                       </span>
                     </span>
-                    <ion-icon class="row-arrow" name="chevron-forward-outline" aria-hidden="true" />
                   </a>
                   @if (alterControls.alterSprintEnabled()) {
                     <div class="jira-row-actions">
@@ -334,6 +333,7 @@ function supportsReleaseMutation(service: ReadFeatureService): service is ReadFe
                       >
                     </div>
                   }
+                  <ion-icon class="row-arrow" name="chevron-forward-outline" aria-hidden="true" />
                 </article>
               }
             </section>
