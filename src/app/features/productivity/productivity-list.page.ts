@@ -37,7 +37,8 @@ import {
   TodoQueryFilters,
 } from '../../shared/models/api.models';
 import { metadataOptions, optionId, todayIso } from '../../shared/utils/editor';
-import { formatDate, formatDateTime, names, truncate } from '../../shared/utils/format';
+import { formatDate, formatDateTime, names } from '../../shared/utils/format';
+import { MarkdownViewerComponent } from './markdown-viewer.component';
 import { ProductivityEditorComponent } from './productivity-editor.component';
 import { ProductivityNavComponent } from './productivity-nav.component';
 import { ProductivityKind, ProductivityService } from './productivity.service';
@@ -46,6 +47,7 @@ import { AdjustedReminder, recurrenceSummary, todoViewFilters } from './todo-rec
 import { WorkCalendarComponent } from './work-calendar.component';
 
 type View = { label: string; key: string };
+type MarkdownField = { label: string; value: string };
 
 @Component({
   selector: 'app-productivity-list',
@@ -68,6 +70,7 @@ type View = { label: string; key: string };
     PageHeaderComponent,
     StatePanelComponent,
     StatusBadgeComponent,
+    MarkdownViewerComponent,
     ProductivityEditorComponent,
     ProductivityNavComponent,
   ],
@@ -201,8 +204,11 @@ type View = { label: string; key: string };
                       <span>{{ meta }}</span>
                     }
                   </span>
-                  @if (preview(item)) {
-                    <span class="preview">{{ preview(item) }}</span>
+                  @for (field of markdownFields(item); track field.label) {
+                    <section class="productivity-markdown compact-markdown">
+                      <strong>{{ field.label }}</strong>
+                      <app-markdown-viewer [markdown]="field.value" />
+                    </section>
                   }
                   @for (reminder of adjustments()[item.id] ?? []; track reminder.scheduledDate) {
                     <div class="todo-reminder">
@@ -530,8 +536,14 @@ export class ProductivityListPage {
     if ('memo' in item) return item.lastEditedTime ? [`Updated ${formatDateTime(item.lastEditedTime)}`] : [];
     return [];
   }
-  preview(item: DomainItem): string {
-    return 'notes' in item ? truncate(item.notes, 180) : '';
+  markdownFields(item: DomainItem): MarkdownField[] {
+    if ('toDo' in item) return item.notes.trim() ? [{ label: 'Notes', value: item.notes }] : [];
+    if ('task' in item)
+      return [
+        ...(item.notes.trim() ? [{ label: 'Notes', value: item.notes }] : []),
+        ...(item.outcomeUpdate.trim() ? [{ label: 'Outcome / Update', value: item.outcomeUpdate }] : []),
+      ];
+    return [];
   }
   setupIssue(item: DomainItem): string {
     return 'toDo' in item ? item.setupIssue : '';

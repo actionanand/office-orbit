@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { of } from 'rxjs';
 import { RelationOptionsService } from '../../core/api/relation-options.service';
 import { Task } from '../../shared/models/api.models';
+import { MarkdownInputComponent } from '../../shared/components/markdown-input.component';
 import { ProductivityEditorComponent } from './productivity-editor.component';
 import { ProductivityService } from './productivity.service';
 
@@ -75,6 +77,89 @@ describe('ProductivityEditorComponent Task JIRAs', () => {
     await component.save();
     expect(patch.mock.calls[1][2]).toEqual(
       expect.objectContaining({ dueDate: null, followUpDate: null, completedDate: null }),
+    );
+  });
+});
+
+describe('ProductivityEditorComponent rich text fields', () => {
+  const metadata = { resource: 'productivity', fields: [] };
+
+  async function editor(kind: 'todos' | 'tasks' | 'memos') {
+    TestBed.configureTestingModule({
+      imports: [ProductivityEditorComponent],
+      providers: [
+        {
+          provide: ProductivityService,
+          useValue: {
+            metadata: vi.fn(() => of(metadata)),
+            create: vi.fn(() => of({ data: { id: 'created' } })),
+            patch: vi.fn(() => of({ data: { id: 'updated' } })),
+          },
+        },
+        { provide: RelationOptionsService, useValue: { load: vi.fn(() => of([])) } },
+      ],
+    });
+    const fixture = TestBed.createComponent(ProductivityEditorComponent);
+    fixture.componentRef.setInput('kind', kind);
+    fixture.componentRef.setInput('open', true);
+    fixture.detectChanges();
+    await fixture.componentInstance.load();
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('uses the shared full editor for To Do Notes and preserves raw Markdown for saving', async () => {
+    const fixture = await editor('todos');
+    const inputs = fixture.debugElement.queryAll(By.directive(MarkdownInputComponent));
+    expect(inputs).toHaveLength(1);
+    const input = inputs[0].componentInstance as MarkdownInputComponent;
+    expect(input.label()).toBe('Notes');
+    expect(input.variant()).toBe('full');
+    const source = '**Urgent**\n\n- Call support\n- [Open runbook](https://example.com)';
+    fixture.componentInstance.form.controls.title.setValue('Review deployment');
+    fixture.componentInstance.form.controls.notes.setValue(source);
+    await fixture.componentInstance.save();
+    expect(TestBed.inject(ProductivityService).create).toHaveBeenCalledWith(
+      'todos',
+      expect.objectContaining({ notes: source }),
+    );
+  });
+
+  it('uses independent full editors for Task Notes and Outcome / Update', async () => {
+    const fixture = await editor('tasks');
+    const inputs = fixture.debugElement.queryAll(By.directive(MarkdownInputComponent));
+    expect(inputs).toHaveLength(2);
+    expect((inputs[0].componentInstance as MarkdownInputComponent).label()).toBe('Notes');
+    expect((inputs[1].componentInstance as MarkdownInputComponent).label()).toBe('Outcome / Update');
+    expect((inputs[0].componentInstance as MarkdownInputComponent).variant()).toBe('full');
+    expect((inputs[1].componentInstance as MarkdownInputComponent).variant()).toBe('full');
+    const notes = '- Reproduce issue\n- Gather logs';
+    const outcome = 'Resolved with **configuration** update.';
+    fixture.componentInstance.form.controls.title.setValue('Investigate deployment');
+    fixture.componentInstance.form.controls.notes.setValue(notes);
+    fixture.componentInstance.form.controls.outcomeUpdate.setValue(outcome);
+    await fixture.componentInstance.save();
+    expect(TestBed.inject(ProductivityService).create).toHaveBeenCalledWith(
+      'tasks',
+      expect.objectContaining({ notes, outcomeUpdate: outcome }),
+    );
+  });
+
+  it('replaces the Memo-only editor with the shared full Markdown editor', async () => {
+    const fixture = await editor('memos');
+    const input = fixture.debugElement.query(By.directive(MarkdownInputComponent))
+      .componentInstance as MarkdownInputComponent;
+    expect(input.label()).toBe('Markdown');
+    expect(input.variant()).toBe('full');
+    const source = '# Deployment notes\n\n> Keep this pinned';
+    fixture.componentInstance.form.controls.title.setValue('Release playbook');
+    fixture.componentInstance.form.controls.markdown.setValue(source);
+    await fixture.componentInstance.save();
+    expect(TestBed.inject(ProductivityService).create).toHaveBeenCalledWith(
+      'memos',
+      expect.objectContaining({ markdown: source }),
     );
   });
 });
