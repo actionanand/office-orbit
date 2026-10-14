@@ -2033,6 +2033,9 @@ ion-popover.work-link-popover {
   gap: 8px;
   padding-inline: 12px;
 }
+.sprint-jira-row-with-actions {
+  padding-inline: 12px;
+}
 .jira-row-link,
 .sprint-jira-link {
   display: flex;
@@ -2043,6 +2046,11 @@ ion-popover.work-link-popover {
   min-width: 0;
   color: var(--ion-text-color);
   text-decoration: none;
+}
+@media (min-width: 701px) {
+  .jira-row-with-actions > .jira-row-link {
+    flex: 0 1 auto;
+  }
 }
 .jira-row-actions {
   display: flex;
