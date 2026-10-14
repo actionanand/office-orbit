@@ -1671,6 +1671,22 @@ ion-popover.work-link-popover {
   max-width: 820px;
   margin-bottom: 18px;
 }
+.detail-action-row,
+.detail-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.detail-action-row {
+  margin-bottom: 12px;
+}
+.detail-action-row > ion-button,
+.detail-header-actions ion-button {
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+}
 .detail-header h1 {
   margin: 5px 0 14px;
 }
@@ -2013,6 +2029,10 @@ ion-popover.work-link-popover {
   justify-content: space-between;
   padding: 8px 0;
 }
+.jira-row-with-actions {
+  gap: 8px;
+  padding-inline: 12px;
+}
 .jira-row-link,
 .sprint-jira-link {
   display: flex;
@@ -2026,8 +2046,19 @@ ion-popover.work-link-popover {
 }
 .jira-row-actions {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
+  gap: 6px;
   justify-content: flex-end;
+}
+.jira-row-actions ion-button {
+  --border-radius: 999px;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  height: 24px;
+  min-height: 24px;
+  margin: 0;
+  font-size: 0.68rem;
 }
 .editor-context {
   display: grid;
@@ -3737,9 +3768,18 @@ ion-popover.work-link-popover {
     align-items: stretch;
     flex-direction: column;
   }
+  .jira-row-with-actions {
+    padding-inline: 12px;
+  }
   .jira-row-actions,
   .sprint-jira-row-with-actions > ion-button {
     align-self: flex-start;
+  }
+  .jira-row-actions ion-button {
+    --border-radius: 10px;
+    min-height: 44px;
+    height: auto;
+    font-size: 0.875rem;
   }
   .productivity-nav a {
     flex: 0 0 auto;
