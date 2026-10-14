@@ -1,0 +1,1 @@
+import {S as T}from'./main-MXPD6MZD.js';var t=T("Browser",{web:()=>import('./chunk-CK4Z80mb.js').then(e=>new e.BrowserWeb)});export{t as Browser};
