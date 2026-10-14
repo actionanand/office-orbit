@@ -10,7 +10,7 @@ import { apiError } from '../../core/api/api-error';
 import { LoadingSkeletonComponent } from '../../shared/components/loading-skeleton.component';
 import { StatePanelComponent } from '../../shared/components/state-panel.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
-import { SprintDetailJira, SprintDetailResponse } from '../../shared/models/api.models';
+import { SprintAllocationPatchData, SprintDetailJira, SprintDetailResponse } from '../../shared/models/api.models';
 import { formatDateRange, formatTodayLabel, names } from '../../shared/utils/format';
 import { spilloverLabel } from '../../shared/utils/jira';
 import { SprintService } from './sprints.service';
@@ -143,34 +143,38 @@ import { SprintPlannedDaysEditorComponent } from './sprint-planned-days-editor.c
               <div class="entity-list">
                 @for (jira of data.jiras; track jira.id) {
                   <article class="entity-row sprint-jira-row sprint-jira-row-with-actions">
-                    <a class="sprint-jira-link" [routerLink]="['/app/jiras', jira.jiraKey]">
+                    <a class="sprint-jira-link sprint-jira-main" [routerLink]="['/app/jiras', jira.jiraKey]">
                       <span class="entity-copy">
                         <span class="entity-kicker">{{ jira.jiraKey }}</span>
                         <strong>{{ jira.summary || 'JIRA' }}</strong>
-                        <span class="badge-line">
-                          @if (jira.status) {
-                            <app-status-badge [label]="jira.status" kind="jira-status" />
-                          }
-                          @if (jira.spilloverCount > 0) {
-                            <app-status-badge [label]="spilled(jira.spilloverCount)" />
-                          }
-                        </span>
-                        @if (jira.allocationConflict) {
-                          <span class="allocation-warning">
-                            <strong>Allocation conflict</strong> · {{ jira.allocationCount }}
-                            {{ jira.allocationCount === 1 ? 'record' : 'records' }}
-                          </span>
-                        } @else {
-                          <span class="planned-days">{{ plannedDays(jira) }}</span>
+                      </span>
+                    </a>
+                    <span class="sprint-jira-meta">
+                      <span class="badge-line">
+                        @if (jira.status) {
+                          <app-status-badge [label]="jira.status" kind="jira-status" />
+                        }
+                        @if (jira.spilloverCount > 0) {
+                          <app-status-badge [label]="spilled(jira.spilloverCount)" />
                         }
                       </span>
-                      <ion-icon class="row-arrow" name="chevron-forward-outline" aria-hidden="true" />
-                    </a>
+                      @if (jira.allocationConflict) {
+                        <span class="allocation-warning">
+                          <strong>Allocation conflict</strong> · {{ jira.allocationCount }}
+                          {{ jira.allocationCount === 1 ? 'record' : 'records' }}
+                        </span>
+                      } @else {
+                        <span class="planned-days">{{ plannedDays(jira) }}</span>
+                      }
+                    </span>
                     @if (canEditPlannedDays(data, jira)) {
-                      <ion-button fill="outline" size="small" (click)="editingJira.set(jira)">
-                        <ion-icon name="pencil-outline" slot="start" />Edit Planned Days
-                      </ion-button>
+                      <span class="sprint-jira-actions">
+                        <ion-button fill="outline" size="small" (click)="editingJira.set(jira)">
+                          <ion-icon name="pencil-outline" slot="start" />Edit Planned Days
+                        </ion-button>
+                      </span>
                     }
+                    <ion-icon class="row-arrow sprint-jira-chevron" name="chevron-forward-outline" aria-hidden="true" />
                   </article>
                 }
               </div>
@@ -264,8 +268,35 @@ export class SprintDetailPage {
     );
   }
 
-  plannedDaysSaved(detail: SprintDetailResponse): void {
-    this.detail.set(detail);
+  plannedDaysSaved(result: SprintAllocationPatchData): void {
+    const current = this.detail();
+    const previousValue =
+      current?.jiras.find(jira => jira.allocationId === result.allocation.id)?.plannedDays ??
+      this.editingJira()?.plannedDays ??
+      0;
+    const allocatedDays =
+      (current?.sprint.allocatedDays ?? result.sprintDetail.sprint.allocatedDays) +
+      (result.allocation.plannedDays - previousValue);
+    const availableDays = current?.sprint.availableDays ?? result.sprintDetail.sprint.availableDays;
+    const returnedById = new Map(result.sprintDetail.jiras.map(jira => [jira.id, jira]));
+    const jiras = (current?.jiras ?? result.sprintDetail.jiras).map(jira => {
+      const returned = returnedById.get(jira.id);
+      const merged = returned ? { ...jira, ...returned } : jira;
+      return merged.allocationId === result.allocation.id
+        ? { ...merged, plannedDays: result.allocation.plannedDays }
+        : merged;
+    });
+    this.detail.set({
+      ...result.sprintDetail,
+      sprint: {
+        ...result.sprintDetail.sprint,
+        availableDays,
+        allocatedDays,
+        remainingDays: availableDays - allocatedDays,
+      },
+      jiras,
+      count: jiras.length,
+    });
     this.editingJira.set(null);
     this.snackbar.success('Planned Days updated.');
   }

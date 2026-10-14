@@ -116,6 +116,23 @@ describe('SprintDetailPage', () => {
     expect(text).not.toContain('Planned: null');
   });
 
+  it('keeps the JIRA navigation link, edit action, and final chevron in distinct row elements', async () => {
+    const fixture = await render(response);
+    const row = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.sprint-jira-row');
+    const link = row?.querySelector<HTMLAnchorElement>('.sprint-jira-link');
+    const action = row?.querySelector<HTMLElement>('.sprint-jira-actions ion-button');
+    const arrow = row?.querySelector<HTMLElement>('.sprint-jira-chevron');
+
+    expect(link?.href).toContain('/app/jiras/CRI-1');
+    expect(link?.textContent).toContain('Upgrade Angular');
+    expect(action?.closest('a')).toBeNull();
+    expect(arrow?.compareDocumentPosition(action as Node)).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+
+    action?.dispatchEvent(new Event('click', { bubbles: true }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.editingJira()?.id).toBe('jira-1');
+  });
+
   it('does not show today for an inactive Sprint and handles missing dates without invalid text', async () => {
     const fixture = await render({ ...response, sprint: { ...sprint, active: false, startDate: null, endDate: null } });
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';

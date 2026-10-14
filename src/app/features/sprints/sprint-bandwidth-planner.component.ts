@@ -26,6 +26,11 @@ interface DraftRow {
   conflict: SprintAllocationConflict | null;
 }
 
+interface IonInputValueEvent {
+  detail?: { value?: string | number | null };
+  target?: EventTarget | null;
+}
+
 @Component({
   selector: 'app-sprint-bandwidth-planner',
   imports: [IonButton, IonIcon, IonInput, StatusBadgeComponent],
@@ -196,8 +201,8 @@ export class SprintBandwidthPlannerComponent {
     return this.drafts()[jira.id] ?? String(jira.plannedDays ?? 0);
   }
 
-  draftChanged(jira: SprintDetailJira, event: Event): void {
-    const value = event.target instanceof HTMLIonInputElement ? event.target.value : '';
+  draftChanged(jira: SprintDetailJira, event: Event & IonInputValueEvent): void {
+    const value = event.detail?.value ?? (event.target instanceof HTMLIonInputElement ? event.target.value : '');
     this.drafts.update(drafts => ({ ...drafts, [jira.id]: String(value ?? '') }));
   }
 

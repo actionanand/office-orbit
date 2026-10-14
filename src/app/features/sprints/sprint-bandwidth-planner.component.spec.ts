@@ -65,6 +65,7 @@ describe('SprintBandwidthPlannerComponent', () => {
       plan?: ReturnType<typeof vi.fn>;
       enabled?: boolean;
       conflicts?: Array<{ jiraId: string; jiraKey: string; allocationCount: number }>;
+      detail?: SprintDetailResponse;
     } = {},
   ) {
     const plan =
@@ -95,7 +96,7 @@ describe('SprintBandwidthPlannerComponent', () => {
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(SprintBandwidthPlannerComponent);
-    fixture.componentRef.setInput('detail', detail);
+    fixture.componentRef.setInput('detail', overrides.detail ?? detail);
     fixture.componentRef.setInput('conflicts', overrides.conflicts ?? []);
     fixture.detectChanges();
     return { fixture, component: fixture.componentInstance, plan, controls, confirmation, snackbar };
@@ -114,6 +115,35 @@ describe('SprintBandwidthPlannerComponent', () => {
     expect(plan).not.toHaveBeenCalled();
 
     component.drafts.set({ 'jira-1': '-1', 'jira-2': '0' });
+    expect(component.canSave()).toBe(false);
+  });
+
+  it('updates the draft from Ionic ionInput values without requiring blur', async () => {
+    const { component, fixture } = await render({
+      detail: { ...detail, sprint: { ...detail.sprint, availableDays: 10 } },
+    });
+    const element = fixture.nativeElement as HTMLElement;
+    const inputs = element.querySelectorAll<HTMLElement>('ion-input');
+
+    inputs[0].dispatchEvent(new CustomEvent('ionInput', { bubbles: true, detail: { value: '2' } }));
+    inputs[1].dispatchEvent(new CustomEvent('ionInput', { bubbles: true, detail: { value: '4' } }));
+    fixture.detectChanges();
+
+    expect(component.draftAllocated()).toBe(6);
+    expect(component.draftRemaining()).toBe(4);
+    expect(component.draftProgress()).toBe(60);
+    expect(component.canSave()).toBe(true);
+
+    inputs[0].dispatchEvent(new CustomEvent('ionInput', { bubbles: true, detail: { value: '0.25' } }));
+    fixture.detectChanges();
+    expect(component.rows()[0].value).toBe(0.25);
+
+    inputs[0].dispatchEvent(new CustomEvent('ionInput', { bubbles: true, detail: { value: '' } }));
+    fixture.detectChanges();
+    expect(component.canSave()).toBe(false);
+
+    inputs[0].dispatchEvent(new CustomEvent('ionInput', { bubbles: true, detail: { value: '-1' } }));
+    fixture.detectChanges();
     expect(component.canSave()).toBe(false);
   });
 

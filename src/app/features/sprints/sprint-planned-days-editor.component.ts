@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, effect, inject, input, output, signal, viewChild } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonButton, IonContent, IonHeader, IonIcon, IonInput, IonModal, IonTitle, IonToolbar } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { closeOutline, saveOutline } from 'ionicons/icons';
@@ -8,7 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import { apiError } from '../../core/api/api-error';
 import { AlterControlsService } from '../../core/management/alter-controls.service';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
-import { SprintDetailJira, SprintDetailResponse } from '../../shared/models/api.models';
+import { SprintAllocationPatchData, SprintDetailJira } from '../../shared/models/api.models';
 import { SprintService } from './sprints.service';
 
 @Component({
@@ -33,7 +33,7 @@ import { SprintService } from './sprints.service';
           </ion-button> </ion-toolbar
       ></ion-header>
       <ion-content>
-        <form class="editor-form" (ngSubmit)="save()">
+        <form class="editor-form" [formGroup]="form" (ngSubmit)="save()">
           <div class="field-span editor-context">
             <strong>{{ jira()?.jiraKey }}</strong
             ><span>{{ jira()?.summary }}</span>
@@ -47,7 +47,7 @@ import { SprintService } from './sprints.service';
             type="number"
             min="0"
             step="0.5"
-            [formControl]="plannedDays"
+            formControlName="plannedDays"
             required />
           @if (error()) {
             <p class="form-error field-span" role="alert">{{ error() }}</p>
@@ -67,8 +67,11 @@ export class SprintPlannedDaysEditorComponent {
   readonly open = input(false);
   readonly jira = input<SprintDetailJira | null>(null);
   readonly closed = output<void>();
-  readonly saved = output<SprintDetailResponse>();
-  readonly plannedDays = new FormControl<number | null>(null, [Validators.required, Validators.min(0)]);
+  readonly saved = output<SprintAllocationPatchData>();
+  readonly form = new FormGroup({
+    plannedDays: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
+  });
+  readonly plannedDays = this.form.controls.plannedDays;
   readonly saving = signal(false);
   readonly error = signal('');
   readonly field = viewChild<IonInput>('field');
@@ -94,12 +97,20 @@ export class SprintPlannedDaysEditorComponent {
       this.error.set('Alter Sprint has expired. Enable it again in Settings.');
       return;
     }
-    if (!jira?.allocationId || jira.allocationConflict || this.saving() || !Number.isFinite(value) || value < 0) return;
+    if (
+      this.form.invalid ||
+      !jira?.allocationId ||
+      jira.allocationConflict ||
+      this.saving() ||
+      !Number.isFinite(value) ||
+      value < 0
+    )
+      return;
     this.saving.set(true);
     this.error.set('');
     try {
       const response = await firstValueFrom(this.api.updatePlannedDays(jira.allocationId, value));
-      this.saved.emit(response.data.sprintDetail);
+      this.saved.emit(response.data);
     } catch (error) {
       if (
         error instanceof HttpErrorResponse &&
