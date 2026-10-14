@@ -38,7 +38,14 @@ export class JiraService extends ReadFeatureService {
     return this.mutations.metadata('/api/jiras/meta?mode=edit', refresh);
   }
   create(body: JiraCreateRequest) {
-    return this.mutations.create<Jira, JiraCreateRequest>('/api/jiras', body);
+    return this.mutations.create<Jira, JiraCreateRequest>('/api/jiras', body).pipe(
+      tap(() => {
+        if (!body.inActiveSprint) return;
+        this.cache.invalidate('/api/sprints');
+        this.cache.invalidate('/api/sprint-allocations');
+        this.cache.invalidate('dashboard:');
+      }),
+    );
   }
   update(jiraKey: string, body: JiraPatchRequest) {
     return this.mutations.patch<JiraDetail, JiraPatchRequest>('/api/jiras', jiraKey, body);

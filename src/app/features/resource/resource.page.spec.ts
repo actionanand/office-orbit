@@ -11,6 +11,7 @@ import {
   ReleaseItem,
   Sprint,
   SprintAllocation,
+  SprintDetailResponse,
   SprintDetailJira,
   WorkLog,
 } from '../../shared/models/api.models';
@@ -542,6 +543,68 @@ describe('ResourcePage presentation', () => {
     );
     const allocationArrow = fixture.nativeElement.querySelector('.allocation-row > .allocation-arrow');
     expect(allocationArrow).toBeTruthy();
+  });
+
+  it('shows Plan bandwidth only for Current Allocations with Alter Sprint enabled and syncs on demand', async () => {
+    const detail = {
+      sprint: {
+        id: 'sprint-1',
+        sprint: 'Sprint 8',
+        active: true,
+        startDate: null,
+        endDate: null,
+        weekOff1: null,
+        weekOff2: null,
+        plannedLeaveDays: 0,
+        holidayDays: 0,
+        capacityDays: 10,
+        availableDays: 8,
+        allocatedDays: 0,
+        remainingDays: 8,
+        projectIds: [],
+        allocationIds: [],
+      },
+      jiras: [],
+      count: 0,
+    } satisfies SprintDetailResponse;
+    const syncCurrentSprintAllocations = vi.fn(() =>
+      of({ data: { sprint: detail.sprint, created: 1, existing: 0, conflicts: [], sprintDetail: detail } }),
+    );
+    await TestBed.configureTestingModule({
+      imports: [ResourcePage],
+      providers: [
+        provideHttpClient(),
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: route },
+        { provide: LinksService, useValue: { open: vi.fn() } },
+        {
+          provide: ReadFeatureService,
+          useValue: {
+            heading: 'Sprints',
+            description: '',
+            kind: 'sprints',
+            views: [
+              { label: 'Active', path: '/api/sprints/active' },
+              { label: 'Current Allocations', path: '/api/sprint-allocations/current' },
+            ],
+            list: () => of({ data: [], count: 0, hasMore: false, nextCursor: null }),
+            syncCurrentSprintAllocations,
+            updatedAt: () => Date.now(),
+          },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ResourcePage);
+    fixture.detectChanges();
+    const page = fixture.componentInstance;
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Plan bandwidth');
+
+    page.select('/api/sprint-allocations/current');
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Plan bandwidth');
+    await page.openBandwidthPlanner();
+    expect(syncCurrentSprintAllocations).toHaveBeenCalledTimes(1);
+    expect(page.bandwidthPlannerDetail()).toBe(detail);
   });
 
   it('shows Feedback Work Type and never renders a Project relation', async () => {

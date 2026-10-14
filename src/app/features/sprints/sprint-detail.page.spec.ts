@@ -94,6 +94,8 @@ describe('SprintDetailPage', () => {
     expect(text).toContain('Cortellis Regulatory Intelligence');
     expect(text).toContain('Saturday, Sunday');
     expect(text).toContain('Available');
+    expect(text).toContain('Edit Sprint');
+    expect(text).toContain('Plan bandwidth');
     expect(text).toContain('Cancelled work');
     expect(text).toContain('Completed work');
     expect(element.querySelectorAll('.sprint-jira-row')).toHaveLength(4);
@@ -118,6 +120,7 @@ describe('SprintDetailPage', () => {
     const fixture = await render({ ...response, sprint: { ...sprint, active: false, startDate: null, endDate: null } });
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).not.toContain('Today:');
+    expect(text).not.toContain('Plan bandwidth');
     expect(text).not.toContain('Invalid Date');
     expect(text).not.toContain('undefined');
     expect(text).not.toContain('null');

@@ -70,9 +70,17 @@ import { SprintPlannedDaysEditorComponent } from './sprint-planned-days-editor.c
               <p class="today-label">Today: {{ today }}</p>
             }
             @if (data.sprint.active && alterControls.alterSprintEnabled()) {
-              <ion-button fill="outline" (click)="sprintEditorOpen.set(true)">
-                <ion-icon name="pencil-outline" slot="start" />Edit Sprint
-              </ion-button>
+              <div class="detail-header-actions">
+                <ion-button fill="outline" (click)="sprintEditorOpen.set(true)">
+                  <ion-icon name="pencil-outline" slot="start" />Edit Sprint
+                </ion-button>
+                <ion-button
+                  fill="outline"
+                  routerLink="/app/sprints"
+                  [queryParams]="{ view: 'current-allocations', plan: 'true' }">
+                  Plan bandwidth
+                </ion-button>
+              </div>
             }
           </header>
 

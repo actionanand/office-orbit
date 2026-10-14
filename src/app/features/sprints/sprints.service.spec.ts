@@ -2,7 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { firstValueFrom, of } from 'rxjs';
 import { CursorService } from '../../core/api/cursor.service';
 import { ResourceService } from '../../core/api/resource.service';
-import { SprintAllocation, SprintDetailResponse } from '../../shared/models/api.models';
+import {
+  SprintAllocation,
+  SprintAllocationPlanResponse,
+  SprintAllocationSyncResponse,
+  SprintDetailResponse,
+} from '../../shared/models/api.models';
 import { routes } from './sprints.routes';
 import { SprintService } from './sprints.service';
 import { MutationApiService } from '../../core/api/mutation-api.service';
@@ -15,7 +20,7 @@ describe('SprintService and routes', () => {
         DataCacheService,
         {
           provide: MutationApiService,
-          useValue: { create: vi.fn(), patch: vi.fn() },
+          useValue: { create: vi.fn(), patch: vi.fn(), patchEndpoint: vi.fn() },
         },
       ],
     });
@@ -107,5 +112,48 @@ describe('SprintService and routes', () => {
   it('keeps the list route and adds a lazy Sprint detail route', () => {
     expect(routes.some(route => route.path === '')).toBe(true);
     expect(routes.some(route => route.path === ':sprintId')).toBe(true);
+  });
+
+  it('syncs and saves a current Sprint plan through retry-safe endpoint mutations', async () => {
+    const detail = { sprint: { id: 'sprint-id' }, jiras: [], count: 0 } as unknown as SprintDetailResponse;
+    const sync = {
+      data: { sprint: detail.sprint, created: 1, existing: 2, conflicts: [], sprintDetail: detail },
+    } as SprintAllocationSyncResponse;
+    const plan = {
+      data: {
+        sprintDetail: detail,
+        summary: { availableDays: 8, allocatedDays: 3, remainingDays: 5, utilizationPercent: 37.5 },
+        updatedAllocationIds: ['allocation-1'],
+        alreadySatisfiedAllocationIds: [],
+      },
+    } as SprintAllocationPlanResponse;
+    const patchEndpoint = vi.fn().mockReturnValueOnce(of(sync)).mockReturnValueOnce(of(plan));
+    TestBed.configureTestingModule({
+      providers: [
+        SprintService,
+        { provide: ResourceService, useValue: { detail: vi.fn() } },
+        { provide: CursorService, useValue: {} },
+        { provide: MutationApiService, useValue: { create: vi.fn(), patch: vi.fn(), patchEndpoint } },
+      ],
+    });
+    const cache = TestBed.inject(DataCacheService);
+    const invalidate = vi.spyOn(cache, 'invalidate');
+    const service = TestBed.inject(SprintService);
+
+    await expect(firstValueFrom(service.syncCurrentSprintAllocations())).resolves.toEqual(sync);
+    await expect(
+      firstValueFrom(
+        service.planCurrentSprintAllocations({ allocations: [{ allocationId: 'allocation-1', plannedDays: 2.5 }] }),
+      ),
+    ).resolves.toEqual(plan);
+
+    expect(patchEndpoint).toHaveBeenNthCalledWith(1, '/api/sprints/active/allocations/sync', {});
+    expect(patchEndpoint).toHaveBeenNthCalledWith(2, '/api/sprints/active/allocations/plan', {
+      allocations: [{ allocationId: 'allocation-1', plannedDays: 2.5 }],
+    });
+    expect(invalidate).toHaveBeenCalledWith('/api/sprints');
+    expect(invalidate).toHaveBeenCalledWith('/api/sprint-allocations');
+    expect(invalidate).toHaveBeenCalledWith('/api/jiras');
+    expect(invalidate).toHaveBeenCalledWith('dashboard:');
   });
 });

@@ -50,7 +50,11 @@ import {
   Sprint,
   SprintAllocation,
   SprintDetailJira,
+  SprintDetailResponse,
+  SprintAllocationPlanData,
   AddExistingJiraToCurrentSprintResponse,
+  SprintAllocationConflict,
+  SprintAllocationSyncResponse,
   WorkLink,
   WorkLog,
 } from '../../shared/models/api.models';
@@ -75,6 +79,7 @@ import { MarkdownViewerComponent } from '../productivity/markdown-viewer.compone
 import { SprintEditorComponent } from '../sprints/sprint-editor.component';
 import { ReleaseItemEditorComponent } from '../releases/release-item-editor.component';
 import { ConfirmationService } from '../../core/notifications/confirmation.service';
+import { SprintBandwidthPlannerComponent } from '../sprints/sprint-bandwidth-planner.component';
 
 interface AllocationDetailSource {
   allocationJiras(allocations: SprintAllocation[], refresh?: boolean): Observable<Record<string, SprintDetailJira[]>>;
@@ -86,6 +91,10 @@ interface CurrentSprintMutationSource {
 
 interface ReleaseMutationSource {
   delete(releaseItemId: string): Observable<void>;
+}
+
+interface SprintPlanningSource {
+  syncCurrentSprintAllocations(): Observable<SprintAllocationSyncResponse>;
 }
 
 interface ReleaseCopyEntity {
@@ -110,6 +119,10 @@ function supportsCurrentSprintMutation(
 
 function supportsReleaseMutation(service: ReadFeatureService): service is ReadFeatureService & ReleaseMutationSource {
   return 'delete' in service && typeof service.delete === 'function';
+}
+
+function supportsSprintPlanning(service: ReadFeatureService): service is ReadFeatureService & SprintPlanningSource {
+  return 'syncCurrentSprintAllocations' in service && typeof service.syncCurrentSprintAllocations === 'function';
 }
 
 @Component({
@@ -143,6 +156,7 @@ function supportsReleaseMutation(service: ReadFeatureService): service is ReadFe
     MarkdownViewerComponent,
     SprintEditorComponent,
     ReleaseItemEditorComponent,
+    SprintBandwidthPlannerComponent,
   ],
   template: `<ion-header class="ion-no-border">
       <ion-toolbar>
@@ -214,9 +228,30 @@ function supportsReleaseMutation(service: ReadFeatureService): service is ReadFe
           <p class="refresh-notice" role="status">{{ notice() }}</p>
         }
 
-        @if (loading()) {
+        @if (isCurrentAllocationsView() && !bandwidthPlannerDetail() && alterControls.alterSprintEnabled()) {
+          <section class="bandwidth-planner-entry">
+            <div>
+              <span class="entity-kicker">Capacity planning</span>
+              <strong>Plan your active Sprint bandwidth</strong>
+              @if (!visible().length && !loading()) {
+                <p>No Sprint allocations are available yet. Plan bandwidth can prepare missing allocations.</p>
+              }
+            </div>
+            <ion-button [disabled]="bandwidthPreparing()" (click)="openBandwidthPlanner()">
+              {{ bandwidthPreparing() ? 'Preparing Sprint…' : 'Plan bandwidth' }}
+            </ion-button>
+          </section>
+        }
+
+        @if (bandwidthPlannerDetail(); as plannerDetail) {
+          <app-sprint-bandwidth-planner
+            [detail]="plannerDetail"
+            [conflicts]="bandwidthPlannerConflicts()"
+            (saved)="bandwidthPlanSaved($event)"
+            (cancelled)="closeBandwidthPlanner()" />
+        } @else if (loading()) {
           <app-loading-skeleton [rows]="5" />
-        } @else if (error() || !visible().length) {
+        } @else if (error() || (!visible().length && !authoritativeCurrentSprintPlan())) {
           <app-state-panel [error]="error()" [message]="emptyMessage()" (retry)="load()" />
         } @else {
           @if (feature.kind === 'releases') {
@@ -338,100 +373,143 @@ function supportsReleaseMutation(service: ReadFeatureService): service is ReadFe
               }
             </section>
           } @else if (feature.kind === 'sprints') {
-            <section class="sprint-list">
-              @for (item of sprintItems(); track item.id) {
-                @if (isSprint(item)) {
-                  <a class="sprint-card" [class.current]="item.active" [routerLink]="['/app/sprints', item.id]">
-                    <div class="sprint-title-row">
-                      <div>
-                        <span class="entity-kicker">{{ names(item.projects) || 'Sprint' }}</span>
-                        <h2>{{ item.sprint }}</h2>
-                      </div>
-                      @if (item.active) {
-                        <app-status-badge label="Active" kind="success" />
-                      }
-                    </div>
-                    @if (item.startDate || item.endDate) {
-                      <p>
-                        {{ date(item.startDate) }}{{ item.startDate && item.endDate ? ' – ' : ''
-                        }}{{ date(item.endDate) }}
-                      </p>
-                    }
-                    <div class="capacity-stats">
-                      <span
-                        ><strong>{{ item.capacityDays }}</strong
-                        >Capacity</span
-                      >
-                      <span
-                        ><strong>{{ item.availableDays }}</strong
-                        >Available</span
-                      >
-                      <span
-                        ><strong>{{ item.allocatedDays }}</strong
-                        >Allocated</span
-                      >
-                      <span
-                        ><strong>{{ item.remainingDays }}</strong
-                        >Remaining</span
-                      >
-                    </div>
-                    <div
-                      class="progress-track"
-                      role="progressbar"
-                      [attr.aria-valuenow]="progress(item)"
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                      aria-label="Sprint capacity allocated">
-                      <span [style.width.%]="progress(item)"></span>
-                    </div>
-                  </a>
-                } @else {
+            @if (isCurrentAllocationsView() && authoritativeCurrentSprintPlan(); as plan) {
+              <section class="sprint-list authoritative-sprint-plan" aria-label="Current Sprint allocations">
+                <div class="authoritative-plan-capacity">
+                  <span
+                    ><small>Available</small><strong>{{ plan.summary.availableDays }}</strong></span
+                  >
+                  <span
+                    ><small>Allocated</small><strong>{{ plan.summary.allocatedDays }}</strong></span
+                  >
+                  <span
+                    ><small>Remaining</small><strong>{{ plan.summary.remainingDays }}</strong></span
+                  >
+                </div>
+                @for (jira of plan.sprintDetail.jiras; track jira.id) {
                   <article class="entity-row allocation-row">
                     <span class="entity-copy">
-                      @if (allocationJiras(item).length > 0) {
-                        @for (jira of allocationJiras(item); track jira.id) {
-                          <a class="allocation-jira-link" [routerLink]="['/app/jiras', jira.jiraKey]">
-                            <span>
-                              <span class="entity-kicker">{{ jira.jiraKey }}</span>
-                              @if (jira.summary) {
-                                <strong>{{ short(jira.summary) }}</strong>
-                              }
-                              <span class="badge-line">
-                                @if (jira.status) {
-                                  <app-status-badge [label]="jira.status" kind="jira-status" />
-                                }
-                                @if (jira.spilloverCount > 0) {
-                                  <app-status-badge [label]="spilled(jira.spilloverCount)" />
-                                }
-                              </span>
-                            </span>
-                          </a>
+                      <span class="entity-kicker">{{ jira.jiraKey }}</span>
+                      <strong>{{ jira.summary || 'JIRA' }}</strong>
+                      <span class="badge-line">
+                        @if (jira.status) {
+                          <app-status-badge [label]="jira.status" kind="jira-status" />
                         }
-                      } @else {
-                        <strong>{{ item.allocation || 'Sprint allocation' }}</strong>
-                      }
-                      @if (item.notes) {
-                        <span class="preview">{{ short(item.notes) }}</span>
-                      }
-                      @if (item.spilled) {
-                        <span class="badge-line allocation-badges">
-                          <app-status-badge label="Spilled" />
-                        </span>
-                      }
-                      @if (item.spillReason.trim()) {
-                        <span class="preview allocation-spill-reason">Spill reason: {{ short(item.spillReason) }}</span>
+                        @if (jira.spilloverCount > 0) {
+                          <app-status-badge [label]="spilled(jira.spilloverCount)" />
+                        }
+                      </span>
+                      @if (jira.allocationConflict) {
+                        <span class="allocation-warning"><strong>Allocation conflict</strong></span>
                       }
                     </span>
                     <span class="planned-days"
-                      ><strong>{{ item.plannedDays }}</strong> planned days</span
+                      ><strong>{{ jira.plannedDays ?? 0 }}</strong> planned days</span
                     >
-                    @if (allocationJiras(item).length > 0) {
-                      <ion-icon class="row-arrow allocation-arrow" name="chevron-forward-outline" aria-hidden="true" />
-                    }
                   </article>
                 }
-              }
-            </section>
+              </section>
+            } @else {
+              <section class="sprint-list">
+                @for (item of sprintItems(); track item.id) {
+                  @if (isSprint(item)) {
+                    <a class="sprint-card" [class.current]="item.active" [routerLink]="['/app/sprints', item.id]">
+                      <div class="sprint-title-row">
+                        <div>
+                          <span class="entity-kicker">{{ names(item.projects) || 'Sprint' }}</span>
+                          <h2>{{ item.sprint }}</h2>
+                        </div>
+                        @if (item.active) {
+                          <app-status-badge label="Active" kind="success" />
+                        }
+                      </div>
+                      @if (item.startDate || item.endDate) {
+                        <p>
+                          {{ date(item.startDate) }}{{ item.startDate && item.endDate ? ' – ' : ''
+                          }}{{ date(item.endDate) }}
+                        </p>
+                      }
+                      <div class="capacity-stats">
+                        <span
+                          ><strong>{{ item.capacityDays }}</strong
+                          >Capacity</span
+                        >
+                        <span
+                          ><strong>{{ item.availableDays }}</strong
+                          >Available</span
+                        >
+                        <span
+                          ><strong>{{ item.allocatedDays }}</strong
+                          >Allocated</span
+                        >
+                        <span
+                          ><strong>{{ item.remainingDays }}</strong
+                          >Remaining</span
+                        >
+                      </div>
+                      <div
+                        class="progress-track"
+                        role="progressbar"
+                        [attr.aria-valuenow]="progress(item)"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-label="Sprint capacity allocated">
+                        <span [style.width.%]="progress(item)"></span>
+                      </div>
+                    </a>
+                  } @else {
+                    <article class="entity-row allocation-row">
+                      <span class="entity-copy">
+                        @if (allocationJiras(item).length > 0) {
+                          @for (jira of allocationJiras(item); track jira.id) {
+                            <a class="allocation-jira-link" [routerLink]="['/app/jiras', jira.jiraKey]">
+                              <span>
+                                <span class="entity-kicker">{{ jira.jiraKey }}</span>
+                                @if (jira.summary) {
+                                  <strong>{{ short(jira.summary) }}</strong>
+                                }
+                                <span class="badge-line">
+                                  @if (jira.status) {
+                                    <app-status-badge [label]="jira.status" kind="jira-status" />
+                                  }
+                                  @if (jira.spilloverCount > 0) {
+                                    <app-status-badge [label]="spilled(jira.spilloverCount)" />
+                                  }
+                                </span>
+                              </span>
+                            </a>
+                          }
+                        } @else {
+                          <strong>{{ item.allocation || 'Sprint allocation' }}</strong>
+                        }
+                        @if (item.notes) {
+                          <span class="preview">{{ short(item.notes) }}</span>
+                        }
+                        @if (item.spilled) {
+                          <span class="badge-line allocation-badges">
+                            <app-status-badge label="Spilled" />
+                          </span>
+                        }
+                        @if (item.spillReason.trim()) {
+                          <span class="preview allocation-spill-reason"
+                            >Spill reason: {{ short(item.spillReason) }}</span
+                          >
+                        }
+                      </span>
+                      <span class="planned-days"
+                        ><strong>{{ item.plannedDays }}</strong> planned days</span
+                      >
+                      @if (allocationJiras(item).length > 0) {
+                        <ion-icon
+                          class="row-arrow allocation-arrow"
+                          name="chevron-forward-outline"
+                          aria-hidden="true" />
+                      }
+                    </article>
+                  }
+                }
+              </section>
+            }
           } @else if (feature.kind === 'releases') {
             <section class="release-list" aria-label="Releases">
               <div class="release-selection-toolbar" aria-live="polite">
@@ -1007,6 +1085,10 @@ export class ResourcePage {
   readonly editingRelease = signal<ReleaseItem | null>(null);
   readonly releaseSourceJira = signal<Jira | null>(null);
   readonly releaseDeleting = signal(false);
+  readonly bandwidthPreparing = signal(false);
+  readonly bandwidthPlannerDetail = signal<SprintDetailResponse | null>(null);
+  readonly bandwidthPlannerConflicts = signal<SprintAllocationConflict[]>([]);
+  readonly authoritativeCurrentSprintPlan = signal<SprintAllocationPlanData | null>(null);
   readonly releaseCopyDefaults = {
     groupByJira: true,
     combineComponents: true,
@@ -1074,14 +1156,28 @@ export class ResourcePage {
       trashOutline,
     });
     const requestedView = this.route.snapshot.queryParamMap.get('view');
+    const requestedPlan = this.route.snapshot.queryParamMap.get('plan') === 'true';
     const matchingView = this.feature.views.find(view => requestedView && this.viewToken(view.label) === requestedView);
     const restored = this.navigationState.read(this.feature.kind);
     if (matchingView) this.selected.set(matchingView.path);
     else if (restored && this.feature.views.some(view => view.path === restored.selected))
       this.selected.set(restored.selected);
     if (restored) this.search.set(restored.search);
-    if (['jiras', 'sprints', 'releases'].includes(this.feature.kind))
-      void this.alterControls.refresh().catch(() => undefined);
+    if (['jiras', 'sprints', 'releases'].includes(this.feature.kind)) {
+      void this.alterControls
+        .refresh()
+        .catch(() => undefined)
+        .finally(() => {
+          if (!requestedPlan) return;
+          void this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { plan: null },
+            queryParamsHandling: 'merge',
+            replaceUrl: true,
+          });
+          if (this.isCurrentAllocationsView()) void this.openBandwidthPlanner();
+        });
+    }
     this.load();
   }
 
@@ -1123,6 +1219,7 @@ export class ResourcePage {
     this.request?.unsubscribe();
     this.allocationRequest?.unsubscribe();
     this.allocationDetails.set({});
+    if (this.feature.kind === 'sprints') this.authoritativeCurrentSprintPlan.set(null);
     this.loading.set(!more && !preserveVisible);
     this.loadingMore.set(more);
     this.error.set('');
@@ -1171,6 +1268,8 @@ export class ResourcePage {
     if (this.feature.kind === 'jiras' && this.selected().includes('blocked')) return 'No blocked JIRAs.';
     if (this.feature.kind === 'releases' && this.selected().includes('pending'))
       return 'No releases waiting for confirmation.';
+    if (this.isCurrentAllocationsView() && this.alterControls.alterSprintEnabled())
+      return 'No Sprint allocations are available yet. Plan bandwidth can prepare missing allocations.';
     return `No ${this.feature.heading.toLowerCase()} found in this view.`;
   }
 
@@ -1303,6 +1402,61 @@ export class ResourcePage {
     this.sprintEditorOpen.set(false);
     this.snackbar.success('Sprint created.');
     this.load(true, false, true);
+  }
+
+  isCurrentAllocationsView(): boolean {
+    return this.feature.kind === 'sprints' && this.selected() === '/api/sprint-allocations/current';
+  }
+
+  async openBandwidthPlanner(): Promise<void> {
+    if (
+      this.bandwidthPreparing() ||
+      this.bandwidthPlannerDetail() ||
+      !this.alterControls.alterSprintEnabled() ||
+      !this.isCurrentAllocationsView() ||
+      !supportsSprintPlanning(this.feature)
+    )
+      return;
+    this.bandwidthPreparing.set(true);
+    try {
+      const response = await firstValueFrom(this.feature.syncCurrentSprintAllocations());
+      this.bandwidthPlannerDetail.set(response.data.sprintDetail);
+      this.bandwidthPlannerConflicts.set(response.data.conflicts);
+      if (response.data.created > 0) {
+        this.snackbar.success(
+          `${response.data.created} missing Sprint allocation${response.data.created === 1 ? '' : 's'} prepared.`,
+        );
+      }
+    } catch (error) {
+      this.handleBandwidthError(error);
+    } finally {
+      this.bandwidthPreparing.set(false);
+    }
+  }
+
+  bandwidthPlanSaved(result: SprintAllocationPlanData): void {
+    this.closeBandwidthPlanner();
+    this.authoritativeCurrentSprintPlan.set(result);
+    this.snackbar.success('Sprint bandwidth plan saved.');
+  }
+
+  closeBandwidthPlanner(): void {
+    this.bandwidthPlannerDetail.set(null);
+    this.bandwidthPlannerConflicts.set([]);
+  }
+
+  private handleBandwidthError(error: unknown): void {
+    const code = apiErrorCode(error);
+    if (code === 'ALTER_SPRINT_DISABLED') {
+      void this.alterControls.refresh().catch(() => undefined);
+      this.snackbar.error('Alter Sprint has expired. Enable it again in Settings.');
+      return;
+    }
+    if (code === 'ACTIVE_SPRINT_NOT_FOUND') return this.snackbar.error('No active Sprint is configured.');
+    if (code === 'ACTIVE_SPRINT_CONFLICT') return this.snackbar.error('Multiple active Sprints are configured.');
+    if (code === 'SPRINT_ALLOCATION_CONFLICT')
+      return this.snackbar.error('One or more Sprint allocations need to be fixed before planning.');
+    this.snackbar.error(apiError(error));
   }
 
   async addJiraToCurrentSprint(item: Jira): Promise<void> {

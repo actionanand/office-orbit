@@ -522,6 +522,47 @@ export interface SprintAllocationPatchData {
   sprintDetail: SprintDetailResponse;
 }
 
+export interface SprintAllocationConflict {
+  jiraId: string;
+  jiraKey: string;
+  allocationCount: number;
+}
+
+export interface SprintAllocationSyncResponse {
+  data: {
+    sprint: Sprint;
+    created: number;
+    existing: number;
+    conflicts: SprintAllocationConflict[];
+    sprintDetail: SprintDetailResponse;
+  };
+}
+
+export interface SprintAllocationPlanRequest {
+  allocations: Array<{
+    allocationId: string;
+    plannedDays: number;
+  }>;
+}
+
+export interface SprintAllocationPlanSummary {
+  availableDays: number;
+  allocatedDays: number;
+  remainingDays: number;
+  utilizationPercent: number;
+}
+
+export interface SprintAllocationPlanData {
+  sprintDetail: SprintDetailResponse;
+  summary: SprintAllocationPlanSummary;
+  updatedAllocationIds: string[];
+  alreadySatisfiedAllocationIds: string[];
+}
+
+export interface SprintAllocationPlanResponse {
+  data: SprintAllocationPlanData;
+}
+
 export interface ReleaseItem {
   id: string;
   createdTime: string;

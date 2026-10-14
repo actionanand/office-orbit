@@ -3,6 +3,7 @@ import { Observable, firstValueFrom, of } from 'rxjs';
 import { CursorService } from '../../core/api/cursor.service';
 import { MutationApiService } from '../../core/api/mutation-api.service';
 import { ResourceService } from '../../core/api/resource.service';
+import { DataCacheService } from '../../core/cache/data-cache.service';
 import { JiraDetail } from '../../shared/models/api.models';
 import { JiraService } from './jiras.service';
 
@@ -79,6 +80,12 @@ describe('JiraService', () => {
     };
     await firstValueFrom(service.create(body));
     expect(create).toHaveBeenCalledWith('/api/jiras', body);
+    const cache = TestBed.inject(DataCacheService);
+    const invalidate = vi.spyOn(cache, 'invalidate');
+    await firstValueFrom(service.create({ ...body, inActiveSprint: true }));
+    expect(invalidate).toHaveBeenCalledWith('/api/sprints');
+    expect(invalidate).toHaveBeenCalledWith('/api/sprint-allocations');
+    expect(invalidate).toHaveBeenCalledWith('dashboard:');
     await firstValueFrom(service.update('CRI/1', { summary: 'Updated summary' }));
     expect(patch).toHaveBeenCalledWith('/api/jiras', 'CRI/1', { summary: 'Updated summary' });
     const reason = 'Blocked by **DevOps**\n\n- deployment issue';

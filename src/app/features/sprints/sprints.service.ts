@@ -9,6 +9,9 @@ import {
   SprintAllocation,
   SprintAllocationPatchData,
   SprintAllocationPatchRequest,
+  SprintAllocationPlanRequest,
+  SprintAllocationPlanResponse,
+  SprintAllocationSyncResponse,
   SprintCreateRequest,
   SprintDetailJira,
   SprintDetailResponse,
@@ -62,6 +65,21 @@ export class SprintService extends ReadFeatureService {
       );
   }
 
+  syncCurrentSprintAllocations() {
+    return this.mutations
+      .patchEndpoint<SprintAllocationSyncResponse, Record<string, never>>('/api/sprints/active/allocations/sync', {})
+      .pipe(tap(() => this.invalidateRelatedData()));
+  }
+
+  planCurrentSprintAllocations(body: SprintAllocationPlanRequest) {
+    return this.mutations
+      .patchEndpoint<SprintAllocationPlanResponse, SprintAllocationPlanRequest>(
+        '/api/sprints/active/allocations/plan',
+        body,
+      )
+      .pipe(tap(() => this.invalidateRelatedData()));
+  }
+
   allocationJiras(allocations: SprintAllocation[], refresh = false) {
     const sprintIds = [...new Set(allocations.flatMap(allocation => allocation.sprintIds))];
     if (sprintIds.length === 0) return of<Record<string, SprintDetailJira[]>>({});
@@ -81,6 +99,7 @@ export class SprintService extends ReadFeatureService {
   }
 
   private invalidateRelatedData(): void {
+    this.cache.invalidate('/api/sprints');
     this.cache.invalidate('/api/sprint-allocations');
     this.cache.invalidate('/api/jiras');
     this.cache.invalidate('dashboard:');
