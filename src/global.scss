@@ -2052,6 +2052,9 @@ ion-popover.work-link-popover {
   .jira-row-with-actions > .jira-row-link {
     flex: 0 1 auto;
   }
+  .jira-row-with-actions > .jira-row-actions {
+    align-self: flex-end;
+  }
   .jira-row-with-actions > .row-arrow {
     flex: 0 0 auto;
     margin-left: auto;
