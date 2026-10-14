@@ -18,6 +18,7 @@ let controlsMock: ReturnType<typeof createControlsMock>;
 function createControlsMock() {
   return {
     refresh: vi.fn().mockResolvedValue(null),
+    refreshFresh: vi.fn().mockResolvedValue(null),
     setControl: vi.fn().mockResolvedValue(null),
     loading: signal(false),
     error: signal(''),
@@ -115,11 +116,11 @@ describe('SettingsPage', () => {
     controlsMock.alterSprintEnabled.set(initialEnabled);
     controlsMock.sprintActiveUntil.set(initialEnabled ? activeUntil : null);
     controlsMock.setControl.mockRejectedValueOnce(new Error('PATCH response lost'));
-    controlsMock.refresh.mockClear();
+    controlsMock.refreshFresh.mockClear();
     if (refreshFails) {
-      controlsMock.refresh.mockRejectedValueOnce(new Error('GET failed'));
+      controlsMock.refreshFresh.mockRejectedValueOnce(new Error('GET failed'));
     } else {
-      controlsMock.refresh.mockImplementationOnce(async () => {
+      controlsMock.refreshFresh.mockImplementationOnce(async () => {
         controlsMock.alterSprintEnabled.set(backendEnabled);
         controlsMock.sprintActiveUntil.set(backendEnabled ? activeUntil : null);
         return null;
@@ -337,7 +338,7 @@ describe('SettingsPage', () => {
     expect(page.alterControls.sprintActiveUntil()).toBe('2026-10-14T08:30:00.000Z');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain(page.activeTill('2026-10-14T08:30:00.000Z'));
     expect(controlsMock.setControl).toHaveBeenCalledOnce();
-    expect(controlsMock.refresh).toHaveBeenCalledOnce();
+    expect(controlsMock.refreshFresh).toHaveBeenCalledOnce();
   });
 
   it('reconciles a failed enable to Sprint disabled', async () => {
@@ -349,7 +350,7 @@ describe('SettingsPage', () => {
 
     expect(page.alterSprintChecked()).toBe(false);
     expect(controlsMock.setControl).toHaveBeenCalledOnce();
-    expect(controlsMock.refresh).toHaveBeenCalledOnce();
+    expect(controlsMock.refreshFresh).toHaveBeenCalledOnce();
   });
 
   it('reconciles a failed disable to Sprint disabled', async () => {
@@ -359,7 +360,7 @@ describe('SettingsPage', () => {
 
     expect(page.alterSprintChecked()).toBe(false);
     expect(controlsMock.setControl).toHaveBeenCalledOnce();
-    expect(controlsMock.refresh).toHaveBeenCalledOnce();
+    expect(controlsMock.refreshFresh).toHaveBeenCalledOnce();
   });
 
   it('reconciles a failed disable to Sprint still enabled', async () => {
@@ -369,7 +370,7 @@ describe('SettingsPage', () => {
 
     expect(page.alterSprintChecked()).toBe(true);
     expect(controlsMock.setControl).toHaveBeenCalledOnce();
-    expect(controlsMock.refresh).toHaveBeenCalledOnce();
+    expect(controlsMock.refreshFresh).toHaveBeenCalledOnce();
   });
 
   it('retains the known state and reports when reconciliation also fails', async () => {
@@ -382,7 +383,7 @@ describe('SettingsPage', () => {
     expect(page.alterSprintChecked()).toBe(true);
     expect(page.alterControls.sprintActiveUntil()).toBe('2026-10-14T08:30:00.000Z');
     expect(controlsMock.setControl).toHaveBeenCalledOnce();
-    expect(controlsMock.refresh).toHaveBeenCalledOnce();
+    expect(controlsMock.refreshFresh).toHaveBeenCalledOnce();
     expect(error).toHaveBeenCalledWith(expect.stringContaining('Unable to confirm the current managed-control state'));
   });
 

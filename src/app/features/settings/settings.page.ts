@@ -456,7 +456,7 @@ export class SettingsPage {
       );
     } catch {
       try {
-        await this.alterControls.refresh();
+        await this.alterControls.refreshFresh();
       } catch {
         this.controlRevision.update(value => value + 1);
         this.snackbar.error('Unable to confirm the current managed-control state.');

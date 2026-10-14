@@ -89,6 +89,37 @@ describe('AlterControlsService', () => {
     expect(service.alterSprintEnabled()).toBe(true);
     expect(storage).not.toHaveBeenCalled();
   });
+
+  it.each([
+    [false, true],
+    [true, false],
+  ])('waits for an older GET before reconciling (%s -> %s)', async (oldEnabled, freshEnabled) => {
+    const url = environment.apiBaseUrl + '/api/settings/alter-controls';
+    const oldLoad = service.refresh();
+    const oldRequest = http.expectOne(url);
+    const patch = service.setControl('sprint', !oldEnabled);
+    const patchRequest = http.expectOne(url);
+    expect(patchRequest.request.method).toBe('PATCH');
+    expect(patchRequest.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(false);
+    patchRequest.flush({}, { status: 504, statusText: 'Gateway Timeout' });
+    await patch.catch(() => undefined);
+
+    const reconciliation = service.refreshFresh();
+    http.expectNone(url);
+
+    oldRequest.flush({ data: state('2026-10-14T08:00:00.000Z', oldEnabled, false) });
+    await oldLoad;
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const freshRequest = http.expectOne(url);
+    expect(freshRequest.request.method).toBe('GET');
+    freshRequest.flush({ data: state('2026-10-14T08:01:00.000Z', freshEnabled, false) });
+    await reconciliation;
+
+    expect(service.alterSprintEnabled()).toBe(freshEnabled);
+    expect(http.match(request => request.method === 'PATCH')).toHaveLength(0);
+  });
 });
 
 function state(serverTime: string, sprint: boolean, release: boolean) {

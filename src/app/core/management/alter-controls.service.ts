@@ -50,6 +50,15 @@ export class AlterControlsService {
 
   refresh(): Promise<AlterControlsState> {
     if (this.request) return this.request;
+    return this.fetch();
+  }
+
+  refreshFresh(): Promise<AlterControlsState> {
+    const pendingRequest = this.request;
+    return pendingRequest ? pendingRequest.catch(() => undefined).then(() => this.refresh()) : this.refresh();
+  }
+
+  private fetch(): Promise<AlterControlsState> {
     this.loading.set(true);
     this.error.set('');
     const request = firstValueFrom(this.http.get<AlterControlsResponse>(environment.apiBaseUrl + this.path))
