@@ -24,6 +24,7 @@ import {
   moonOutline,
   sunnyOutline,
 } from 'ionicons/icons';
+import type { ToggleChangeEventDetail } from '@ionic/core/components';
 import { ThemeService, ThemeMode } from '../../core/theme/theme.service';
 import { PlatformService } from '../../core/platform/platform.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -96,7 +97,7 @@ import { ActiveSessionsModalComponent } from './active-sessions.modal';
                 color="primary"
                 [checked]="alterSprintChecked()"
                 [disabled]="controlBusy() !== null"
-                (ionChange)="onAlterControlToggle('sprint', $event.detail.checked)" />
+                (ionChange)="onAlterControlToggle('sprint', $event)" />
             </div>
             <div class="setting-row">
               <div>
@@ -110,7 +111,7 @@ import { ActiveSessionsModalComponent } from './active-sessions.modal';
                 color="primary"
                 [checked]="alterReleaseChecked()"
                 [disabled]="controlBusy() !== null"
-                (ionChange)="onAlterControlToggle('releaseManagement', $event.detail.checked)" />
+                (ionChange)="onAlterControlToggle('releaseManagement', $event)" />
             </div>
           }
           @if (alterControls.error()) {
@@ -431,12 +432,17 @@ export class SettingsPage {
       hour12: this.timeFormat() === '12',
     }).format(new Date(value));
   }
-  async onAlterControlToggle(control: AlterControlName, checked: boolean): Promise<void> {
-    if (this.controlBusy()) return;
+  async onAlterControlToggle(
+    control: AlterControlName,
+    event: CustomEvent<ToggleChangeEventDetail<unknown>>,
+  ): Promise<void> {
+    const checked = event.detail.checked;
     const currentlyEnabled =
       control === 'sprint'
         ? this.alterControls.alterSprintEnabled()
         : this.alterControls.alterReleaseManagementEnabled();
+    (event.target as HTMLIonToggleElement).checked = currentlyEnabled;
+    if (this.controlBusy()) return;
     if (checked === currentlyEnabled) return;
 
     this.controlRevision.update(value => value + 1);

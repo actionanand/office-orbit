@@ -12,6 +12,7 @@ import { SettingsPage } from './settings.page';
 import { AlterControlsService } from '../../core/management/alter-controls.service';
 import { ConfirmationService } from '../../core/notifications/confirmation.service';
 import { SnackbarService } from '../../core/notifications/snackbar.service';
+import type { ToggleChangeEventDetail } from '@ionic/core/components';
 
 let controlsMock: ReturnType<typeof createControlsMock>;
 
@@ -111,10 +112,10 @@ describe('SettingsPage', () => {
 
   async function prepareFailedControlToggle(initialEnabled: boolean, backendEnabled: boolean, refreshFails = false) {
     const fixture = await renderWithPin();
-    fixture.detectChanges();
     const activeUntil = '2026-10-14T08:30:00.000Z';
     controlsMock.alterSprintEnabled.set(initialEnabled);
     controlsMock.sprintActiveUntil.set(initialEnabled ? activeUntil : null);
+    fixture.detectChanges();
     controlsMock.setControl.mockRejectedValueOnce(new Error('PATCH response lost'));
     controlsMock.refreshFresh.mockClear();
     if (refreshFails) {
@@ -131,6 +132,40 @@ describe('SettingsPage', () => {
       page: fixture.componentInstance,
       confirmation: TestBed.inject(ConfirmationService),
     };
+  }
+
+  async function prepareEnabledSprint() {
+    const fixture = await renderWithPin();
+    controlsMock.alterSprintEnabled.set(true);
+    controlsMock.sprintActiveUntil.set('2026-10-14T08:30:00.000Z');
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  function dispatchToggleChange(
+    fixture: Awaited<ReturnType<typeof renderWithPin>>,
+    control: 'sprint' | 'releaseManagement',
+    checked: boolean,
+  ) {
+    const toggleId = control === 'sprint' ? '#alter-sprint-toggle' : '#alter-release-toggle';
+    const toggle = fixture.nativeElement.querySelector(toggleId) as HTMLIonToggleElement | null;
+    if (!toggle) throw new Error(`Missing toggle: ${toggleId}`);
+    const currentlyEnabled =
+      control === 'sprint'
+        ? fixture.componentInstance.alterControls.alterSprintEnabled()
+        : fixture.componentInstance.alterControls.alterReleaseManagementEnabled();
+    expect(toggle.checked).toBe(currentlyEnabled);
+    const handler = vi.spyOn(fixture.componentInstance, 'onAlterControlToggle');
+    toggle.checked = checked;
+    toggle.dispatchEvent(
+      new CustomEvent<ToggleChangeEventDetail<boolean>>('ionChange', {
+        bubbles: true,
+        detail: { checked, value: checked },
+      }),
+    );
+    const result = handler.mock.results[0];
+    if (!result || result.type !== 'return') throw new Error('Toggle handler did not complete');
+    return { toggle, pending: result.value };
   }
 
   it('shows a fresh session with the actual same-day token expiry and no ceiling explanation', async () => {
@@ -305,35 +340,97 @@ describe('SettingsPage', () => {
     expect(page.pinProtectionChecked()).toBe(true);
   });
 
-  it('confirms temporary Sprint access and visibly restores the toggle when cancelled', async () => {
+  it('keeps the Sprint toggle off while confirmation is open and after cancellation', async () => {
     const fixture = await renderWithPin();
     fixture.detectChanges();
     const page = fixture.componentInstance;
     const controls = TestBed.inject(AlterControlsService);
     const confirmation = TestBed.inject(ConfirmationService);
 
-    const cancelled = page.onAlterControlToggle('sprint', true);
+    const { toggle, pending } = dispatchToggleChange(fixture, 'sprint', true);
     expect(confirmation.current()?.title).toBe('Enable Alter Sprint?');
     expect(confirmation.current()?.confirmLabel).toBe('Enable for 30 minutes');
+    expect(toggle.checked).toBe(false);
     confirmation.settle(false);
-    await cancelled;
+    await pending;
+    fixture.detectChanges();
+    expect(toggle.checked).toBe(false);
     expect(controls.setControl).not.toHaveBeenCalled();
     expect(page.alterSprintChecked()).toBe(false);
+  });
 
-    const accepted = page.onAlterControlToggle('sprint', true);
+  it('keeps the Release Management toggle off after cancelling confirmation', async () => {
+    const fixture = await renderWithPin();
+    fixture.detectChanges();
+    const controls = TestBed.inject(AlterControlsService);
+    const confirmation = TestBed.inject(ConfirmationService);
+
+    const { toggle, pending } = dispatchToggleChange(fixture, 'releaseManagement', true);
+    expect(confirmation.current()?.title).toBe('Enable Alter Release Management?');
+    expect(toggle.checked).toBe(false);
+    confirmation.settle(false);
+    await pending;
+    fixture.detectChanges();
+
+    expect(toggle.checked).toBe(false);
+    expect(controls.setControl).not.toHaveBeenCalled();
+  });
+
+  it('enables the Sprint toggle only after confirmation and a successful PATCH', async () => {
+    const fixture = await renderWithPin();
+    fixture.detectChanges();
+    const confirmation = TestBed.inject(ConfirmationService);
+    const expiry = '2026-10-14T08:30:00.000Z';
+    controlsMock.setControl.mockImplementationOnce(async () => {
+      controlsMock.alterSprintEnabled.set(true);
+      controlsMock.sprintActiveUntil.set(expiry);
+      return null;
+    });
+
+    const { toggle, pending } = dispatchToggleChange(fixture, 'sprint', true);
+    expect(toggle.checked).toBe(false);
     confirmation.settle(true);
-    await accepted;
-    expect(controls.setControl).toHaveBeenCalledWith('sprint', true);
+    await pending;
+    fixture.detectChanges();
+
+    expect(controlsMock.setControl).toHaveBeenCalledOnce();
+    expect(toggle.checked).toBe(true);
+  });
+
+  it('keeps an enabled Sprint toggle on until a successful disable PATCH', async () => {
+    const fixture = await prepareEnabledSprint();
+    let completePatch!: () => void;
+    controlsMock.setControl.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          completePatch = () => {
+            controlsMock.alterSprintEnabled.set(false);
+            controlsMock.sprintActiveUntil.set(null);
+            resolve(null);
+          };
+        }),
+    );
+
+    const { toggle, pending } = dispatchToggleChange(fixture, 'sprint', false);
+    expect(toggle.checked).toBe(true);
+    expect(controlsMock.setControl).toHaveBeenCalledWith('sprint', false);
+    completePatch();
+    await pending;
+    fixture.detectChanges();
+
+    expect(toggle.checked).toBe(false);
   });
 
   it('reconciles a failed enable to Sprint enabled and its backend expiry', async () => {
     const { fixture, page, confirmation } = await prepareFailedControlToggle(false, true);
 
-    const pending = page.onAlterControlToggle('sprint', true);
+    const { toggle, pending } = dispatchToggleChange(fixture, 'sprint', true);
+    expect(toggle.checked).toBe(false);
     confirmation.settle(true);
     await pending;
 
     fixture.detectChanges();
+    expect(toggle.checked).toBe(true);
     expect(page.alterSprintChecked()).toBe(true);
     expect(page.alterControls.sprintActiveUntil()).toBe('2026-10-14T08:30:00.000Z');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain(page.activeTill('2026-10-14T08:30:00.000Z'));
@@ -342,44 +439,58 @@ describe('SettingsPage', () => {
   });
 
   it('reconciles a failed enable to Sprint disabled', async () => {
-    const { page, confirmation } = await prepareFailedControlToggle(false, false);
+    const { fixture, page, confirmation } = await prepareFailedControlToggle(false, false);
 
-    const pending = page.onAlterControlToggle('sprint', true);
+    const { toggle, pending } = dispatchToggleChange(fixture, 'sprint', true);
+    expect(toggle.checked).toBe(false);
     confirmation.settle(true);
     await pending;
 
+    fixture.detectChanges();
+    expect(toggle.checked).toBe(false);
     expect(page.alterSprintChecked()).toBe(false);
     expect(controlsMock.setControl).toHaveBeenCalledOnce();
     expect(controlsMock.refreshFresh).toHaveBeenCalledOnce();
   });
 
   it('reconciles a failed disable to Sprint disabled', async () => {
-    const { page } = await prepareFailedControlToggle(true, false);
+    const { fixture, page } = await prepareFailedControlToggle(true, false);
 
-    await page.onAlterControlToggle('sprint', false);
+    const { toggle, pending } = dispatchToggleChange(fixture, 'sprint', false);
+    expect(toggle.checked).toBe(true);
+    await pending;
+    fixture.detectChanges();
 
+    expect(toggle.checked).toBe(false);
     expect(page.alterSprintChecked()).toBe(false);
     expect(controlsMock.setControl).toHaveBeenCalledOnce();
     expect(controlsMock.refreshFresh).toHaveBeenCalledOnce();
   });
 
   it('reconciles a failed disable to Sprint still enabled', async () => {
-    const { page } = await prepareFailedControlToggle(true, true);
+    const { fixture, page } = await prepareFailedControlToggle(true, true);
 
-    await page.onAlterControlToggle('sprint', false);
+    const { toggle, pending } = dispatchToggleChange(fixture, 'sprint', false);
+    expect(toggle.checked).toBe(true);
+    await pending;
+    fixture.detectChanges();
 
+    expect(toggle.checked).toBe(true);
     expect(page.alterSprintChecked()).toBe(true);
     expect(controlsMock.setControl).toHaveBeenCalledOnce();
     expect(controlsMock.refreshFresh).toHaveBeenCalledOnce();
   });
 
   it('retains the known state and reports when reconciliation also fails', async () => {
-    const { page } = await prepareFailedControlToggle(true, true, true);
+    const { fixture, page } = await prepareFailedControlToggle(true, true, true);
     const snackbar = TestBed.inject(SnackbarService);
     const error = vi.spyOn(snackbar, 'error');
 
-    await page.onAlterControlToggle('sprint', false);
+    const { toggle, pending } = dispatchToggleChange(fixture, 'sprint', false);
+    await pending;
+    fixture.detectChanges();
 
+    expect(toggle.checked).toBe(true);
     expect(page.alterSprintChecked()).toBe(true);
     expect(page.alterControls.sprintActiveUntil()).toBe('2026-10-14T08:30:00.000Z');
     expect(controlsMock.setControl).toHaveBeenCalledOnce();
