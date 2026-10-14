@@ -61,6 +61,7 @@ describe('AlterControlsService', () => {
     const disable = service.setControl('sprint', false);
     const disableRequest = http.expectOne(environment.apiBaseUrl + '/api/settings/alter-controls');
     expect(disableRequest.request.body).toEqual({ control: 'sprint', enabled: false });
+    expect(disableRequest.request.context.get(API_RETRY_SAFE_MUTATION)).toBe(false);
     disableRequest.flush({ data: state('2026-10-14T08:01:00.000Z', false, false) });
     await disable;
 

@@ -11,24 +11,32 @@ import { SessionManagementService } from '../../core/auth/session-management.ser
 import { SettingsPage } from './settings.page';
 import { AlterControlsService } from '../../core/management/alter-controls.service';
 import { ConfirmationService } from '../../core/notifications/confirmation.service';
+import { SnackbarService } from '../../core/notifications/snackbar.service';
+
+let controlsMock: ReturnType<typeof createControlsMock>;
+
+function createControlsMock() {
+  return {
+    refresh: vi.fn().mockResolvedValue(null),
+    setControl: vi.fn().mockResolvedValue(null),
+    loading: signal(false),
+    error: signal(''),
+    state: signal(null),
+    alterSprintEnabled: signal(false),
+    alterReleaseManagementEnabled: signal(false),
+    sprintActiveUntil: signal<string | null>(null),
+    releaseActiveUntil: signal<string | null>(null),
+  };
+}
 
 describe('SettingsPage', () => {
   beforeEach(() => {
+    controlsMock = createControlsMock();
     TestBed.configureTestingModule({
       providers: [
         {
           provide: AlterControlsService,
-          useValue: {
-            refresh: vi.fn().mockResolvedValue(null),
-            setControl: vi.fn().mockResolvedValue(null),
-            loading: signal(false),
-            error: signal(''),
-            state: signal(null),
-            alterSprintEnabled: signal(false),
-            alterReleaseManagementEnabled: signal(false),
-            sprintActiveUntil: signal(null),
-            releaseActiveUntil: signal(null),
-          },
+          useValue: controlsMock,
         },
       ],
     });
@@ -98,6 +106,30 @@ describe('SettingsPage', () => {
       ],
     }).compileComponents();
     return TestBed.createComponent(SettingsPage);
+  }
+
+  async function prepareFailedControlToggle(initialEnabled: boolean, backendEnabled: boolean, refreshFails = false) {
+    const fixture = await renderWithPin();
+    fixture.detectChanges();
+    const activeUntil = '2026-10-14T08:30:00.000Z';
+    controlsMock.alterSprintEnabled.set(initialEnabled);
+    controlsMock.sprintActiveUntil.set(initialEnabled ? activeUntil : null);
+    controlsMock.setControl.mockRejectedValueOnce(new Error('PATCH response lost'));
+    controlsMock.refresh.mockClear();
+    if (refreshFails) {
+      controlsMock.refresh.mockRejectedValueOnce(new Error('GET failed'));
+    } else {
+      controlsMock.refresh.mockImplementationOnce(async () => {
+        controlsMock.alterSprintEnabled.set(backendEnabled);
+        controlsMock.sprintActiveUntil.set(backendEnabled ? activeUntil : null);
+        return null;
+      });
+    }
+    return {
+      fixture,
+      page: fixture.componentInstance,
+      confirmation: TestBed.inject(ConfirmationService),
+    };
   }
 
   it('shows a fresh session with the actual same-day token expiry and no ceiling explanation', async () => {
@@ -291,6 +323,67 @@ describe('SettingsPage', () => {
     confirmation.settle(true);
     await accepted;
     expect(controls.setControl).toHaveBeenCalledWith('sprint', true);
+  });
+
+  it('reconciles a failed enable to Sprint enabled and its backend expiry', async () => {
+    const { fixture, page, confirmation } = await prepareFailedControlToggle(false, true);
+
+    const pending = page.onAlterControlToggle('sprint', true);
+    confirmation.settle(true);
+    await pending;
+
+    fixture.detectChanges();
+    expect(page.alterSprintChecked()).toBe(true);
+    expect(page.alterControls.sprintActiveUntil()).toBe('2026-10-14T08:30:00.000Z');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(page.activeTill('2026-10-14T08:30:00.000Z'));
+    expect(controlsMock.setControl).toHaveBeenCalledOnce();
+    expect(controlsMock.refresh).toHaveBeenCalledOnce();
+  });
+
+  it('reconciles a failed enable to Sprint disabled', async () => {
+    const { page, confirmation } = await prepareFailedControlToggle(false, false);
+
+    const pending = page.onAlterControlToggle('sprint', true);
+    confirmation.settle(true);
+    await pending;
+
+    expect(page.alterSprintChecked()).toBe(false);
+    expect(controlsMock.setControl).toHaveBeenCalledOnce();
+    expect(controlsMock.refresh).toHaveBeenCalledOnce();
+  });
+
+  it('reconciles a failed disable to Sprint disabled', async () => {
+    const { page } = await prepareFailedControlToggle(true, false);
+
+    await page.onAlterControlToggle('sprint', false);
+
+    expect(page.alterSprintChecked()).toBe(false);
+    expect(controlsMock.setControl).toHaveBeenCalledOnce();
+    expect(controlsMock.refresh).toHaveBeenCalledOnce();
+  });
+
+  it('reconciles a failed disable to Sprint still enabled', async () => {
+    const { page } = await prepareFailedControlToggle(true, true);
+
+    await page.onAlterControlToggle('sprint', false);
+
+    expect(page.alterSprintChecked()).toBe(true);
+    expect(controlsMock.setControl).toHaveBeenCalledOnce();
+    expect(controlsMock.refresh).toHaveBeenCalledOnce();
+  });
+
+  it('retains the known state and reports when reconciliation also fails', async () => {
+    const { page } = await prepareFailedControlToggle(true, true, true);
+    const snackbar = TestBed.inject(SnackbarService);
+    const error = vi.spyOn(snackbar, 'error');
+
+    await page.onAlterControlToggle('sprint', false);
+
+    expect(page.alterSprintChecked()).toBe(true);
+    expect(page.alterControls.sprintActiveUntil()).toBe('2026-10-14T08:30:00.000Z');
+    expect(controlsMock.setControl).toHaveBeenCalledOnce();
+    expect(controlsMock.refresh).toHaveBeenCalledOnce();
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('Unable to confirm the current managed-control state'));
   });
 
   it('does not request active sessions until the user explicitly opens the modal', async () => {

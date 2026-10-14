@@ -455,12 +455,14 @@ export class SettingsPage {
           : `${control === 'sprint' ? 'Alter Sprint' : 'Alter Release Management'} disabled.`,
       );
     } catch {
+      try {
+        await this.alterControls.refresh();
+      } catch {
+        this.controlRevision.update(value => value + 1);
+        this.snackbar.error('Unable to confirm the current managed-control state.');
+        return;
+      }
       this.controlRevision.update(value => value + 1);
-      this.snackbar.error(
-        `Unable to ${checked ? 'enable' : 'disable'} ${
-          control === 'sprint' ? 'Alter Sprint' : 'Alter Release Management'
-        }.`,
-      );
     } finally {
       this.controlBusy.set(null);
     }
