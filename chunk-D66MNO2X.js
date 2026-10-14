@@ -1,1 +1,0 @@
-import {S as T}from'./main-B3KAFCW5.js';var t=T("Browser",{web:()=>import('./chunk-B8UpZ2IA.js').then(e=>new e.BrowserWeb)});export{t as Browser};
