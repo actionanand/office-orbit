@@ -1,0 +1,1 @@
+import {b}from'./chunk-e-G4m8tr.js';import {E}from'./chunk-DsdCG1PB.js';import {a as a$1}from'./chunk-_5EwL4sb.js';import'./chunk-D8jL99TL.js';import'./chunk-HI2FBYPY.js';import'./chunk-DCn8C8Gc.js';import'./main-277PBN6U.js';var a=[{path:"",providers:[b,E,{provide:a$1,useExisting:b}],loadComponent:()=>import('./chunk-BOSE1-mn.js').then(i=>i.ResourcePage)}];export{a as routes};
