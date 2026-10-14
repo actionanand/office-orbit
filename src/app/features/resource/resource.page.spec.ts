@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { ReadFeatureService } from '../../core/api/read-feature.service';
 import { LinksService } from '../../core/platform/links.service';
@@ -20,6 +20,75 @@ import { ReleaseService } from '../releases/releases.service';
 import { AlterControlsService } from '../../core/management/alter-controls.service';
 
 const route = { snapshot: { queryParamMap: convertToParamMap({}) } };
+
+const sprintPlannerDetail: SprintDetailResponse = {
+  sprint: {
+    id: 'sprint-1',
+    sprint: 'Sprint 8',
+    active: true,
+    startDate: null,
+    endDate: null,
+    weekOff1: null,
+    weekOff2: null,
+    plannedLeaveDays: 0,
+    holidayDays: 0,
+    capacityDays: 10,
+    availableDays: 8,
+    allocatedDays: 0,
+    remainingDays: 8,
+    projectIds: [],
+    allocationIds: [],
+  },
+  jiras: [],
+  count: 0,
+};
+
+async function configureSprintResourcePage(queryParams: Record<string, string> = {}) {
+  const sprintRoute = { snapshot: { queryParamMap: convertToParamMap(queryParams) } };
+  const syncCurrentSprintAllocations = vi.fn(() =>
+    of({
+      data: {
+        sprint: sprintPlannerDetail.sprint,
+        created: 0,
+        existing: 0,
+        conflicts: [],
+        sprintDetail: sprintPlannerDetail,
+      },
+    }),
+  );
+  await TestBed.configureTestingModule({
+    imports: [ResourcePage],
+    providers: [
+      provideHttpClient(),
+      provideRouter([]),
+      { provide: ActivatedRoute, useValue: sprintRoute },
+      { provide: LinksService, useValue: { open: vi.fn() } },
+      {
+        provide: ReadFeatureService,
+        useValue: {
+          heading: 'Sprints',
+          description: '',
+          kind: 'sprints',
+          views: [
+            { label: 'Active', path: '/api/sprints/active' },
+            { label: 'History', path: '/api/sprints/history' },
+            { label: 'Current Allocations', path: '/api/sprint-allocations/current' },
+            { label: 'All Allocations', path: '/api/sprint-allocations' },
+            { label: 'All', path: '/api/sprints' },
+          ],
+          list: () => of({ data: [], count: 0, hasMore: false, nextCursor: null }),
+          syncCurrentSprintAllocations,
+          updatedAt: () => Date.now(),
+        },
+      },
+    ],
+  }).compileComponents();
+  const router = TestBed.inject(Router);
+  const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+  const fixture = TestBed.createComponent(ResourcePage);
+  fixture.detectChanges();
+  return { fixture, navigate, page: fixture.componentInstance, sprintRoute, syncCurrentSprintAllocations };
+}
 
 describe('ResourcePage presentation', () => {
   beforeEach(() =>
@@ -605,6 +674,48 @@ describe('ResourcePage presentation', () => {
     await page.openBandwidthPlanner();
     expect(syncCurrentSprintAllocations).toHaveBeenCalledTimes(1);
     expect(page.bandwidthPlannerDetail()).toBe(detail);
+  });
+
+  it('consumes the Sprint planner shortcut once and synchronizes later Sprint tab selections to the URL', async () => {
+    const { fixture, navigate, page, sprintRoute, syncCurrentSprintAllocations } = await configureSprintResourcePage({
+      view: 'current-allocations',
+      plan: 'true',
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(page.selected()).toBe('/api/sprint-allocations/current');
+    expect(syncCurrentSprintAllocations).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith([], {
+      relativeTo: sprintRoute,
+      queryParams: { plan: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+
+    page.closeBandwidthPlanner();
+    fixture.detectChanges();
+    page.select('/api/sprints/active');
+    expect(page.selected()).toBe('/api/sprints/active');
+    expect(navigate).toHaveBeenLastCalledWith([], {
+      relativeTo: sprintRoute,
+      queryParams: { view: 'active', plan: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+
+    page.select('/api/sprint-allocations/current');
+    expect(syncCurrentSprintAllocations).toHaveBeenCalledTimes(1);
+    expect(page.bandwidthPlannerDetail()).toBeNull();
+  });
+
+  it('initializes the Active Sprint view from its query parameter without opening the planner', async () => {
+    const { page, syncCurrentSprintAllocations } = await configureSprintResourcePage({ view: 'active' });
+    await Promise.resolve();
+
+    expect(page.selected()).toBe('/api/sprints/active');
+    expect(syncCurrentSprintAllocations).not.toHaveBeenCalled();
+    expect(page.bandwidthPlannerDetail()).toBeNull();
   });
 
   it('shows Feedback Work Type and never renders a Project relation', async () => {

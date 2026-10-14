@@ -1194,10 +1194,13 @@ export class ResourcePage {
       this.selected.set(value);
       this.search.set('');
       this.saveNavigationState();
-      if (this.feature.kind === 'jiras')
+      if (this.feature.kind === 'jiras' || this.feature.kind === 'sprints')
         void this.router.navigate([], {
           relativeTo: this.route,
-          queryParams: { view: this.viewToken(this.feature.views.find(view => view.path === value)?.label ?? '') },
+          queryParams: {
+            view: this.viewToken(this.feature.views.find(view => view.path === value)?.label ?? ''),
+            ...(this.feature.kind === 'sprints' ? { plan: null } : {}),
+          },
           queryParamsHandling: 'merge',
           replaceUrl: true,
         });
