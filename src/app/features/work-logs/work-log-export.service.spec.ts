@@ -66,14 +66,16 @@ describe('Work Log reports', () => {
         [
           workLogFixture('private-id', {
             update: '<b>Review</b>',
-            comment: 'Selected comment',
+            comment: 'Selected comment <script>alert(1)</script>',
             wentWrong: 'Omitted content',
           }),
         ],
         options,
       ),
     );
-    expect(html).toContain('&lt;b&gt;Review&lt;/b&gt;');
+    expect(html).toContain('<h3>Review</h3>');
+    expect(html).not.toContain('<b>Review</b>');
+    expect(html).not.toContain('<script>');
     expect(html).toContain('Selected comment');
     for (const hidden of [
       'private-id',

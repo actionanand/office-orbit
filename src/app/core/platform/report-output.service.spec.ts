@@ -31,7 +31,7 @@ describe('Report output platform boundary', () => {
       sections: { rows: { cells: string[] }[] }[];
     };
     expect(payload.sections[0].rows[0].cells[0]).toContain('Review');
-    expect(atob(native.exportPdf.mock.calls[0][0].pdfBase64!)).toContain('WORK LOG');
+    expect(atob(native.exportPdf.mock.calls[0][0].pdfBase64!)).toContain('ACTIVITY REPORT');
     expect(atob(native.exportPdf.mock.calls[0][0].pdfBase64!)).toContain('/Subtype /Link');
   });
   it('downloads a real PDF Blob with the selected filename on Web', async () => {

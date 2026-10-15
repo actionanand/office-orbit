@@ -42,7 +42,7 @@ describe('MarkdownInputComponent', () => {
     fixture.detectChanges();
     expect(control.value).toBe(initial.slice(0, position) + ' updated' + initial.slice(position));
     expect(control.dirty).toBe(true);
-    expect(textarea.selectionStart).toBe(position + 8);
+    expect(textarea.selectionStart).toBe(Math.min(position, initial.length) + 8);
     textarea.dispatchEvent(new Event('blur'));
     expect(control.touched).toBe(true);
   });

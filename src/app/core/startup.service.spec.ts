@@ -7,10 +7,17 @@ import { BiometricService } from './platform/biometric.service';
 import { ThemeService } from './theme/theme.service';
 import { Router } from '@angular/router';
 import { signal } from '@angular/core';
-import { App } from '@capacitor/app';
+import { App, type StateChangeListener } from '@capacitor/app';
+import type { PluginListenerHandle } from '@capacitor/core';
+
+interface AppStateChangeRegistrar {
+  addListener(eventName: 'appStateChange', listener: StateChangeListener): Promise<PluginListenerHandle>;
+}
+
 vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn() } }));
 describe('deterministic startup', () => {
   const verified = signal(false);
+  const platform = { android: false };
   const auth = {
     restore: vi.fn().mockResolvedValue(undefined),
     installActivityTracking: vi.fn(),
@@ -32,11 +39,12 @@ describe('deterministic startup', () => {
     auth.restore.mockResolvedValue(undefined);
     auth.state.valid.mockReturnValue(true);
     lock.recovery.mockReturnValue(false);
+    platform.android = false;
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: auth },
         { provide: AppLockService, useValue: lock },
-        { provide: PlatformService, useValue: { android: false } },
+        { provide: PlatformService, useValue: platform },
         { provide: BiometricService, useValue: { prompting: vi.fn(() => false) } },
         { provide: ThemeService, useValue: {} },
         { provide: Router, useValue: {} },
@@ -94,19 +102,24 @@ describe('deterministic startup', () => {
     expect(startup.phase()).toBe('ready');
   });
   describe('Android resume behavior', () => {
+    let onAppStateChange: StateChangeListener | undefined;
+
     beforeEach(() => {
-      vi.mocked(App.addListener).mockResolvedValue({ remove: async () => undefined });
-      TestBed.overrideProvider(PlatformService, { useValue: { android: true } });
+      onAppStateChange = undefined;
+      platform.android = true;
+      const app: AppStateChangeRegistrar = App;
+      app.addListener = (_eventName, listener) => {
+        onAppStateChange = listener;
+        return Promise.resolve({ remove: async () => undefined });
+      };
     });
     it('does not sign out on resume when there was never a session', async () => {
       auth.state.valid.mockReturnValue(false);
       auth.state.session.mockReturnValue(null);
       const startup = TestBed.inject(StartupService);
       await startup.start();
-      const onStateChange = vi.mocked(App.addListener).mock.calls[0][1] as unknown as (state: {
-        isActive: boolean;
-      }) => void;
-      onStateChange({ isActive: true });
+      expect(onAppStateChange).toBeDefined();
+      onAppStateChange!({ isActive: true });
       expect(auth.signOut).not.toHaveBeenCalled();
     });
     it('signs out on resume when a previously valid session has expired', async () => {
@@ -114,10 +127,8 @@ describe('deterministic startup', () => {
       auth.state.session.mockReturnValue({ accessToken: 'stale' });
       const startup = TestBed.inject(StartupService);
       await startup.start();
-      const onStateChange = vi.mocked(App.addListener).mock.calls[0][1] as unknown as (state: {
-        isActive: boolean;
-      }) => void;
-      onStateChange({ isActive: true });
+      expect(onAppStateChange).toBeDefined();
+      onAppStateChange!({ isActive: true });
       expect(auth.signOut).toHaveBeenCalledOnce();
     });
   });

@@ -103,7 +103,12 @@ describe('ProductivityEditorComponent rich text fields', () => {
     fixture.componentRef.setInput('kind', kind);
     fixture.componentRef.setInput('open', true);
     fixture.detectChanges();
+    (fixture.nativeElement as HTMLElement).querySelector('ion-modal')!.dispatchEvent(new Event('ionMount'));
+    fixture.detectChanges();
+    await fixture.whenStable();
     await fixture.componentInstance.load();
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
     return fixture;
   }

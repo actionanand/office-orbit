@@ -315,7 +315,7 @@ describe('JiraDetailPage', () => {
     const blob = await reportPdf(report);
     expect(blob.type).toBe('application/pdf');
     expect(await blob.text()).toContain('%PDF-1.4');
-    expect(await blob.text()).toContain('JIRA Detail');
+    expect(await blob.text()).toContain('JIRA DETAIL REPORT');
     expect(jiraPdfFilename('../CRI/123')).toBe('office-orbit-jira----CRI-123.pdf');
   });
 
