@@ -134,7 +134,7 @@ import { AnalyticsService } from './analytics.service';
                 <strong>Spill trend</strong
                 ><span
                   >{{ trend.direction === 'improving' ? '↓' : trend.direction === 'worsening' ? '↑' : '→' }}
-                  {{ percent(absolute(trend.changePercentagePoints)) }} percentage points</span
+                  {{ trendChange(trend.changePercentagePoints) }}</span
                 ><b>{{
                   trend.direction === 'improving'
                     ? 'Improving'
@@ -235,8 +235,14 @@ export class AnalyticsPage {
     addIcons({ refreshOutline });
     void this.load();
   }
+  decimal(value: number): string {
+    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
+  }
   percent(value: number): string {
-    return `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)}%`;
+    return `${this.decimal(value)}%`;
+  }
+  trendChange(value: number): string {
+    return `${this.decimal(this.absolute(value))} percentage points`;
   }
   absolute(value: number): number {
     return Math.abs(value);

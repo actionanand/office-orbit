@@ -79,4 +79,27 @@ describe('AnalyticsPage', () => {
     expect(page.data()).toBe(retainedResponse);
     expect(page.error()).toBe('Historical analytics is temporarily unavailable. Please retry.');
   });
+
+  it('displays spill trend changes as percentage points without a percent suffix', async () => {
+    const load = vi.fn(() => of(response()));
+    TestBed.configureTestingModule({
+      imports: [AnalyticsPage],
+      providers: [{ provide: AnalyticsService, useValue: { load } }],
+    });
+    const fixture = TestBed.createComponent(AnalyticsPage);
+    await Promise.resolve();
+    fixture.componentInstance.data.set({
+      ...response(),
+      spillTrend: {
+        firstSprintRate: 37.5,
+        latestSprintRate: 25,
+        changePercentagePoints: -12.5,
+        direction: 'improving',
+      },
+    });
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent;
+    expect(text).toContain('↓ 12.5 percentage points');
+    expect(text).not.toContain('12.5% percentage points');
+  });
 });

@@ -24,7 +24,7 @@ import {
   Tooltip,
   TooltipItem,
 } from 'chart.js';
-import { AnalyticsChartModel } from './analytics-chart.models';
+import { AnalyticsChartModel, AnalyticsChartTooltipLine } from './analytics-chart.models';
 
 Chart.register(
   LineController,
@@ -55,8 +55,8 @@ Chart.register(
         <thead>
           <tr>
             <th scope="col">Item</th>
-            @for (dataset of model().datasets; track dataset.label) {
-              <th scope="col">{{ dataset.label }}</th>
+            @for (column of model().tableColumns; track column.label) {
+              <th scope="col">{{ column.label }}</th>
             }
           </tr>
         </thead>
@@ -64,8 +64,8 @@ Chart.register(
           @for (row of model().rows; track row.label) {
             <tr>
               <th scope="row">{{ row.label }}</th>
-              @for (value of row.values; track value.label) {
-                <td>{{ formatChartValue(value.value, value.suffix) }}</td>
+              @for (column of model().tableColumns; track column.label; let columnIndex = $index) {
+                <td>{{ formatChartValue(row.values[columnIndex], column.suffix) }}</td>
               }
             </tr>
           }
@@ -141,7 +141,13 @@ export class AnalyticsChartComponent implements AfterViewInit, OnDestroy {
         indexAxis: model.horizontal ? 'y' : 'x',
         plugins: {
           legend: { display: model.datasets.length > 1, labels: { color: text } },
-          tooltip: { callbacks: { label: context => this.tooltipLabel(context, model) } },
+          tooltip: {
+            callbacks: {
+              title: contexts => this.tooltipTitle(contexts, model),
+              label: context => this.tooltipLabel(context, model),
+              afterBody: contexts => this.tooltipDetails(contexts, model),
+            },
+          },
         },
         scales: {
           x: {
@@ -166,10 +172,28 @@ export class AnalyticsChartComponent implements AfterViewInit, OnDestroy {
     this.chart = new Chart<'line' | 'bar', number[], string>(canvas, configuration);
   }
 
-  private tooltipLabel(context: TooltipItem<'line' | 'bar'>, model: AnalyticsChartModel): string {
+  private tooltipTitle(contexts: TooltipItem<'line' | 'bar'>[], model: AnalyticsChartModel): string {
+    const context = contexts[0];
+    if (!context) return '';
+    return model.tooltipItems?.[context.dataIndex]?.title ?? context.label;
+  }
+
+  private tooltipLabel(context: TooltipItem<'line' | 'bar'>, model: AnalyticsChartModel): string | string[] {
+    if (model.tooltipItems?.[context.dataIndex]?.lines?.length) return [];
     const parsedValue = model.horizontal ? context.parsed.x : context.parsed.y;
     const value = typeof parsedValue === 'number' ? parsedValue : 0;
     return `${context.dataset.label}: ${this.formatChartValue(value, model.percentage ? '%' : '')}`;
+  }
+
+  private tooltipDetails(contexts: TooltipItem<'line' | 'bar'>[], model: AnalyticsChartModel): string[] {
+    const context = contexts[0];
+    if (!context) return [];
+    return (model.tooltipItems?.[context.dataIndex]?.lines ?? []).map(line => this.formatTooltipLine(line));
+  }
+
+  private formatTooltipLine(line: AnalyticsChartTooltipLine): string {
+    const value = typeof line.value === 'number' ? this.formatChartValue(line.value, line.suffix) : line.value;
+    return `${line.label}: ${value}`;
   }
 
   private formatTick(value: string | number, percentage: boolean): string {
