@@ -161,7 +161,7 @@ export function validateMarkdownFile(file: File | null): string {
         @if (file(); as selectedFile) {
           <section class="import-panel reference-import-form" aria-labelledby="import-heading">
             <div class="import-heading-row">
-              <div>
+              <div class="import-file-details">
                 <strong id="import-heading">Import Markdown</strong>
                 <span>{{ selectedFile.name }} · {{ fileSize(selectedFile.size) }}</span>
               </div>
@@ -201,7 +201,7 @@ export function validateMarkdownFile(file: File | null): string {
                 }
               </ion-select>
             </div>
-            <div class="editor-actions">
+            <div class="reference-import-actions">
               <ion-button fill="clear" [disabled]="importing()" (click)="clearFile()">Cancel</ion-button>
               <ion-button [disabled]="importing()" (click)="upload()">
                 <ion-icon name="cloud-upload-outline" slot="start" />{{ importStatus() || 'Import' }}

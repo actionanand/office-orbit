@@ -3249,7 +3249,6 @@ ion-popover.work-link-popover {
   max-width: none;
 }
 .selection-toolbar,
-.import-panel,
 .markdown-heading,
 .productivity-row-heading {
   display: flex;
@@ -3442,11 +3441,41 @@ ion-popover.work-link-popover {
 }
 .import-heading-row {
   justify-content: space-between;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+.import-file-details {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.import-file-details span {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.import-heading-row ion-button {
+  flex: 0 0 auto;
+  margin: 0;
 }
 .reference-import-fields {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+.reference-import-fields ion-input,
+.reference-import-fields ion-select {
+  min-width: 0;
+  margin: 0;
+}
+.reference-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.reference-import-actions ion-button {
+  margin: 0;
 }
 .reference-group {
   margin-top: 24px;
@@ -3474,14 +3503,6 @@ ion-popover.work-link-popover {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface-soft);
-}
-.import-panel > div {
-  display: grid;
-  gap: 2px;
-}
-.import-panel > div span {
-  color: var(--muted);
-  font-size: 0.74rem;
 }
 .visually-hidden-file {
   position: absolute;
@@ -4091,8 +4112,7 @@ ion-popover.work-link-popover {
     display: none;
   }
   .productivity-row-heading,
-  .markdown-heading,
-  .import-panel {
+  .markdown-heading {
     align-items: flex-start;
     flex-direction: column;
   }
