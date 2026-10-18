@@ -1,0 +1,1 @@
+import {Q as T}from'./main-NFBZCFMD.js';var t=T("Browser",{web:()=>import('./chunk-dTan9kcb.js').then(e=>new e.BrowserWeb)});export{t as Browser};
